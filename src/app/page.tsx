@@ -8,6 +8,33 @@ import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/products/ProductCard";
 import LocaleText from "@/components/layout/LocaleText";
 
+const heroBackground =
+  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80";
+
+export default function HomePage() {
+  const newDrops = products.filter((product) => product.isNewDrop).slice(0, 6);
+  const categories = [
+    { name: "Snapbacks", image: products[0].images[0] },
+    { name: "Fitted", image: products[1].images[0] },
+    { name: "Beanies", image: products[3].images[0] },
+    { name: "Packs", image: products[5].images[0] },
+  ];
+
+  return (
+    <div>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0">
+          <Image
+            src={heroBackground}
+            alt="Cinematic city street background"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-lucky-darker" />
+          <div className="absolute inset-0 bg-hero-gradient opacity-80" />
+        </div>
+        <div className="relative mx-auto flex max-w-7xl flex-col gap-10 px-4 py-20 md:px-8 lg:flex-row lg:items-center">
 const categories = [
   { name: "Snapbacks", image: "/products/cap-01.svg" },
   { name: "Fitted", image: "/products/cap-02.svg" },
@@ -185,6 +212,8 @@ export default function HomePage() {
               className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-white/5"
             >
               <Image
+                src={products[index % products.length].images[0]}
+                alt="Lucky Caps social gallery"
                 src={`/products/cap-0${(index % 6) + 1}.svg`}
                 alt="Lucky Caps social placeholder"
                 fill

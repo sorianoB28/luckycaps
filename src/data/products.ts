@@ -1,11 +1,66 @@
 import { Product } from "@/types";
 
+const imageSet = {
+  noir: [
+    "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
+  ],
+  emerald: [
+    "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1483118714900-540cf339fd46?auto=format&fit=crop&w=900&q=80",
+  ],
+  trucker: [
+    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80",
+  ],
+  beanie: [
+    "https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80",
+  ],
+  curve: [
+    "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+  ],
+  pack: [
+    "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80",
+  ],
+  studio: [
+    "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
+  ],
+  rope: [
+    "https://images.unsplash.com/photo-1483118714900-540cf339fd46?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80",
+  ],
+  graphite: [
+    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80",
+  ],
+  signal: [
+    "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&w=900&q=80",
+  ],
+  founder: [
+    "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
+  ],
+  cityline: [
+    "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80",
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+  ],
+};
+
 export const products: Product[] = [
   {
     id: "cap-001",
     slug: "lucky-noir-snapback",
     name: "Lucky Noir Snapback",
     price: 58,
+    images: imageSet.noir,
     images: [
       "/products/cap-01.svg",
       "/products/cap-02.svg",
@@ -31,6 +86,7 @@ export const products: Product[] = [
     slug: "emerald-crest-fitted",
     name: "Emerald Crest Fitted",
     price: 64,
+    images: imageSet.emerald,
     images: [
       "/products/cap-02.svg",
       "/products/cap-04.svg",
@@ -52,6 +108,7 @@ export const products: Product[] = [
     slug: "midnight-trucker",
     name: "Midnight Trucker",
     price: 52,
+    images: imageSet.trucker,
     images: [
       "/products/cap-03.svg",
       "/products/cap-06.svg",
@@ -73,6 +130,7 @@ export const products: Product[] = [
     slug: "shadow-beanie",
     name: "Shadow Beanie",
     price: 38,
+    images: imageSet.beanie,
     images: ["/products/cap-04.svg", "/products/cap-08.svg"],
     category: "Beanies",
     tags: ["Essential"],
@@ -90,6 +148,7 @@ export const products: Product[] = [
     slug: "fortune-curve",
     name: "Fortune Curve",
     price: 54,
+    images: imageSet.curve,
     images: [
       "/products/cap-05.svg",
       "/products/cap-09.svg",
@@ -111,6 +170,7 @@ export const products: Product[] = [
     slug: "lucky-ivy-pack",
     name: "Lucky Ivy Pack",
     price: 86,
+    images: imageSet.pack,
     images: ["/products/cap-06.svg", "/products/cap-11.svg"],
     category: "Entrepreneur Packs",
     tags: ["Pack", "Limited"],
@@ -128,6 +188,7 @@ export const products: Product[] = [
     slug: "halo-stitched",
     name: "Halo Stitched",
     price: 60,
+    images: imageSet.studio,
     images: ["/products/cap-07.svg", "/products/cap-12.svg"],
     category: "Custom Lab",
     tags: ["Custom"],
@@ -145,6 +206,7 @@ export const products: Product[] = [
     slug: "afterhours-rope",
     name: "Afterhours Rope",
     price: 56,
+    images: imageSet.rope,
     images: ["/products/cap-08.svg", "/products/cap-01.svg"],
     category: "Snapbacks",
     tags: ["Rope"],
@@ -162,6 +224,7 @@ export const products: Product[] = [
     slug: "studio-graphite",
     name: "Studio Graphite",
     price: 62,
+    images: imageSet.graphite,
     images: ["/products/cap-09.svg", "/products/cap-05.svg"],
     category: "Fitted",
     tags: ["Premium"],
@@ -179,6 +242,7 @@ export const products: Product[] = [
     slug: "signal-green",
     name: "Signal Green",
     price: 48,
+    images: imageSet.signal,
     images: ["/products/cap-10.svg", "/products/cap-02.svg"],
     category: "Beanies",
     tags: ["Essential"],
@@ -196,6 +260,7 @@ export const products: Product[] = [
     slug: "founder-01",
     name: "Founder 01",
     price: 72,
+    images: imageSet.founder,
     images: ["/products/cap-11.svg", "/products/cap-03.svg"],
     category: "Entrepreneur Packs",
     tags: ["Pack", "Limited"],
@@ -213,6 +278,7 @@ export const products: Product[] = [
     slug: "cityline-curve",
     name: "Cityline Curve",
     price: 50,
+    images: imageSet.cityline,
     images: ["/products/cap-12.svg", "/products/cap-06.svg"],
     category: "Snapbacks",
     tags: ["Curved"],

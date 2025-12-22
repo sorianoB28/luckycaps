@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { ShoppingBag, Globe, Menu } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ShoppingBag, Globe, Menu } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -21,6 +24,20 @@ export default function Header() {
   const { toggleLanguage, language, cartOpen, setCartOpen } = useUIStore();
   const items = useCartStore((state) => state.items);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const previousCount = useRef<number | null>(null);
+  const prefersReducedMotion = useReducedMotion();
+  const [cartPulseKey, setCartPulseKey] = useState(0);
+
+  useEffect(() => {
+    if (previousCount.current === null) {
+      previousCount.current = itemCount;
+      return;
+    }
+    if (itemCount > previousCount.current && !prefersReducedMotion) {
+      setCartPulseKey((prev) => prev + 1);
+    }
+    previousCount.current = itemCount;
+  }, [itemCount, prefersReducedMotion]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-lucky-dark/80 backdrop-blur-xl">
@@ -64,6 +81,38 @@ export default function Header() {
             <Globe className="h-5 w-5" />
           </Button>
 
+          <motion.div
+            key={cartPulseKey}
+            animate={
+              prefersReducedMotion
+                ? undefined
+                : {
+                    scale: [1, 1.08, 1],
+                    boxShadow: [
+                      "0 0 0 rgba(0,0,0,0)",
+                      "0 0 18px rgba(0, 157, 0, 0.45)",
+                      "0 0 0 rgba(0,0,0,0)",
+                    ],
+                  }
+            }
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="rounded-full"
+          >
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCartOpen(true)}
+              aria-label="Open cart"
+              className="relative"
+            >
+              <ShoppingBag className="h-5 w-5" />
+              {itemCount > 0 ? (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-lucky-green text-[10px] font-bold text-lucky-darker">
+                  {itemCount}
+                </span>
+              ) : null}
+            </Button>
+          </motion.div>
           <Button
             variant="outline"
             size="icon"
