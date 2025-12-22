@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-lucky-darker text-white font-body antialiased;
+}
+
+* {
+  @apply border-white/10;
+}
+
+.section-heading {
+  @apply text-sm uppercase tracking-[0.35em] text-white/60;
+}
+
+.glass-panel {
+  @apply bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-lg;
+}
