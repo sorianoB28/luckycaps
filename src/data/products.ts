@@ -61,6 +61,11 @@ export const products: Product[] = [
     name: "Lucky Noir Snapback",
     price: 58,
     images: imageSet.noir,
+    images: [
+      "/products/cap-01.svg",
+      "/products/cap-02.svg",
+      "/products/cap-03.svg",
+    ],
     category: "Snapbacks",
     tags: ["Premium", "Embroidered"],
     description:
@@ -82,6 +87,11 @@ export const products: Product[] = [
     name: "Emerald Crest Fitted",
     price: 64,
     images: imageSet.emerald,
+    images: [
+      "/products/cap-02.svg",
+      "/products/cap-04.svg",
+      "/products/cap-05.svg",
+    ],
     category: "Fitted",
     tags: ["Limited"],
     description:
@@ -99,6 +109,11 @@ export const products: Product[] = [
     name: "Midnight Trucker",
     price: 52,
     images: imageSet.trucker,
+    images: [
+      "/products/cap-03.svg",
+      "/products/cap-06.svg",
+      "/products/cap-07.svg",
+    ],
     category: "Trucker",
     tags: ["Breathable"],
     description:
@@ -116,6 +131,7 @@ export const products: Product[] = [
     name: "Shadow Beanie",
     price: 38,
     images: imageSet.beanie,
+    images: ["/products/cap-04.svg", "/products/cap-08.svg"],
     category: "Beanies",
     tags: ["Essential"],
     description:
@@ -133,6 +149,11 @@ export const products: Product[] = [
     name: "Fortune Curve",
     price: 54,
     images: imageSet.curve,
+    images: [
+      "/products/cap-05.svg",
+      "/products/cap-09.svg",
+      "/products/cap-10.svg",
+    ],
     category: "Snapbacks",
     tags: ["Curved"],
     description:
@@ -150,6 +171,7 @@ export const products: Product[] = [
     name: "Lucky Ivy Pack",
     price: 86,
     images: imageSet.pack,
+    images: ["/products/cap-06.svg", "/products/cap-11.svg"],
     category: "Entrepreneur Packs",
     tags: ["Pack", "Limited"],
     description:
@@ -167,6 +189,7 @@ export const products: Product[] = [
     name: "Halo Stitched",
     price: 60,
     images: imageSet.studio,
+    images: ["/products/cap-07.svg", "/products/cap-12.svg"],
     category: "Custom Lab",
     tags: ["Custom"],
     description:
@@ -184,6 +207,7 @@ export const products: Product[] = [
     name: "Afterhours Rope",
     price: 56,
     images: imageSet.rope,
+    images: ["/products/cap-08.svg", "/products/cap-01.svg"],
     category: "Snapbacks",
     tags: ["Rope"],
     description:
@@ -201,6 +225,7 @@ export const products: Product[] = [
     name: "Studio Graphite",
     price: 62,
     images: imageSet.graphite,
+    images: ["/products/cap-09.svg", "/products/cap-05.svg"],
     category: "Fitted",
     tags: ["Premium"],
     description:
@@ -218,6 +243,7 @@ export const products: Product[] = [
     name: "Signal Green",
     price: 48,
     images: imageSet.signal,
+    images: ["/products/cap-10.svg", "/products/cap-02.svg"],
     category: "Beanies",
     tags: ["Essential"],
     description:
@@ -235,6 +261,7 @@ export const products: Product[] = [
     name: "Founder 01",
     price: 72,
     images: imageSet.founder,
+    images: ["/products/cap-11.svg", "/products/cap-03.svg"],
     category: "Entrepreneur Packs",
     tags: ["Pack", "Limited"],
     description:
@@ -252,6 +279,7 @@ export const products: Product[] = [
     name: "Cityline Curve",
     price: 50,
     images: imageSet.cityline,
+    images: ["/products/cap-12.svg", "/products/cap-06.svg"],
     category: "Snapbacks",
     tags: ["Curved"],
     description:
