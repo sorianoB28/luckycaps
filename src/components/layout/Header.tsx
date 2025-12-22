@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ShoppingBag, Globe, Menu } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ShoppingBag, Globe, Menu } from "lucide-react";
-import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -23,7 +21,9 @@ const navLinks = [
 export default function Header() {
   const { toggleLanguage, language, cartOpen, setCartOpen } = useUIStore();
   const items = useCartStore((state) => state.items);
+
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
   const previousCount = useRef<number | null>(null);
   const prefersReducedMotion = useReducedMotion();
   const [cartPulseKey, setCartPulseKey] = useState(0);
@@ -33,9 +33,11 @@ export default function Header() {
       previousCount.current = itemCount;
       return;
     }
+
     if (itemCount > previousCount.current && !prefersReducedMotion) {
       setCartPulseKey((prev) => prev + 1);
     }
+
     previousCount.current = itemCount;
   }, [itemCount, prefersReducedMotion]);
 
@@ -44,7 +46,7 @@ export default function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
         <Link href="/" className="flex items-center gap-2">
           <motion.div
-            className="h-10 w-10 rounded-full bg-lucky-green/20 text-lucky-green flex items-center justify-center font-display text-xl"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-lucky-green/20 font-display text-xl text-lucky-green"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.4 }}
@@ -81,6 +83,7 @@ export default function Header() {
             <Globe className="h-5 w-5" />
           </Button>
 
+          {/* Cart button with pulse animation when count increases */}
           <motion.div
             key={cartPulseKey}
             animate={
@@ -113,27 +116,15 @@ export default function Header() {
               ) : null}
             </Button>
           </motion.div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setCartOpen(true)}
-            aria-label="Open cart"
-            className="relative"
-          >
-            <ShoppingBag className="h-5 w-5" />
-            {itemCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-lucky-green text-[10px] font-bold text-lucky-darker">
-                {itemCount}
-              </span>
-            ) : null}
-          </Button>
 
+          {/* Cart drawer */}
           <Sheet open={cartOpen} onOpenChange={setCartOpen}>
             <SheetContent className="flex flex-col">
               <CartDrawer />
             </SheetContent>
           </Sheet>
 
+          {/* Mobile nav */}
           <div className="md:hidden">
             <Sheet>
               <SheetTrigger asChild>
