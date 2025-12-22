@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/products/ProductCard";
 import LocaleText from "@/components/layout/LocaleText";
 
-const heroBackground = "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80";
+const heroBackground =
+  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80";
 
 export default function HomePage() {
   const newDrops = products.filter((product) => product.isNewDrop).slice(0, 6);
@@ -34,6 +35,20 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-hero-gradient opacity-80" />
         </div>
         <div className="relative mx-auto flex max-w-7xl flex-col gap-10 px-4 py-20 md:px-8 lg:flex-row lg:items-center">
+const categories = [
+  { name: "Snapbacks", image: "/products/cap-01.svg" },
+  { name: "Fitted", image: "/products/cap-02.svg" },
+  { name: "Beanies", image: "/products/cap-04.svg" },
+  { name: "Packs", image: "/products/cap-06.svg" },
+];
+
+export default function HomePage() {
+  const newDrops = products.filter((product) => product.isNewDrop).slice(0, 6);
+
+  return (
+    <div>
+      <section className="bg-lucky-dark">
+        <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 py-16 md:px-8 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6">
             <Badge variant="green">NEW DROP</Badge>
             <h1 className="font-display text-5xl tracking-wide md:text-7xl">
@@ -199,6 +214,8 @@ export default function HomePage() {
               <Image
                 src={products[index % products.length].images[0]}
                 alt="Lucky Caps social gallery"
+                src={`/products/cap-0${(index % 6) + 1}.svg`}
+                alt="Lucky Caps social placeholder"
                 fill
                 className="object-cover"
               />

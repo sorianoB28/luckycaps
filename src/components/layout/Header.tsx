@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ShoppingBag, Globe, Menu } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
+import { ShoppingBag, Globe, Menu } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -111,6 +113,20 @@ export default function Header() {
               ) : null}
             </Button>
           </motion.div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCartOpen(true)}
+            aria-label="Open cart"
+            className="relative"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            {itemCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-lucky-green text-[10px] font-bold text-lucky-darker">
+                {itemCount}
+              </span>
+            ) : null}
+          </Button>
 
           <Sheet open={cartOpen} onOpenChange={setCartOpen}>
             <SheetContent className="flex flex-col">
