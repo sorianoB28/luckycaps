@@ -3,6 +3,7 @@ export type Product = {
   slug: string;
   name: string;
   price: number;
+  originalPrice?: number;
   images: string[];
   category: string;
   tags: string[];

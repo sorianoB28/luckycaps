@@ -33,7 +33,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               </Badge>
             ) : null}
             {product.isSale ? (
-              <Badge className="rounded-none bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-lucky-darker">
+              <Badge className="rounded-none bg-red-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
                 Sale
               </Badge>
             ) : null}
@@ -48,8 +48,19 @@ export default function ProductCard({ product }: ProductCardProps) {
         <p className="mt-2 text-sm text-white/60">
           {product.description}
         </p>
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-lg font-semibold">${product.price}</p>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          {product.isSale && product.originalPrice ? (
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-semibold text-red-500">
+                From ${product.price}
+              </p>
+              <p className="text-sm text-white/40 line-through">
+                ${product.originalPrice}
+              </p>
+            </div>
+          ) : (
+            <p className="text-lg font-semibold">${product.price}</p>
+          )}
           <Button variant="secondary" size="sm" asChild>
             <Link href={`/product/${product.slug}`}>View</Link>
           </Button>
