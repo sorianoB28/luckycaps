@@ -27,7 +27,10 @@ export default function AboutPage() {
         <div className="relative min-h-[260px] overflow-hidden rounded-3xl border border-white/10 bg-white/5">
           <Image
             src="https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80"
+<<<<<<< HEAD
             src="/products/cap-02.svg"
+=======
+>>>>>>> 2e5e4cd (fix: resolve home page parse error)
             alt="Lucky Caps story"
             fill
             className="object-cover"
