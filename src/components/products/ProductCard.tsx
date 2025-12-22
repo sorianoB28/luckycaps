@@ -26,6 +26,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             fill
             className="object-cover transition duration-300 group-hover:scale-105"
           />
+<<<<<<< HEAD
           <div className="absolute left-3 top-3 z-10 flex flex-col gap-2">
             {product.isNewDrop ? (
               <Badge className="rounded-none bg-lucky-green px-3 py-1 text-xs font-bold uppercase tracking-wide text-lucky-darker">
@@ -38,6 +39,12 @@ export default function ProductCard({ product }: ProductCardProps) {
               </Badge>
             ) : null}
           </div>
+=======
+        </div>
+        <div className="absolute left-4 top-4 flex flex-col gap-2">
+          {product.isNewDrop ? <Badge variant="green">New Drop</Badge> : null}
+          {product.isSale ? <Badge>Sale</Badge> : null}
+>>>>>>> origin/main
         </div>
       </Link>
       <div className="flex flex-1 flex-col p-5">
