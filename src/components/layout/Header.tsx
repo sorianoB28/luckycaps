@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ShoppingBag, Globe, Menu } from "lucide-react";
+import { ShoppingBag, Globe, Menu, User } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -13,17 +13,15 @@ import CartDrawer from "@/components/cart/CartDrawer";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
+  { href: "/", label: { EN: "Home", ES: "Inicio" } },
   { href: "/shop", label: { EN: "Shop", ES: "Tienda" } },
   { href: "/about", label: { EN: "Story", ES: "Historia" } },
-  { href: "/account", label: { EN: "Account", ES: "Cuenta" } },
 ];
 
 export default function Header() {
   const { toggleLanguage, language, cartOpen, setCartOpen } = useUIStore();
   const items = useCartStore((state) => state.items);
-
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-
   const previousCount = useRef<number | null>(null);
   const prefersReducedMotion = useReducedMotion();
   const [cartPulseKey, setCartPulseKey] = useState(0);
@@ -33,11 +31,9 @@ export default function Header() {
       previousCount.current = itemCount;
       return;
     }
-
     if (itemCount > previousCount.current && !prefersReducedMotion) {
       setCartPulseKey((prev) => prev + 1);
     }
-
     previousCount.current = itemCount;
   }, [itemCount, prefersReducedMotion]);
 
@@ -46,7 +42,7 @@ export default function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
         <Link href="/" className="flex items-center gap-2">
           <motion.div
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-lucky-green/20 font-display text-xl text-lucky-green"
+            className="h-10 w-10 rounded-full bg-lucky-green/20 text-lucky-green flex items-center justify-center font-display text-xl"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.4 }}
@@ -83,7 +79,12 @@ export default function Header() {
             <Globe className="h-5 w-5" />
           </Button>
 
-          {/* Cart button with pulse animation when count increases */}
+          <Button variant="ghost" size="icon" asChild aria-label="Account">
+            <Link href="/account">
+              <User className="h-5 w-5" />
+            </Link>
+          </Button>
+
           <motion.div
             key={cartPulseKey}
             animate={
@@ -117,14 +118,12 @@ export default function Header() {
             </Button>
           </motion.div>
 
-          {/* Cart drawer */}
           <Sheet open={cartOpen} onOpenChange={setCartOpen}>
             <SheetContent className="flex flex-col">
               <CartDrawer />
             </SheetContent>
           </Sheet>
 
-          {/* Mobile nav */}
           <div className="md:hidden">
             <Sheet>
               <SheetTrigger asChild>
@@ -149,6 +148,12 @@ export default function Header() {
                       {link.label[language]}
                     </Link>
                   ))}
+                  <Link
+                    href="/account"
+                    className="text-lg uppercase tracking-[0.2em] text-white/80 hover:text-white"
+                  >
+                    {language === "EN" ? "Account" : "Cuenta"}
+                  </Link>
                 </div>
               </SheetContent>
             </Sheet>
