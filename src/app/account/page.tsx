@@ -165,7 +165,7 @@ export default function AccountPage() {
                   <p className="text-sm text-white/60">
                     Add a shipping address to speed up checkout.
                   </p>
-                  <Button className="mt-4" variant="secondary" className="bg-white/10">
+                  <Button variant="secondary" className="mt-4 bg-white/10">
                     Add address (UI only)
                   </Button>
                 </div>
