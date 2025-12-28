@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -14,7 +14,7 @@ import { useAuthStore } from "@/store/authStore";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function SignUpPage() {
+function SignUpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const signUp = useAuthStore((s) => s.signUp);
@@ -160,5 +160,13 @@ export default function SignUpPage() {
         </p>
       </form>
     </AuthShell>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[200px]" aria-hidden />}>
+      <SignUpContent />
+    </Suspense>
   );
 }
