@@ -1,30 +1,51 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ShoppingBag, Globe, Menu, User } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ShoppingBag, Menu, User } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCartStore } from "@/store/cartStore";
 import { useUIStore } from "@/store/uiStore";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/translations";
+import { useAuthStore } from "@/store/authStore";
 
 const navLinks = [
-  { href: "/", label: { EN: "Home", ES: "Inicio" } },
-  { href: "/shop", label: { EN: "Shop", ES: "Tienda" } },
-  { href: "/about", label: { EN: "Story", ES: "Historia" } },
+  { href: "/", key: "home" as const },
+  { href: "/shop", key: "shop" as const },
+  { href: "/about", key: "story" as const },
 ];
 
 export default function Header() {
-  const { toggleLanguage, language, cartOpen, setCartOpen } = useUIStore();
+  const { setLanguage, language, cartOpen, setCartOpen } = useUIStore();
+  const isAuthed = useAuthStore((s) => s.isAuthed);
+  const signOut = useAuthStore((s) => s.signOut);
   const items = useCartStore((state) => state.items);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const previousCount = useRef<number | null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+  const t = useTranslations();
   const prefersReducedMotion = useReducedMotion();
   const [cartPulseKey, setCartPulseKey] = useState(0);
+
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname?.startsWith(href);
+  };
 
   useEffect(() => {
     if (previousCount.current === null) {
@@ -42,12 +63,19 @@ export default function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
         <Link href="/" className="flex items-center gap-2">
           <motion.div
-            className="h-10 w-10 rounded-full bg-lucky-green/20 text-lucky-green flex items-center justify-center font-display text-xl"
+            className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/20 bg-black"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.4 }}
           >
-            LC
+            <Image
+              src="/brand/luckycaps-logo.png"
+              alt="Lucky Caps logo"
+              width={48}
+              height={48}
+              className="h-full w-full object-cover"
+              priority
+            />
           </motion.div>
           <div>
             <p className="font-display text-2xl tracking-wide">Lucky Caps</p>
@@ -62,28 +90,82 @@ export default function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm uppercase tracking-[0.2em] text-white/70 transition hover:text-white"
+              className={cn(
+                "text-sm uppercase tracking-[0.2em] transition",
+                isActive(link.href)
+                  ? "text-white"
+                  : "text-white/70 hover:text-white"
+              )}
             >
-              {link.label[language]}
+              {t.nav[link.key]}
             </Link>
           ))}
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleLanguage}
-            aria-label="Toggle language"
-          >
-            <Globe className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.25em]">
+            <button
+              type="button"
+              onClick={() => setLanguage("EN")}
+              className={cn(
+                "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green",
+                language === "EN"
+                  ? "text-white"
+                  : "text-white/60 hover:text-white"
+              )}
+              aria-label="Switch to English"
+            >
+              {t.langToggle.en}
+            </button>
+            <span className="text-white/40">|</span>
+            <button
+              type="button"
+              onClick={() => setLanguage("ES")}
+              className={cn(
+                "transition focus:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green",
+                language === "ES"
+                  ? "text-white"
+                  : "text-white/60 hover:text-white"
+              )}
+              aria-label="Switch to Spanish"
+            >
+              {t.langToggle.es}
+            </button>
+          </div>
 
-          <Button variant="ghost" size="icon" asChild aria-label="Account">
-            <Link href="/account">
-              <User className="h-5 w-5" />
-            </Link>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Account menu">
+                <User className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="min-w-[180px] border-white/10 bg-lucky-dark text-white shadow-2xl"
+            >
+              <DropdownMenuItem asChild>
+                <Link href={isAuthed ? "/account" : "/auth/sign-in"} className="w-full">
+                  {t.nav.account}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin" className="w-full">
+                  {t.nav.admin}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem
+                className="text-red-400 focus:text-red-300"
+                onSelect={(e) => {
+                  e.preventDefault();
+                  signOut();
+                  router.push("/");
+                }}
+              >
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <motion.div
             key={cartPulseKey}
@@ -141,18 +223,26 @@ export default function Header() {
                       key={link.href}
                       href={link.href}
                       className={cn(
-                        "text-lg uppercase tracking-[0.2em] text-white/80",
-                        "hover:text-white"
+                        "text-lg uppercase tracking-[0.2em] transition",
+                        isActive(link.href)
+                          ? "text-white"
+                          : "text-white/80 hover:text-white"
                       )}
                     >
-                      {link.label[language]}
+                      {t.nav[link.key]}
                     </Link>
                   ))}
                   <Link
-                    href="/account"
+                    href={isAuthed ? "/account" : "/auth/sign-in"}
                     className="text-lg uppercase tracking-[0.2em] text-white/80 hover:text-white"
                   >
-                    {language === "EN" ? "Account" : "Cuenta"}
+                    {t.nav.account}
+                  </Link>
+                  <Link
+                    href="/admin"
+                    className="text-lg uppercase tracking-[0.2em] text-white/80 hover:text-white"
+                  >
+                    {t.nav.admin}
                   </Link>
                 </div>
               </SheetContent>

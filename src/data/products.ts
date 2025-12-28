@@ -1,66 +1,14 @@
 import { Product } from "@/types";
+import { getPlaceholderImages } from "@/lib/placeholderImages";
 
-const imageSet = {
-  noir: [
-    "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
-  ],
-  emerald: [
-    "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1483118714900-540cf339fd46?auto=format&fit=crop&w=900&q=80",
-  ],
-  trucker: [
-    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80",
-  ],
-  beanie: [
-    "https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80",
-  ],
-  curve: [
-    "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
-  ],
-  pack: [
-    "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80",
-  ],
-  studio: [
-    "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
-  ],
-  rope: [
-    "https://images.unsplash.com/photo-1483118714900-540cf339fd46?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80",
-  ],
-  graphite: [
-    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=900&q=80",
-  ],
-  signal: [
-    "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&w=900&q=80",
-  ],
-  founder: [
-    "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
-  ],
-  cityline: [
-    "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80",
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
-  ],
-};
 
-export const products: Product[] = [
+const baseProducts: Product[] = [
   {
     id: "cap-001",
     slug: "lucky-noir-snapback",
     name: "Lucky Noir Snapback",
     price: 58,
-    images: imageSet.noir,
+    images: [],
     category: "Snapbacks",
     tags: ["Premium", "Embroidered"],
     description:
@@ -81,7 +29,7 @@ export const products: Product[] = [
     slug: "emerald-crest-fitted",
     name: "Emerald Crest Fitted",
     price: 64,
-    images: imageSet.emerald,
+    images: [],
     category: "Fitted",
     tags: ["Limited"],
     description:
@@ -99,7 +47,7 @@ export const products: Product[] = [
     name: "Midnight Trucker",
     price: 52,
     originalPrice: 68,
-    images: imageSet.trucker,
+    images: [],
     category: "Trucker",
     tags: ["Breathable"],
     description:
@@ -116,7 +64,7 @@ export const products: Product[] = [
     slug: "shadow-beanie",
     name: "Shadow Beanie",
     price: 38,
-    images: imageSet.beanie,
+    images: [],
     category: "Beanies",
     tags: ["Essential"],
     description:
@@ -133,7 +81,7 @@ export const products: Product[] = [
     slug: "fortune-curve",
     name: "Fortune Curve",
     price: 54,
-    images: imageSet.curve,
+    images: [],
     category: "Snapbacks",
     tags: ["Curved"],
     description:
@@ -150,9 +98,9 @@ export const products: Product[] = [
     slug: "lucky-ivy-pack",
     name: "Lucky Ivy Pack",
     price: 86,
-    images: imageSet.pack,
-    category: "Entrepreneur Packs",
-    tags: ["Pack", "Limited"],
+    images: [],
+    category: "Snapbacks",
+    tags: ["Limited"],
     description:
       "Two-cap entrepreneur pack featuring ivy green and noir essentials.",
     features: ["2 premium caps", "Exclusive dust bag", "Collector card"],
@@ -167,8 +115,8 @@ export const products: Product[] = [
     slug: "halo-stitched",
     name: "Halo Stitched",
     price: 60,
-    images: imageSet.studio,
-    category: "Custom Lab",
+    images: [],
+    category: "Custom",
     tags: ["Custom"],
     description:
       "Custom lab-ready cap with halo stitch guides and premium twill.",
@@ -185,7 +133,7 @@ export const products: Product[] = [
     name: "Afterhours Rope",
     price: 56,
     originalPrice: 72,
-    images: imageSet.rope,
+    images: [],
     category: "Snapbacks",
     tags: ["Rope"],
     description:
@@ -202,7 +150,7 @@ export const products: Product[] = [
     slug: "studio-graphite",
     name: "Studio Graphite",
     price: 62,
-    images: imageSet.graphite,
+    images: [],
     category: "Fitted",
     tags: ["Premium"],
     description:
@@ -219,7 +167,7 @@ export const products: Product[] = [
     slug: "signal-green",
     name: "Signal Green",
     price: 48,
-    images: imageSet.signal,
+    images: [],
     category: "Beanies",
     tags: ["Essential"],
     description:
@@ -236,9 +184,9 @@ export const products: Product[] = [
     slug: "founder-01",
     name: "Founder 01",
     price: 72,
-    images: imageSet.founder,
-    category: "Entrepreneur Packs",
-    tags: ["Pack", "Limited"],
+    images: [],
+    category: "Snapbacks",
+    tags: ["Limited"],
     description:
       "Founder pack with two caps and a Lucky embroidery token.",
     features: ["2 premium caps", "Embroidery token", "Numbered card"],
@@ -254,7 +202,7 @@ export const products: Product[] = [
     name: "Cityline Curve",
     price: 50,
     originalPrice: 64,
-    images: imageSet.cityline,
+    images: [],
     category: "Snapbacks",
     tags: ["Curved"],
     description:
@@ -267,3 +215,11 @@ export const products: Product[] = [
     stock: 55,
   },
 ];
+
+export const products: Product[] = baseProducts.map((product) => ({
+  ...product,
+  images:
+    product.images && product.images.length > 0
+      ? product.images
+      : getPlaceholderImages(product.category, product.slug, 3),
+}));

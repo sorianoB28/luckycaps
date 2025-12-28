@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 
 import { products } from "@/data/products";
@@ -13,31 +14,61 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-
-const sortOptions = [
-  { value: "featured", label: "Featured" },
-  { value: "newest", label: "Newest" },
-  { value: "low", label: "Price low" },
-  { value: "high", label: "Price high" },
-];
+import { Slider } from "@/components/ui/slider";
+import { useTranslations } from "@/lib/translations";
 
 export default function ShopPage() {
-  const categories = Array.from(
-    new Set(products.map((product) => product.category))
+  const t = useTranslations();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sortOptions = useMemo(
+    () => [
+      { value: "featured", label: t.shop.featured },
+      { value: "newest", label: t.shop.newest },
+      { value: "low", label: t.shop.priceLow },
+      { value: "high", label: t.shop.priceHigh },
+    ],
+    [t]
   );
-  const maxProductPrice = Math.max(...products.map((product) => product.price));
+  const getEffectivePrice = (product: (typeof products)[number]) =>
+    product.isSale && product.salePrice ? product.salePrice : product.price;
+
+  const categories = Array.from(new Set(products.map((product) => product.category)));
+  const priceBounds = useMemo(() => {
+    const prices = products.map(getEffectivePrice);
+    return {
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+    };
+  }, []);
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showNewDrop, setShowNewDrop] = useState(false);
   const [showSale, setShowSale] = useState(false);
-  const [maxPrice, setMaxPrice] = useState(maxProductPrice);
+  const [priceRange, setPriceRange] = useState<[number, number]>([
+    priceBounds.min,
+    priceBounds.max,
+  ]);
   const [sort, setSort] = useState("featured");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const didInitFromUrl = useRef(false);
+
+  useEffect(() => {
+    if (didInitFromUrl.current) return;
+    const urlCategory = searchParams.get("category");
+    if (urlCategory && categories.includes(urlCategory)) {
+      setSelectedCategories([urlCategory]);
+      setFiltersOpen(true);
+    }
+    didInitFromUrl.current = true;
+  }, [categories, searchParams]);
 
   const filtered = useMemo(() => {
-    let list = products.filter((product) => product.price <= maxPrice);
+    let list = products.filter((product) => {
+      const price = getEffectivePrice(product);
+      return price >= priceRange[0] && price <= priceRange[1];
+    });
 
     if (selectedCategories.length) {
       list = list.filter((product) =>
@@ -70,22 +101,34 @@ export default function ShopPage() {
     }
 
     return list;
-  }, [maxPrice, selectedCategories, showNewDrop, showSale, sort]);
+  }, [priceRange, selectedCategories, showNewDrop, showSale, sort]);
+
+  const syncCategoryToUrl = (nextCategories: string[]) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextCategories.length === 1) {
+      params.set("category", nextCategories[0]);
+    } else {
+      params.delete("category");
+    }
+    router.replace(`/shop?${params.toString()}`, { scroll: false });
+  };
 
   const toggleCategory = (category: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
+    setSelectedCategories((prev) => {
+      const next = prev.includes(category)
         ? prev.filter((item) => item !== category)
-        : [...prev, category]
-    );
+        : [...prev, category];
+      syncCategoryToUrl(next);
+      return next;
+    });
   };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="section-heading">Shop</p>
-          <h1 className="mt-2 font-display text-4xl">Lucky Collection</h1>
+          <p className="section-heading">{t.shop.title}</p>
+          <h1 className="mt-2 font-display text-4xl">{t.shop.heading}</h1>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -93,12 +136,12 @@ export default function ShopPage() {
             className="md:hidden"
             onClick={() => setFiltersOpen((prev) => !prev)}
           >
-            <SlidersHorizontal className="mr-2 h-4 w-4" /> Filters
+            <SlidersHorizontal className="mr-2 h-4 w-4" /> {t.actions.filters}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
-                Sort: {sortOptions.find((option) => option.value === sort)?.label}
+                {t.actions.sort}: {sortOptions.find((option) => option.value === sort)?.label}
                 <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -124,7 +167,7 @@ export default function ShopPage() {
         >
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-              Categories
+              {t.shop.categories}
             </p>
             <div className="mt-4 space-y-3">
               {categories.map((category) => (
@@ -142,20 +185,26 @@ export default function ShopPage() {
           <Separator />
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-              Price Range
+              {t.shop.priceRange}
             </p>
             <div className="mt-4 space-y-3">
-              <Input
-                type="range"
-                min={30}
-                max={maxProductPrice}
-                value={maxPrice}
-                onChange={(event) => setMaxPrice(Number(event.target.value))}
-                aria-label="Filter by price"
+              <Slider
+                value={priceRange}
+                min={priceBounds.min}
+                max={priceBounds.max}
+                step={1}
+                minStepsBetweenThumbs={1}
+                className="py-2"
+                onValueChange={(value) => {
+                  if (value.length === 2) setPriceRange([value[0], value[1]]);
+                }}
+                aria-label="Price range"
               />
               <div className="flex items-center justify-between text-sm text-white/60">
-                <span>$30</span>
-                <span>Up to ${maxPrice}</span>
+                <span>${priceRange[0]}</span>
+                <span>
+                  {t.shop.upTo} ${priceRange[1]}
+                </span>
               </div>
             </div>
           </div>
@@ -167,7 +216,7 @@ export default function ShopPage() {
                 onClick={() => setShowNewDrop((prev) => !prev)}
                 aria-label="Filter new drops"
               />
-              <span className="text-sm text-white/70">New Drop</span>
+              <span className="text-sm text-white/70">{t.shop.newDrop}</span>
             </div>
             <div className="flex items-center gap-3">
               <Checkbox
@@ -175,13 +224,15 @@ export default function ShopPage() {
                 onClick={() => setShowSale((prev) => !prev)}
                 aria-label="Filter sale"
               />
-              <span className="text-sm text-white/70">Sale</span>
+              <span className="text-sm text-white/70">{t.shop.sale}</span>
             </div>
           </div>
         </aside>
 
         <div>
-          <p className="text-sm text-white/60">{filtered.length} products</p>
+          <p className="text-sm text-white/60">
+            {filtered.length} {t.shop.productsSuffix}
+          </p>
           <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((product) => (
               <ProductCard key={product.id} product={product} />

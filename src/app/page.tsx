@@ -1,22 +1,27 @@
+﻿"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Star } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 
 import { products } from "@/data/products";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/products/ProductCard";
-import LocaleText from "@/components/layout/LocaleText";
+import { useTranslations } from "@/lib/translations";
 
-const heroBackground = "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80";
+const heroBackground =
+  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80";
 
 export default function HomePage() {
+  const t = useTranslations();
+  const prefersReducedMotion = useReducedMotion();
   const newDrops = products.filter((product) => product.isNewDrop).slice(0, 6);
   const categories = [
     { name: "Snapbacks", image: products[0].images[0] },
     { name: "Fitted", image: products[1].images[0] },
     { name: "Beanies", image: products[3].images[0] },
-    { name: "Packs", image: products[5].images[0] },
   ];
 
   return (
@@ -35,139 +40,139 @@ export default function HomePage() {
         </div>
         <div className="relative mx-auto flex max-w-7xl flex-col gap-10 px-4 py-20 md:px-8 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6">
-            <Badge variant="green">NEW DROP</Badge>
-            <h1 className="font-display text-5xl tracking-wide md:text-7xl">
-              WEAR YOUR LUCK.
-            </h1>
-            <p className="max-w-xl text-lg text-white/70">
-              Premium caps, custom embroidery, and entrepreneur packs built for
-              late-night founders.
-            </p>
-            <div className="flex flex-wrap gap-4">
+            <motion.div
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <h1 className="font-display text-5xl tracking-wide md:text-7xl">
+                {t.home.heroHeadline}
+              </h1>
+            </motion.div>
+            <motion.p
+              className="max-w-xl text-lg text-white/70"
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+            >
+              {t.home.heroSub}
+            </motion.p>
+            <motion.div
+              className="flex flex-wrap gap-4"
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+            >
               <Button size="lg" asChild>
-                <Link href="/shop">
-                  <LocaleText en="Shop Collection" es="Comprar Colección" />
-                </Link>
+                <Link href="/shop">{t.home.heroCtaPrimary}</Link>
               </Button>
-              <Button variant="outline" size="lg" asChild>
-                <Link href="/shop">
-                  <LocaleText en="Custom Lab" es="Laboratorio" />
-                </Link>
-              </Button>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-white/60">
+            </motion.div>
+            <motion.div
+              className="flex items-center gap-6 text-sm text-white/60"
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 12 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.25 }}
+            >
               <div className="flex items-center gap-2">
                 <Star className="h-4 w-4 text-lucky-green" />
-                4.9 / 5 from 2,000+ drops
+                {t.home.heroStatsOne}
               </div>
-              <div>Limited batch releases weekly</div>
-            </div>
-          </div>
-          <div className="relative flex-1">
-            <div className="absolute -top-10 right-6 h-64 w-64 rounded-full bg-lucky-green/20 blur-3xl" />
-            <div className="relative grid gap-4 sm:grid-cols-2">
-              {products.slice(0, 4).map((product) => (
-                <div
-                  key={product.id}
-                  className="glass-panel p-4 transition hover:-translate-y-1"
-                >
-                  <div className="relative h-32 w-full overflow-hidden rounded-xl">
-                    <Image
-                      src={product.images[0]}
-                      alt={product.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <p className="mt-3 text-sm text-white/70">{product.name}</p>
-                  <p className="text-sm font-semibold">${product.price}</p>
-                </div>
-              ))}
-            </div>
+              <div>{t.home.heroStatsTwo}</div>
+            </motion.div>
+            <motion.div
+              className="mt-2 overflow-hidden rounded-full border border-white/10 bg-black/40"
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.35 }}
+            >
+              <div className="flex animate-marquee items-center space-x-6 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white/60">
+                {["DROP 01", "LIMITED RUN", "RESTOCK FRIDAY 9PM", "PREMIUM EMBROIDERY"].map(
+                  (item, idx, arr) => (
+                    <span key={item} className="flex items-center whitespace-nowrap gap-3">
+                      <span>{item}</span>
+                      {idx < arr.length - 1 ? <span className="text-white/30">•</span> : null}
+                    </span>
+                  )
+                )}
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-        <div className="flex items-center justify-between">
+        <motion.div
+          className="flex items-center justify-between"
+          initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
+          whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
           <div>
-            <p className="section-heading">New Drops</p>
-            <h2 className="mt-3 font-display text-4xl">Fresh off the press</h2>
+            <p className="section-heading">{t.home.newDrops}</p>
+            <h2 className="mt-3 font-display text-4xl">{t.home.freshHeading}</h2>
           </div>
           <Button variant="ghost" asChild>
             <Link href="/shop" className="flex items-center gap-2">
-              Explore <ArrowUpRight className="h-4 w-4" />
+              {t.actions.explore} <ArrowUpRight className="h-4 w-4" />
             </Link>
           </Button>
-        </div>
-        <div className="mt-8 flex gap-6 overflow-x-auto pb-4">
+        </motion.div>
+        <motion.div
+          className="mt-8 flex gap-6 overflow-x-auto pb-4"
+          initial={prefersReducedMotion ? undefined : { opacity: 0, y: 16 }}
+          whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-120px" }}
+          transition={{ duration: 0.5, ease: "easeOut", delay: 0.05 }}
+        >
           {newDrops.map((product) => (
-            <div key={product.id} className="min-w-[260px] max-w-[260px]">
+            <motion.div
+              key={product.id}
+              className="min-w-[260px] max-w-[260px]"
+              whileHover={
+                prefersReducedMotion
+                  ? undefined
+                  : { rotateX: -2, rotateY: 2, translateY: -4 }
+              }
+              transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            >
               <ProductCard product={product} />
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
       <section className="bg-lucky-dark">
         <div className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-          <p className="section-heading">Featured Categories</p>
-          <h2 className="mt-3 font-display text-4xl">Built for every drop</h2>
+          <p className="section-heading">{t.home.featuredCategories}</p>
+          <h2 className="mt-3 font-display text-4xl">{t.home.builtForEveryDrop}</h2>
           <div className="mt-8 grid gap-6 md:grid-cols-4">
             {categories.map((category) => (
-              <div
+              <motion.div
                 key={category.name}
-                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6"
+                whileHover={
+                  prefersReducedMotion ? undefined : { y: -4, scale: 1.01 }
+                }
+                transition={{ duration: 0.2 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition group-hover:opacity-100" />
-                <div className="relative h-32 w-full overflow-hidden rounded-2xl">
-                  <Image
-                    src={category.image}
-                    alt={category.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <p className="mt-4 text-lg font-semibold">{category.name}</p>
-                <p className="text-sm text-white/60">
-                  Limited runs, premium materials.
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-        <div className="grid gap-8 rounded-3xl border border-white/10 bg-white/5 p-10 lg:grid-cols-[1.4fr_1fr]">
-          <div>
-            <p className="section-heading">Entrepreneur Packs</p>
-            <h2 className="mt-3 font-display text-4xl">Build your founder kit</h2>
-            <p className="mt-3 text-white/70">
-              Curated packs for late-night launchers. Two caps, custom tokens,
-              and access to the Lucky Custom Lab.
-            </p>
-            <Button className="mt-6" asChild>
-              <Link href="/shop">Reserve a pack</Link>
-            </Button>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {products.slice(5, 7).map((product) => (
-              <div
-                key={product.id}
-                className="rounded-2xl border border-white/10 bg-lucky-dark p-4"
-              >
-                <div className="relative h-28 w-full overflow-hidden rounded-xl">
-                  <Image
-                    src={product.images[0]}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <p className="mt-3 text-sm text-white/70">{product.name}</p>
-                <p className="text-sm font-semibold">${product.price}</p>
-              </div>
+                <Link
+                  href={`/shop?category=${encodeURIComponent(category.name)}`}
+                  aria-label={`Shop category: ${category.name}`}
+                  className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition group-hover:opacity-100" />
+                  <div className="relative h-32 w-full overflow-hidden rounded-2xl">
+                    <Image
+                      src={category.image}
+                      alt={category.name}
+                      fill
+                      className="object-cover transition duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <p className="mt-4 text-lg font-semibold">{category.name}</p>
+                  <p className="text-sm text-white/60">{t.home.featuredCopy}</p>
+                </Link>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -175,11 +180,7 @@ export default function HomePage() {
 
       <section className="border-y border-white/10 bg-lucky-dark">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 text-center md:grid-cols-3 md:px-8">
-          {[
-            "Fast global shipping",
-            "Limited editions weekly",
-            "Custom embroidery studio",
-          ].map((item) => (
+          {[t.home.midBandOne, t.home.midBandTwo, t.home.midBandThree].map((item) => (
             <div key={item} className="text-sm uppercase tracking-[0.3em]">
               {item}
             </div>
@@ -188,23 +189,33 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-        <p className="section-heading">Lucky Social</p>
-        <h2 className="mt-3 font-display text-4xl">Seen on the founders</h2>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <p className="section-heading">{t.home.luckySocial}</p>
+        <h2 className="mt-3 font-display text-4xl">{t.home.seenOn}</h2>
+        <motion.div
+          className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-4"
+          initial={prefersReducedMotion ? undefined : { opacity: 0, y: 24 }}
+          whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-120px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
           {Array.from({ length: 8 }).map((_, index) => (
-            <div
+            <motion.div
               key={index}
               className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-white/5"
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 12 }}
+              whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.4, ease: "easeOut", delay: index * 0.03 }}
             >
               <Image
                 src={products[index % products.length].images[0]}
                 alt="Lucky Caps social gallery"
                 fill
-                className="object-cover"
+                className="object-cover transition duration-300 group-hover:scale-105"
               />
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { useUIStore } from "@/store/uiStore";
 export default function CartDrawer() {
   const { items, updateQuantity, removeItem, subtotal } = useCartStore();
   const setCartOpen = useUIStore((state) => state.setCartOpen);
+  const router = useRouter();
   const total = subtotal();
 
   return (
@@ -46,7 +48,7 @@ export default function CartDrawer() {
               <div className="flex-1">
                 <p className="text-sm font-semibold">{item.name}</p>
                 <p className="text-xs text-white/50">
-                  {item.variant} · {item.size}
+                  {item.variant} • {item.size}
                 </p>
                 <p className="mt-2 text-sm text-white/80">${item.price}</p>
                 <div className="mt-3 flex items-center gap-2">
@@ -89,7 +91,17 @@ export default function CartDrawer() {
           <span className="text-white/60">Subtotal</span>
           <span className="font-semibold">${total.toFixed(2)}</span>
         </div>
-        <Button className="w-full">Checkout</Button>
+        <Button
+          className="w-full"
+          disabled={items.length === 0}
+          onClick={() => {
+            if (items.length === 0) return;
+            setCartOpen(false);
+            router.push("/checkout");
+          }}
+        >
+          Checkout
+        </Button>
         <Button
           variant="outline"
           className="w-full"

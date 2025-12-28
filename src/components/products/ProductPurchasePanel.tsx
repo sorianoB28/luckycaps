@@ -7,6 +7,7 @@ import { Product } from "@/types";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cartStore";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/translations";
 
 interface ProductPurchasePanelProps {
   product: Product;
@@ -17,6 +18,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
   const [size, setSize] = useState(product.sizes[0]);
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((state) => state.addItem);
+  const t = useTranslations();
 
   return (
     <div className="space-y-6">
@@ -31,7 +33,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
 
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-          Variant
+          {t.product.variant}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {product.variants.map((option) => (
@@ -52,7 +54,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
 
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-          Size
+          {t.product.size}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {product.sizes.map((option) => (
@@ -101,7 +103,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
             )
           }
         >
-          Add to Cart
+          {t.actions.addToCart}
         </Button>
         <Button variant="outline" size="icon" aria-label="Add to wishlist">
           <Heart className="h-5 w-5" />
@@ -110,24 +112,24 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
 
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-          Features
+          {t.product.features}
         </p>
         <ul className="mt-3 space-y-2 text-sm text-white/60">
           {product.features.map((feature) => (
-            <li key={feature}>• {feature}</li>
+            <li key={feature}>- {feature}</li>
           ))}
         </ul>
       </div>
 
       <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
         <div className="flex items-center gap-3">
-          <Truck className="h-4 w-4 text-lucky-green" /> Fast Shipping
+          <Truck className="h-4 w-4 text-lucky-green" /> {t.product.fastShipping}
         </div>
         <div className="flex items-center gap-3">
-          <Undo2 className="h-4 w-4 text-lucky-green" /> 30 Day Returns
+          <Undo2 className="h-4 w-4 text-lucky-green" /> {t.product.returns}
         </div>
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-4 w-4 text-lucky-green" /> Secure Checkout
+          <ShieldCheck className="h-4 w-4 text-lucky-green" /> {t.product.secureCheckout}
         </div>
       </div>
     </div>
