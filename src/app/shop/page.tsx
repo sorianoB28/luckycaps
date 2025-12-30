@@ -1,245 +1,68 @@
-"use client";
+import Link from "next/link";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { getProducts, Product } from "@/lib/api";
 
-import { products } from "@/data/products";
-import ProductCard from "@/components/products/ProductCard";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
-import { useTranslations } from "@/lib/translations";
+const formatPrice = (product: Product) => {
+  const cents =
+    product.is_sale && product.sale_price_cents != null
+      ? product.sale_price_cents
+      : product.price_cents;
+  return `$${(cents / 100).toFixed(2)}`;
+};
 
-export default function ShopPage() {
-  const t = useTranslations();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const sortOptions = useMemo(
-    () => [
-      { value: "featured", label: t.shop.featured },
-      { value: "newest", label: t.shop.newest },
-      { value: "low", label: t.shop.priceLow },
-      { value: "high", label: t.shop.priceHigh },
-    ],
-    [t]
-  );
-  const getEffectivePrice = (product: (typeof products)[number]) =>
-    product.isSale && product.salePrice ? product.salePrice : product.price;
-
-  const categories = Array.from(new Set(products.map((product) => product.category)));
-  const priceBounds = useMemo(() => {
-    const prices = products.map(getEffectivePrice);
-    return {
-      min: Math.min(...prices),
-      max: Math.max(...prices),
-    };
-  }, []);
-
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [showNewDrop, setShowNewDrop] = useState(false);
-  const [showSale, setShowSale] = useState(false);
-  const [priceRange, setPriceRange] = useState<[number, number]>([
-    priceBounds.min,
-    priceBounds.max,
-  ]);
-  const [sort, setSort] = useState("featured");
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const didInitFromUrl = useRef(false);
-
-  useEffect(() => {
-    if (didInitFromUrl.current) return;
-    const urlCategory = searchParams.get("category");
-    if (urlCategory && categories.includes(urlCategory)) {
-      setSelectedCategories([urlCategory]);
-      setFiltersOpen(true);
-    }
-    didInitFromUrl.current = true;
-  }, [categories, searchParams]);
-
-  const filtered = useMemo(() => {
-    let list = products.filter((product) => {
-      const price = getEffectivePrice(product);
-      return price >= priceRange[0] && price <= priceRange[1];
-    });
-
-    if (selectedCategories.length) {
-      list = list.filter((product) =>
-        selectedCategories.includes(product.category)
-      );
-    }
-
-    if (showNewDrop) {
-      list = list.filter((product) => product.isNewDrop);
-    }
-
-    if (showSale) {
-      list = list.filter((product) => product.isSale);
-    }
-
-    switch (sort) {
-      case "newest":
-        list = [...list].sort(
-          (a, b) => Number(b.isNewDrop) - Number(a.isNewDrop)
-        );
-        break;
-      case "low":
-        list = [...list].sort((a, b) => a.price - b.price);
-        break;
-      case "high":
-        list = [...list].sort((a, b) => b.price - a.price);
-        break;
-      default:
-        break;
-    }
-
-    return list;
-  }, [priceRange, selectedCategories, showNewDrop, showSale, sort]);
-
-  const syncCategoryToUrl = (nextCategories: string[]) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (nextCategories.length === 1) {
-      params.set("category", nextCategories[0]);
-    } else {
-      params.delete("category");
-    }
-    router.replace(`/shop?${params.toString()}`, { scroll: false });
-  };
-
-  const toggleCategory = (category: string) => {
-    setSelectedCategories((prev) => {
-      const next = prev.includes(category)
-        ? prev.filter((item) => item !== category)
-        : [...prev, category];
-      syncCategoryToUrl(next);
-      return next;
-    });
-  };
+export default async function ShopPage() {
+  const products = await getProducts();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="section-heading">{t.shop.title}</p>
-          <h1 className="mt-2 font-display text-4xl">{t.shop.heading}</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            className="md:hidden"
-            onClick={() => setFiltersOpen((prev) => !prev)}
-          >
-            <SlidersHorizontal className="mr-2 h-4 w-4" /> {t.actions.filters}
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                {t.actions.sort}: {sortOptions.find((option) => option.value === sort)?.label}
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {sortOptions.map((option) => (
-                <DropdownMenuItem
-                  key={option.value}
-                  onClick={() => setSort(option.value)}
-                >
-                  {option.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <p className="section-heading">Shop</p>
+          <h1 className="mt-2 font-display text-4xl">Lucky Caps Collection</h1>
         </div>
       </div>
 
-      <div className="mt-10 grid gap-8 md:grid-cols-[260px_1fr]">
-        <aside
-          className={`space-y-6 rounded-2xl border border-white/10 bg-white/5 p-6 md:block ${
-            filtersOpen ? "block" : "hidden"
-          }`}
-        >
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-              {t.shop.categories}
-            </p>
-            <div className="mt-4 space-y-3">
-              {categories.map((category) => (
-                <div key={category} className="flex items-center gap-3">
-                  <Checkbox
-                    checked={selectedCategories.includes(category)}
-                    onClick={() => toggleCategory(category)}
-                    aria-label={`Filter by ${category}`}
-                  />
-                  <span className="text-sm text-white/70">{category}</span>
+      {products.length === 0 ? (
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/70">
+          No products available.
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {products.map((product) => (
+            <Link
+              key={product.id}
+              href={`/product/${product.slug}`}
+              className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition hover:border-lucky-green/70 hover:shadow-[0_0_20px_rgba(104,240,160,0.2)]"
+            >
+              <div className="aspect-[4/3] bg-white/5">
+                {product?.image_url ? (
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-xs text-white/50">
+                  No image
                 </div>
-              ))}
-            </div>
-          </div>
-          <Separator />
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-              {t.shop.priceRange}
-            </p>
-            <div className="mt-4 space-y-3">
-              <Slider
-                value={priceRange}
-                min={priceBounds.min}
-                max={priceBounds.max}
-                step={1}
-                minStepsBetweenThumbs={1}
-                className="py-2"
-                onValueChange={(value) => {
-                  if (value.length === 2) setPriceRange([value[0], value[1]]);
-                }}
-                aria-label="Price range"
-              />
-              <div className="flex items-center justify-between text-sm text-white/60">
-                <span>${priceRange[0]}</span>
-                <span>
-                  {t.shop.upTo} ${priceRange[1]}
-                </span>
+              )}
               </div>
-            </div>
-          </div>
-          <Separator />
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Checkbox
-                checked={showNewDrop}
-                onClick={() => setShowNewDrop((prev) => !prev)}
-                aria-label="Filter new drops"
-              />
-              <span className="text-sm text-white/70">{t.shop.newDrop}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Checkbox
-                checked={showSale}
-                onClick={() => setShowSale((prev) => !prev)}
-                aria-label="Filter sale"
-              />
-              <span className="text-sm text-white/70">{t.shop.sale}</span>
-            </div>
-          </div>
-        </aside>
-
-        <div>
-          <p className="text-sm text-white/60">
-            {filtered.length} {t.shop.productsSuffix}
-          </p>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+              <div className="flex flex-1 flex-col p-5">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/50">
+                  {product.category}
+                </p>
+                <h3 className="mt-2 font-display text-2xl">{product.name}</h3>
+                <p className="mt-3 text-sm text-white/70 line-clamp-3">
+                  {product.description}
+                </p>
+                <p className="mt-4 text-lg font-semibold text-white">
+                  {formatPrice(product)}
+                </p>
+              </div>
+            </Link>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

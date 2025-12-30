@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2 } from "lucide-react";
@@ -8,14 +7,18 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SheetTitle } from "@/components/ui/sheet";
-import { useCartStore } from "@/store/cartStore";
+import { useCart } from "@/store/cart";
 import { useUIStore } from "@/store/uiStore";
 
 export default function CartDrawer() {
-  const { items, updateQuantity, removeItem, subtotal } = useCartStore();
+  const { items, setQuantity, removeItem } = useCart();
+  const entries = Object.entries(items);
   const setCartOpen = useUIStore((state) => state.setCartOpen);
   const router = useRouter();
-  const total = subtotal();
+  const totalCents = entries.reduce(
+    (sum, [, item]) => sum + item.priceCents * item.quantity,
+    0
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -27,37 +30,42 @@ export default function CartDrawer() {
       </div>
       <Separator className="my-4" />
       <div className="flex-1 space-y-4 overflow-auto pr-2">
-        {items.length === 0 ? (
+        {entries.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/20 p-6 text-center text-white/60">
             Your cart is empty. Start a new drop.
           </div>
         ) : (
-          items.map((item) => (
+          entries.map(([key, item]) => (
             <div
-              key={item.id}
+              key={key}
               className="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/5 p-4"
             >
               <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-white/5">
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                />
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-[10px] text-white/50">
+                    No image
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold">{item.name}</p>
                 <p className="text-xs text-white/50">
-                  {item.variant} • {item.size}
+                  {(item.variant || "Standard")} · {(item.size || "One size")}
                 </p>
-                <p className="mt-2 text-sm text-white/80">${item.price}</p>
+                <p className="mt-2 text-sm text-white/80">
+                  ${(item.priceCents / 100).toFixed(2)}
+                </p>
                 <div className="mt-3 flex items-center gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() =>
-                      updateQuantity(item.id, Math.max(1, item.quantity - 1))
-                    }
+                    onClick={() => setQuantity(key, Math.max(1, item.quantity - 1))}
                     aria-label="Decrease quantity"
                   >
                     <Minus className="h-4 w-4" />
@@ -66,7 +74,7 @@ export default function CartDrawer() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    onClick={() => setQuantity(key, item.quantity + 1)}
                     aria-label="Increase quantity"
                   >
                     <Plus className="h-4 w-4" />
@@ -76,7 +84,7 @@ export default function CartDrawer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => removeItem(item.id)}
+                onClick={() => removeItem(key)}
                 aria-label="Remove item"
               >
                 <Trash2 className="h-4 w-4" />
@@ -89,13 +97,13 @@ export default function CartDrawer() {
       <div className="space-y-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-white/60">Subtotal</span>
-          <span className="font-semibold">${total.toFixed(2)}</span>
+          <span className="font-semibold">${(totalCents / 100).toFixed(2)}</span>
         </div>
         <Button
           className="w-full"
-          disabled={items.length === 0}
+          disabled={entries.length === 0}
           onClick={() => {
-            if (items.length === 0) return;
+            if (entries.length === 0) return;
             setCartOpen(false);
             router.push("/checkout");
           }}

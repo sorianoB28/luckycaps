@@ -1,0 +1,4 @@
+[dev]
+command = "npm run dev:next"
+targetPort = 3000
+port = 8888

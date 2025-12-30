@@ -1,6 +1,5 @@
-﻿"use client";
+"use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -9,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useCartStore } from "@/store/cartStore";
+import { useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
 type DeliveryOption = {
@@ -26,7 +25,8 @@ const deliveryOptions: DeliveryOption[] = [
 ];
 
 export default function CheckoutPage() {
-  const { items, subtotal, clear } = useCartStore();
+  const { items, clear } = useCart();
+  const entries = Object.entries(items);
   const [contact, setContact] = useState({ email: "", phone: "" });
   const [shipping, setShipping] = useState({
     firstName: "",
@@ -45,7 +45,14 @@ export default function CheckoutPage() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [errors, setErrors] = useState<string | null>(null);
 
-  const lineSubtotal = useMemo(() => subtotal(), [subtotal]);
+  const lineSubtotal = useMemo(
+    () =>
+      entries.reduce(
+        (sum, [, item]) => sum + item.priceCents * item.quantity,
+        0
+      ) / 100,
+    [entries]
+  );
   const shippingCost = delivery.price;
   const tax = Math.round(lineSubtotal * 0.06 * 100) / 100;
   const total = lineSubtotal + shippingCost + tax;
@@ -60,7 +67,7 @@ export default function CheckoutPage() {
     shipping.zip;
 
   const handlePlaceOrder = () => {
-    if (!requiredFilled || items.length === 0) {
+    if (!requiredFilled || entries.length === 0) {
       setErrors("Please complete required fields and add items to your cart.");
       setStatus("error");
       return;
@@ -71,7 +78,7 @@ export default function CheckoutPage() {
     clear();
   };
 
-  if (items.length === 0 && status !== "success") {
+  if (entries.length === 0 && status !== "success") {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 text-center">
         <p className="text-2xl font-semibold text-white">Your cart is empty.</p>
@@ -113,7 +120,7 @@ export default function CheckoutPage() {
           <div>
             <p className="text-sm uppercase tracking-[0.2em] text-white/50">Checkout</p>
             <h1 className="font-display text-4xl text-white">Complete your order</h1>
-            <p className="text-white/60">Secure UI flow — payments not enabled yet.</p>
+            <p className="text-white/60">Secure UI flow - payments not enabled yet.</p>
           </div>
 
           <Card className="border-white/10 bg-white/5 text-white">
@@ -245,7 +252,7 @@ export default function CheckoutPage() {
                     <div>
                       <p className="font-semibold text-white">{option.name}</p>
                       <p className="text-sm text-white/60">
-                        {option.description} • {option.eta}
+                        {option.description}  {option.eta}
                       </p>
                     </div>
                     <p className="text-sm font-semibold text-white">
@@ -325,7 +332,7 @@ export default function CheckoutPage() {
                 </div>
               ) : null}
               <p className="text-sm text-white/60">
-                Payments aren&apos;t enabled yet — this is a UI preview. Hook Stripe or your PSP here.
+                Payments aren&apos;t enabled yet - this is a UI preview. Hook Stripe or your PSP here.
               </p>
             </CardContent>
           </Card>
@@ -345,7 +352,7 @@ export default function CheckoutPage() {
 
           <div className="flex flex-col gap-3">
             {errors ? <p className="text-sm text-red-400">{errors}</p> : null}
-            <Button onClick={handlePlaceOrder} disabled={!requiredFilled || items.length === 0}>
+            <Button onClick={handlePlaceOrder} disabled={!requiredFilled || entries.length === 0}>
               Place Order
             </Button>
             <p className="text-xs text-white/60">
@@ -361,21 +368,31 @@ export default function CheckoutPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                {items.map((item) => (
+                {entries.map(([key, item]) => (
                   <div
-                    key={item.id}
+                    key={key}
                     className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-3"
                   >
                     <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-white/5">
-                      <Image src={item.image} alt={item.name} fill className="object-cover" />
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-white/50">
+                          No image
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 text-sm">
                       <p className="font-semibold">{item.name}</p>
                       <p className="text-white/60">
-                        {item.variant} • {item.size}
+                        {(item.variant || "Standard")}  {(item.size || "One size")}
                       </p>
                       <p className="mt-1 text-white/70">
-                        {item.quantity} × ${item.price}
+                        {item.quantity} x ${(item.priceCents / 100).toFixed(2)}
                       </p>
                     </div>
                   </div>

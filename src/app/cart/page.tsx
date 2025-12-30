@@ -1,18 +1,22 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useCartStore } from "@/store/cartStore";
+import { useCart } from "@/store/cart";
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, subtotal } = useCartStore();
-  const total = subtotal();
+  const { items, setQuantity, removeItem } = useCart();
+  const entries = Object.entries(items);
 
-  if (items.length === 0) {
+  const subtotalCents = entries.reduce(
+    (sum, [, item]) => sum + item.priceCents * item.quantity,
+    0
+  );
+
+  if (entries.length === 0) {
     return (
       <div className="mx-auto flex max-w-3xl flex-col items-center px-4 py-20 text-center md:px-8">
         <ShoppingBag className="h-12 w-12 text-lucky-green" />
@@ -32,30 +36,35 @@ export default function CartPage() {
       <h1 className="font-display text-4xl">Your Cart</h1>
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-4">
-          {items.map((item) => (
+          {entries.map(([key, item]) => (
             <div
-              key={item.id}
+              key={key}
               className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row"
             >
               <div className="relative h-28 w-28 overflow-hidden rounded-xl bg-white/5">
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                />
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs text-white/50">
+                    No image
+                  </div>
+                )}
               </div>
               <div className="flex-1">
                 <p className="font-semibold">{item.name}</p>
                 <p className="text-sm text-white/50">
-                  {item.variant} · {item.size}
+                  {item.variant || "Standard"} · {item.size || "One size"}
                 </p>
                 <div className="mt-4 flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
                     <button
                       type="button"
                       onClick={() =>
-                        updateQuantity(item.id, Math.max(1, item.quantity - 1))
+                        setQuantity(key, Math.max(1, item.quantity - 1))
                       }
                       className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white"
                       aria-label="Decrease quantity"
@@ -67,7 +76,7 @@ export default function CartPage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      onClick={() => setQuantity(key, item.quantity + 1)}
                       className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white"
                       aria-label="Increase quantity"
                     >
@@ -77,14 +86,16 @@ export default function CartPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => removeItem(key)}
                     aria-label="Remove item"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-              <div className="text-lg font-semibold">${item.price}</div>
+              <div className="text-lg font-semibold">
+                ${(item.priceCents / 100).toFixed(2)}
+              </div>
             </div>
           ))}
         </div>
@@ -95,7 +106,7 @@ export default function CartPage() {
             <div className="flex items-center justify-between">
               <span>Subtotal</span>
               <span className="font-semibold text-white">
-                ${total.toFixed(2)}
+                ${(subtotalCents / 100).toFixed(2)}
               </span>
             </div>
             <div className="flex items-center justify-between">

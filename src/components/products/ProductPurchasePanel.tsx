@@ -5,7 +5,7 @@ import { Heart, ShieldCheck, Truck, Undo2 } from "lucide-react";
 
 import { Product } from "@/types";
 import { Button } from "@/components/ui/button";
-import { useCartStore } from "@/store/cartStore";
+import { useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/translations";
 
@@ -17,7 +17,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
   const [variant, setVariant] = useState(product.variants[0]);
   const [size, setSize] = useState(product.sizes[0]);
   const [quantity, setQuantity] = useState(1);
-  const addItem = useCartStore((state) => state.addItem);
+  const addItem = useCart((state) => state.addItem);
   const t = useTranslations();
 
   return (
@@ -98,9 +98,18 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
         <Button
           className="flex-1"
           onClick={() =>
-            Array.from({ length: quantity }).forEach(() =>
-              addItem(product, { variant, size })
-            )
+            addItem({
+              productId: product.id,
+              productSlug: product.slug,
+              name: product.name,
+              imageUrl: product.images?.[0],
+              priceCents: Math.round(
+                (product.isSale && product.salePrice ? product.salePrice : product.price) * 100
+              ),
+              variant,
+              size,
+              quantity,
+            })
           }
         >
           {t.actions.addToCart}

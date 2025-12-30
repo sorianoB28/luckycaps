@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useCartStore } from "@/store/cartStore";
+import { useCart } from "@/store/cart";
 import { useUIStore } from "@/store/uiStore";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { cn } from "@/lib/utils";
@@ -33,8 +33,11 @@ export default function Header() {
   const { setLanguage, language, cartOpen, setCartOpen } = useUIStore();
   const isAuthed = useAuthStore((s) => s.isAuthed);
   const signOut = useAuthStore((s) => s.signOut);
-  const items = useCartStore((state) => state.items);
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const items = useCart((state) => state.items);
+  const itemCount = Object.values(items).reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
   const previousCount = useRef<number | null>(null);
   const pathname = usePathname();
   const router = useRouter();
