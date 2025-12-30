@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/products/ProductCard";
 import { useTranslations } from "@/lib/translations";
 
-const heroBackground =
-  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1600&q=80";
+const heroBackground = "/brand/capshop.jpg";
 
 export default function HomePage() {
   const t = useTranslations();
@@ -143,34 +142,51 @@ export default function HomePage() {
       </section>
 
       <section className="bg-lucky-dark">
-        <div className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-          <p className="section-heading">{t.home.featuredCategories}</p>
-          <h2 className="mt-3 font-display text-4xl">{t.home.builtForEveryDrop}</h2>
-          <div className="mt-8 grid gap-6 md:grid-cols-4">
+        <div className="mx-auto max-w-7xl px-4 py-20 md:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="section-heading">{t.home.featuredCategories}</p>
+              <h2 className="mt-3 font-display text-4xl">{t.home.builtForEveryDrop}</h2>
+            </div>
+            <Link
+              href="/shop"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-lucky-green transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green"
+            >
+              View all <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {categories.map((category) => (
               <motion.div
                 key={category.name}
-                whileHover={
-                  prefersReducedMotion ? undefined : { y: -4, scale: 1.01 }
-                }
+                whileHover={prefersReducedMotion ? undefined : { y: -6 }}
                 transition={{ duration: 0.2 }}
+                className="h-full"
               >
                 <Link
                   href={`/shop?category=${encodeURIComponent(category.name)}`}
                   aria-label={`Shop category: ${category.name}`}
-                  className="group relative block overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green"
+                  className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition group-hover:opacity-100" />
-                  <div className="relative h-32 w-full overflow-hidden rounded-2xl">
-                    <Image
-                      src={category.image}
-                      alt={category.name}
-                      fill
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                    />
+                  <div className="pointer-events-none absolute inset-0 rounded-3xl border border-transparent transition duration-300 group-hover:border-lucky-green/60 group-hover:shadow-[0_0_30px_rgba(104,240,160,0.25)]" />
+                  <div className="relative overflow-hidden rounded-2xl bg-black/30">
+                    <div className="relative aspect-[4/3] w-full">
+                      <Image
+                        src={category.image}
+                        alt={category.name}
+                        fill
+                        className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                        sizes="(min-width: 1024px) 300px, (min-width: 768px) 50vw, 100vw"
+                      />
+                    </div>
                   </div>
-                  <p className="mt-4 text-lg font-semibold">{category.name}</p>
-                  <p className="text-sm text-white/60">{t.home.featuredCopy}</p>
+                  <div className="mt-4 flex flex-1 flex-col justify-between gap-2">
+                    <p className="text-lg font-semibold">{category.name}</p>
+                    <p className="text-sm text-white/60">{t.home.featuredCopy}</p>
+                  </div>
+                  <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white transition group-hover:text-lucky-green">
+                    Shop now <ArrowUpRight className="h-4 w-4" />
+                  </span>
                 </Link>
               </motion.div>
             ))}

@@ -19,7 +19,6 @@ interface ProductStoreState {
   deleteProduct: (id: string) => void;
   duplicateProduct: (id: string) => Product | null;
   getProductById: (id: string) => Product | undefined;
-  resetToSeed: () => void;
 }
 
 const makeId = () =>
@@ -121,7 +120,6 @@ export const useProductsStore = create<ProductStoreState>()(
         return copy;
       },
       getProductById: (id) => get().products.find((p) => p.id === id),
-      resetToSeed: () => set({ products: seedProducts }),
     }),
     {
       name: "luckycaps-products",

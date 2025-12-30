@@ -11,7 +11,7 @@ import { useTranslations } from "@/lib/translations";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { products, deleteProduct, duplicateProduct, resetToSeed } = useProductsStore();
+  const { products, deleteProduct, duplicateProduct } = useProductsStore();
   const t = useTranslations();
 
   return (
@@ -25,17 +25,6 @@ export default function AdminDashboard() {
         </div>
         <Button onClick={() => router.push("/admin/products/new")}>
           {t.actions.addProduct}
-        </Button>
-        <Button
-          variant="secondary"
-          className="bg-white/10"
-          onClick={() => {
-            if (confirm("Reset demo catalog to seed data? This will discard admin edits.")) {
-              resetToSeed();
-            }
-          }}
-        >
-          Reset Demo Catalog
         </Button>
       </div>
 
