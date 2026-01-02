@@ -11,6 +11,7 @@ type ProductRow = {
   name: string;
   category: string;
   description: string;
+  image_url?: string | null;
   price_cents: number;
   sale_price_cents: number | null;
   original_price_cents: number | null;
@@ -155,8 +156,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
   const summary = reviewSummaryRows[0];
 
+  const imageUrl = images[0]?.url ?? null;
+
   return NextResponse.json({
-    product,
+    product: { ...product, image_url: imageUrl },
     images,
     sizes,
     variants,

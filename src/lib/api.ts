@@ -5,7 +5,7 @@ export type Product = {
   name: string;
   category: string;
   description: string;
-  image_url?: string | null;
+  image_url: string | null;
   price_cents: number;
   sale_price_cents: number | null;
   original_price_cents: number | null;
@@ -17,8 +17,6 @@ export type Product = {
   active: boolean;
   created_at: string;
   updated_at: string;
-  // added:
-  image_url?: string | null;
 };
 
 export type ProductImageRow = {
@@ -70,6 +68,40 @@ export type ProductDetailResponse = {
   reviews: ReviewRow[];
 };
 
+export type CheckoutItemInput = {
+  product_id?: string | null;
+  product_slug: string;
+  name: string;
+  image_url?: string | null;
+  variant?: string | null;
+  size?: string | null;
+  quantity: number;
+  unit_price_cents: number;
+};
+
+export type CheckoutPayload = {
+  customer: { name: string; email: string; phone?: string | null };
+  contact_notes?: string | null;
+  shipping_address: {
+    firstName: string;
+    lastName: string;
+    address1: string;
+    address2?: string | null;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+  };
+  delivery_option?: string | null;
+  promo_code?: string | null;
+  items: CheckoutItemInput[];
+  notes?: string | null;
+};
+
+export type CheckoutResponse = {
+  orderId: string;
+};
+
 function getServerBaseUrl() {
   // When running in the browser, we should use relative URLs.
   // This function only runs on server.
@@ -119,4 +151,26 @@ export async function getProducts() {
 
 export async function getProductBySlug(slug: string) {
   return fetchJson<ProductDetailResponse>(`/api/products/${slug}`);
+}
+
+export async function createCheckout(payload: CheckoutPayload) {
+  const url = resolveUrl("/api/checkout");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let message = `Request to ${url} failed with status ${res.status}`;
+    try {
+      const data = (await res.json()) as { error?: string };
+      if (data?.error) message = data.error;
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(message);
+  }
+
+  return res.json() as Promise<CheckoutResponse>;
 }

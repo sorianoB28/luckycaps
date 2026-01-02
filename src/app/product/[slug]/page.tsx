@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { getProductBySlug, ProductDetailResponse } from "@/lib/api";
 import { useCart } from "@/store/cart";
+import { ProductImageWithFallback } from "@/components/products/ProductImageWithFallback";
+import { getPlaceholderImages } from "@/lib/placeholderImages";
 
 type ProductPageProps = {
   params: { slug: string };
@@ -18,6 +20,7 @@ export default function ProductPage({ params }: ProductPageProps) {
   const [size, setSize] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [displayImage, setDisplayImage] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -53,7 +56,19 @@ export default function ProductPage({ params }: ProductPageProps) {
     return `$${(cents / 100).toFixed(2)}`;
   }, [data]);
 
-  const primaryImage = data?.images[0]?.url;
+  const placeholderImages = useMemo(
+    () =>
+      data
+        ? getPlaceholderImages(data.product.category, data.product.slug, 3)
+        : [],
+    [data?.product.category, data?.product.slug]
+  );
+
+  const primaryImage =
+    displayImage ??
+    data?.product.image_url ??
+    placeholderImages[0] ??
+    null;
 
   const handleAddToCart = () => {
     if (!data) return;
@@ -102,19 +117,17 @@ export default function ProductPage({ params }: ProductPageProps) {
     <div className="mx-auto max-w-6xl px-4 py-12 md:px-8">
       <div className="grid gap-8 md:grid-cols-2">
         <div className="space-y-4">
-          {primaryImage ? (
-            <div className="aspect-square overflow-hidden rounded-3xl border border-white/10 bg-white/5">
-              <img
-                src={primaryImage}
-                alt={data.product.name}
-                className="h-full w-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="flex aspect-square items-center justify-center rounded-3xl border border-dashed border-white/20 bg-white/5 text-white/60">
-              No image available
-            </div>
-          )}
+          <div className="aspect-square overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+            <ProductImageWithFallback
+              src={data.product.image_url}
+              alt={data.product.name}
+              category={data.product.category}
+              slug={data.product.slug}
+              className="h-full w-full object-cover"
+              fallbacks={placeholderImages}
+              onSrcChange={setDisplayImage}
+            />
+          </div>
         </div>
 
         <div className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-6">

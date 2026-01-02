@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
+import { createCheckout } from "@/lib/api";
+
+const SHOW_DEV_TOOLS = process.env.NODE_ENV !== "production";
 
 type DeliveryOption = {
   id: string;
@@ -44,6 +47,25 @@ export default function CheckoutPage() {
   const [promo, setPromo] = useState("");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [errors, setErrors] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+
+  const handleAutofill = () => {
+    setContact({ email: "jane.doe@example.com", phone: "+1 (555) 123-4567" });
+    setShipping({
+      firstName: "Jane",
+      lastName: "Doe",
+      address1: "123 Market Street",
+      address2: "Apt 4B",
+      city: "San Francisco",
+      state: "CA",
+      zip: "94103",
+      country: "United States",
+    });
+    setCardFields({ number: "4242 4242 4242 4242", expiry: "12/28", cvc: "123" });
+    setNotes("Please leave at the front desk. Test order.");
+  };
 
   const lineSubtotal = useMemo(
     () =>
@@ -66,16 +88,65 @@ export default function CheckoutPage() {
     shipping.state &&
     shipping.zip;
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
+    if (submitting) return;
     if (!requiredFilled || entries.length === 0) {
       setErrors("Please complete required fields and add items to your cart.");
       setStatus("error");
       return;
     }
+
+    const itemsPayload = entries.map(([, item]) => ({
+      product_id: item.productId ?? null,
+      product_slug: item.productSlug,
+      name: item.name,
+      image_url: item.imageUrl ?? null,
+      variant: item.variant ?? null,
+      size: item.size ?? null,
+      quantity: item.quantity,
+      unit_price_cents: item.priceCents,
+    }));
+
+    const customerName = `${shipping.firstName} ${shipping.lastName}`.trim();
+
+    const payload = {
+      customer: {
+        name: customerName,
+        email: contact.email.trim(),
+        phone: contact.phone?.trim() || undefined,
+      },
+      contact_notes: notes.trim() ? notes.trim() : undefined,
+      shipping_address: {
+        firstName: shipping.firstName,
+        lastName: shipping.lastName,
+        address1: shipping.address1,
+        address2: shipping.address2 || undefined,
+        city: shipping.city,
+        state: shipping.state,
+        zip: shipping.zip,
+        country: shipping.country,
+      },
+      delivery_option: delivery.id,
+      promo_code: promo.trim() || undefined,
+      items: itemsPayload,
+    };
+
+    setSubmitting(true);
     setErrors(null);
-    setStatus("success");
-    // Future: send payload to checkout API / Stripe intent here.
-    clear();
+    setStatus("idle");
+    setOrderId(null);
+
+    try {
+      const response = await createCheckout(payload);
+      setOrderId(response.orderId);
+      setStatus("success");
+      clear();
+    } catch (err) {
+      setStatus("error");
+      setErrors((err as Error).message || "Unable to place order.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (entries.length === 0 && status !== "success") {
@@ -99,6 +170,10 @@ export default function CheckoutPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-white/70">
             <p>Thank you for your order. We&apos;ll email you when it ships.</p>
+            <div className="rounded-lg border border-white/10 bg-black/40 p-3 text-sm">
+              <p className="text-white/60">Order ID</p>
+              <p className="font-mono text-white">{orderId ?? "Processing..."}</p>
+            </div>
             <div className="flex gap-3">
               <Button asChild>
                 <Link href="/shop">Back to shop</Link>
@@ -117,10 +192,22 @@ export default function CheckoutPage() {
     <div className="mx-auto max-w-6xl px-4 py-10 md:px-8">
       <div className="flex flex-col gap-6 md:flex-row">
         <div className="flex-1 space-y-6">
-          <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-white/50">Checkout</p>
-            <h1 className="font-display text-4xl text-white">Complete your order</h1>
-            <p className="text-white/60">Secure UI flow - payments not enabled yet.</p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-white/50">Checkout</p>
+              <h1 className="font-display text-4xl text-white">Complete your order</h1>
+              <p className="text-white/60">Secure UI flow - payments not enabled yet.</p>
+            </div>
+            {SHOW_DEV_TOOLS ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="bg-white/10"
+                onClick={handleAutofill}
+              >
+                Autofill test data
+              </Button>
+            ) : null}
           </div>
 
           <Card className="border-white/10 bg-white/5 text-white">
@@ -346,17 +433,19 @@ export default function CheckoutPage() {
                 rows={4}
                 placeholder="Order notes / embroidery instructions"
                 className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white placeholder:text-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
               />
             </CardContent>
           </Card>
 
           <div className="flex flex-col gap-3">
             {errors ? <p className="text-sm text-red-400">{errors}</p> : null}
-            <Button onClick={handlePlaceOrder} disabled={!requiredFilled || entries.length === 0}>
-              Place Order
+            <Button onClick={handlePlaceOrder} disabled={!requiredFilled || entries.length === 0 || submitting}>
+              {submitting ? "Placing order..." : "Place Order"}
             </Button>
             <p className="text-xs text-white/60">
-              Clicking place order will simulate success. Payments will be added later.
+              Orders are created now; payments will be added later.
             </p>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getProducts, Product } from "@/lib/api";
+import { ProductImageWithFallback } from "@/components/products/ProductImageWithFallback";
 
 const formatPrice = (product: Product) => {
   const cents =
@@ -35,17 +36,13 @@ export default async function ShopPage() {
               className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition hover:border-lucky-green/70 hover:shadow-[0_0_20px_rgba(104,240,160,0.2)]"
             >
               <div className="aspect-[4/3] bg-white/5">
-                {product?.image_url ? (
-                <img
+                <ProductImageWithFallback
                   src={product.image_url}
                   alt={product.name}
+                  category={product.category}
+                  slug={product.slug}
                   className="h-full w-full object-cover"
                 />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-white/50">
-                  No image
-                </div>
-              )}
               </div>
               <div className="flex flex-1 flex-col p-5">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/50">
