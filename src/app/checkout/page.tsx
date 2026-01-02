@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
 import { createCheckout } from "@/lib/api";
+import { useSession } from "next-auth/react";
 
 const SHOW_DEV_TOOLS = process.env.NODE_ENV !== "production";
 
@@ -29,6 +30,8 @@ const deliveryOptions: DeliveryOption[] = [
 
 export default function CheckoutPage() {
   const { items, clear } = useCart();
+  const { data: session } = useSession();
+  const hasAdminToken = session?.user?.role === "admin";
   const entries = Object.entries(items);
   const [contact, setContact] = useState({ email: "", phone: "" });
   const [shipping, setShipping] = useState({
@@ -178,9 +181,11 @@ export default function CheckoutPage() {
               <Button asChild>
                 <Link href="/shop">Back to shop</Link>
               </Button>
-              <Button variant="outline" asChild>
-                <Link href="/admin">Go to Admin</Link>
-              </Button>
+              {hasAdminToken ? (
+                <Button variant="outline" asChild>
+                  <Link href="/admin">Go to Admin</Link>
+                </Button>
+              ) : null}
             </div>
           </CardContent>
         </Card>

@@ -21,7 +21,7 @@ import { useUIStore } from "@/store/uiStore";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/translations";
-import { useAuthStore } from "@/store/authStore";
+import { signOut, useSession } from "next-auth/react";
 
 const navLinks = [
   { href: "/", key: "home" as const },
@@ -31,8 +31,9 @@ const navLinks = [
 
 export default function Header() {
   const { setLanguage, language, cartOpen, setCartOpen } = useUIStore();
-  const isAuthed = useAuthStore((s) => s.isAuthed);
-  const signOut = useAuthStore((s) => s.signOut);
+  const { data: session, status } = useSession();
+  const isAuthed = status === "authenticated";
+  const isAdmin = session?.user?.role === "admin";
   const items = useCart((state) => state.items);
   const itemCount = Object.values(items).reduce(
     (sum, item) => sum + item.quantity,
@@ -151,22 +152,32 @@ export default function Header() {
                   {t.nav.account}
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/admin" className="w-full">
-                  {t.nav.admin}
-                </Link>
-              </DropdownMenuItem>
+              {isAdmin ? (
+                <DropdownMenuItem asChild>
+                  <Link href="/admin" className="w-full">
+                    {t.nav.admin}
+                  </Link>
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem
-                className="text-red-400 focus:text-red-300"
-                onSelect={(e) => {
-                  e.preventDefault();
-                  signOut();
-                  router.push("/");
-                }}
-              >
-                Sign out
-              </DropdownMenuItem>
+              {isAuthed ? (
+                <DropdownMenuItem
+                  className="text-red-400 focus:text-red-300"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    signOut();
+                    router.push("/");
+                  }}
+                >
+                  Sign out
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem asChild>
+                  <Link href="/auth/sign-in" className="w-full">
+                    Sign in
+                  </Link>
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -236,17 +247,19 @@ export default function Header() {
                     </Link>
                   ))}
                   <Link
-                    href={isAuthed ? "/account" : "/auth/sign-in"}
-                    className="text-lg uppercase tracking-[0.2em] text-white/80 hover:text-white"
-                  >
-                    {t.nav.account}
-                  </Link>
-                  <Link
-                    href="/admin"
-                    className="text-lg uppercase tracking-[0.2em] text-white/80 hover:text-white"
-                  >
-                    {t.nav.admin}
-                  </Link>
+                  href={isAuthed ? "/account" : "/auth/sign-in"}
+                  className="text-lg uppercase tracking-[0.2em] text-white/80 hover:text-white"
+                >
+                  {t.nav.account}
+                </Link>
+                  {isAdmin ? (
+                    <Link
+                      href="/admin"
+                      className="text-lg uppercase tracking-[0.2em] text-white/80 hover:text-white"
+                    >
+                      {t.nav.admin}
+                    </Link>
+                  ) : null}
                 </div>
               </SheetContent>
             </Sheet>

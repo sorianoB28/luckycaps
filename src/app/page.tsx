@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/products/ProductCard";
 import { useTranslations } from "@/lib/translations";
+import { foundersSocialUrls } from "@/config/foundersSocial";
+import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 
 const heroBackground = "/brand/capshop.jpg";
 
@@ -214,7 +216,7 @@ export default function HomePage() {
           viewport={{ once: true, margin: "-120px" }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
-          {Array.from({ length: 8 }).map((_, index) => (
+          {foundersSocialUrls.map((url, index) => (
             <motion.div
               key={index}
               className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-white/5"
@@ -223,11 +225,14 @@ export default function HomePage() {
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.4, ease: "easeOut", delay: index * 0.03 }}
             >
-              <Image
-                src={products[index % products.length].images[0]}
+              <img
+                src={buildCloudinaryCardUrl(url)}
                 alt="Lucky Caps social gallery"
-                fill
-                className="object-cover transition duration-300 group-hover:scale-105"
+                className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                onError={(e) => {
+                  e.currentTarget.src = "/images/placeholder-product.svg";
+                }}
+                loading="lazy"
               />
             </motion.div>
           ))}

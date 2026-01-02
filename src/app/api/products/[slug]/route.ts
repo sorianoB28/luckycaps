@@ -170,3 +170,5 @@ export async function GET(_request: Request, { params }: RouteParams) {
     reviews,
   });
 }
+export const dynamic = "force-dynamic";
+export const revalidate = 0;

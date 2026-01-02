@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuthStore } from "@/store/authStore";
 import { useReviewsStore } from "@/store/reviewsStore";
 import { StarRating } from "./StarRating";
 
@@ -30,7 +30,7 @@ export function WriteReviewModal({
   isOpen,
   onClose,
 }: WriteReviewModalProps) {
-  const { isAuthed, user } = useAuthStore();
+  const { data: session, status } = useSession();
   const addReview = useReviewsStore((s) => s.addReview);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -59,21 +59,21 @@ export function WriteReviewModal({
 
   useEffect(() => {
     const shouldOpen = searchParams?.get("review") === "open";
-    if (shouldOpen && isAuthed) {
+    if (shouldOpen && status === "authenticated") {
       // keep open
-    } else if (shouldOpen && !isAuthed) {
+    } else if (shouldOpen && status === "unauthenticated") {
       router.replace(`${pathname}`);
     }
-  }, [isAuthed, pathname, router, searchParams]);
+  }, [pathname, router, searchParams, status]);
 
-  const authorEmail = user?.email ?? "";
+  const authorEmail = session?.user?.email ?? "guest@luckycaps.com";
   const authorName = useMemo(() => {
-    if (!user) return "";
-    return `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email.split("@")[0];
-  }, [user]);
+    if (!session?.user?.name) return authorEmail.split("@")[0] ?? "";
+    return session.user.name;
+  }, [authorEmail, session?.user?.name]);
 
   const handleSubmit = () => {
-    if (!isAuthed) {
+    if (status !== "authenticated") {
       router.push(`/auth/sign-in?redirect=${encodeURIComponent(`${pathname}?review=open`)}`);
       return;
     }

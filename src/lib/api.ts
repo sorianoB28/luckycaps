@@ -41,21 +41,21 @@ export type ProductVariantRow = {
   created_at: string;
 };
 
-export type ReviewRow = {
+export type Review = {
   id: string;
-  product_id: string;
   product_slug: string;
+  product_id?: string;
   rating: number;
   title: string;
   body: string;
-  author_email: string;
+  author_email?: string;
   author_name: string | null;
   variant: string | null;
   size: string | null;
-  images: string[] | null;
+  images: string[];
   verified_purchase: boolean;
   helpful_count: number;
-  reported: boolean;
+  reported?: boolean;
   created_at: string;
 };
 
@@ -65,7 +65,67 @@ export type ProductDetailResponse = {
   sizes: ProductSizeRow[];
   variants: ProductVariantRow[];
   reviewSummary: { count: number; avgRating: number | null };
-  reviews: ReviewRow[];
+  reviews: Review[];
+};
+
+export type ReviewsSummary = {
+  avg_rating: number | null;
+  review_count: number;
+};
+
+export type ReviewsResponse = {
+  reviews: Review[];
+  summary: ReviewsSummary;
+};
+
+export type CreateReviewPayload = {
+  product_id: string;
+  product_slug: string;
+  rating: number;
+  title: string;
+  body: string;
+  author_email: string;
+  author_name?: string | null;
+  variant?: string | null;
+  size?: string | null;
+  images?: string[];
+};
+
+export type AdminProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  description: string;
+  price_cents: number;
+  sale_price_cents: number | null;
+  original_price_cents: number | null;
+  is_new_drop: boolean;
+  is_sale: boolean;
+  tags: string[];
+  features: string[];
+  stock: number;
+  active: boolean;
+  created_at: string;
+  image_url: string | null;
+  images: string[];
+};
+
+export type AdminImageInput = { url: string; publicId?: string | null };
+
+export type AdminProductPayload = {
+  name: string;
+  slug: string;
+  category: string;
+  description: string;
+  price: number;
+  salePrice?: number | null;
+  originalPrice?: number | null;
+  isSale: boolean;
+  isNewDrop: boolean;
+  stock: number;
+  images: AdminImageInput[];
+  active?: boolean;
 };
 
 export type CheckoutItemInput = {
@@ -173,4 +233,123 @@ export async function createCheckout(payload: CheckoutPayload) {
   }
 
   return res.json() as Promise<CheckoutResponse>;
+}
+
+export async function getReviews(productSlug: string) {
+  return fetchJson<ReviewsResponse>(
+    `/api/reviews?product_slug=${encodeURIComponent(productSlug)}`
+  );
+}
+
+export async function createReview(payload: CreateReviewPayload) {
+  const url = resolveUrl("/api/reviews");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let message = `Request to ${url} failed with status ${res.status}`;
+    try {
+      const data = (await res.json()) as { error?: string; errors?: Record<string, string> };
+      if (data?.error) message = data.error;
+      if (data?.errors) message = Object.values(data.errors)[0] ?? message;
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(message);
+  }
+
+  return res.json() as Promise<{ reviewId: string }>;
+}
+
+export async function voteHelpful(reviewId: string, voterKey: string) {
+  const url = resolveUrl(`/api/reviews/${reviewId}/helpful`);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ voter_key: voterKey }),
+  });
+
+  if (!res.ok) {
+    let message = `Request to ${url} failed with status ${res.status}`;
+    try {
+      const data = (await res.json()) as { error?: string };
+      if (data?.error) message = data.error;
+    } catch {
+      // ignore parse errors
+    }
+    throw new Error(message);
+  }
+
+  return res.json() as Promise<{ ok: boolean; counted: boolean; helpful_count: number }>;
+}
+
+async function adminFetchJson<T>(path: string, init?: RequestInit) {
+  const url = resolveUrl(path);
+  const headers = new Headers(init?.headers ?? {});
+  if (init?.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const res = await fetch(url, { ...init, headers, credentials: "include" });
+
+  if (!res.ok) {
+    let message = `Request to ${url} failed with status ${res.status}`;
+    try {
+      const data = (await res.json()) as { error?: string; errors?: Record<string, string> };
+      if (data?.error) message = data.error;
+      if (data?.errors) {
+        const first = Object.values(data.errors)[0];
+        if (first) message = first;
+      }
+    } catch {
+      // ignore parse errors
+    }
+    const err = new Error(message) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+
+  return res.json() as Promise<T>;
+}
+
+export async function getAdminProducts() {
+  return adminFetchJson<AdminProduct[]>("/api/admin/products", { cache: "no-store" });
+}
+
+export async function getAdminProduct(id: string) {
+  return adminFetchJson<AdminProduct>(`/api/admin/products/${id}`, {
+    cache: "no-store",
+  });
+}
+
+export async function createAdminProduct(payload: AdminProductPayload) {
+  return adminFetchJson<{ productId: string }>("/api/admin/products", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminProduct(
+  id: string,
+  payload: AdminProductPayload
+) {
+  return adminFetchJson<{ ok: true }>(`/api/admin/products/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteAdminProduct(id: string) {
+  return adminFetchJson<{ ok: true }>(`/api/admin/products/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function duplicateAdminProduct(id: string) {
+  return adminFetchJson<{ productId: string }>(`/api/admin/products/${id}/duplicate`, {
+    method: "POST",
+  });
 }

@@ -5,6 +5,7 @@ import { Bebas_Neue, Inter } from "next/font/google";
 
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
+import { SessionProviders } from "@/components/providers/SessionProviders";
 
 const display = Bebas_Neue({
   weight: "400",
@@ -30,11 +31,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
-        <div className="min-h-screen flex flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <SessionProviders>
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </SessionProviders>
       </body>
     </html>
   );

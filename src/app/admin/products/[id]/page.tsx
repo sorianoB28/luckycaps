@@ -1,11 +1,19 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 
 import { ProductForm, ProductFormValues } from "@/app/admin/components/ProductForm";
 import { Button } from "@/components/ui/button";
-import { useProductsStore } from "@/store/productsStore";
+import {
+  AdminProduct,
+  AdminProductPayload,
+  deleteAdminProduct,
+  getAdminProduct,
+  updateAdminProduct,
+} from "@/lib/api";
+import { Product } from "@/types";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -14,38 +22,113 @@ export default function EditProductPage() {
     () => (Array.isArray(params.id) ? params.id[0] : params.id),
     [params.id]
   );
-  const { products, updateProduct, deleteProduct } = useProductsStore();
-  const [hydrated, setHydrated] = useState(
-    (useProductsStore.persist as any)?.hasHydrated?.() ?? true
+  const { data: session, status } = useSession();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const isAdmin = useMemo(() => session?.user?.role === "admin", [session?.user?.role]);
+
+  const mapAdminToProduct = useCallback(
+    (item: AdminProduct): Product => ({
+      id: item.id,
+      slug: item.slug,
+      name: item.name,
+      price:
+        item.is_sale && item.sale_price_cents != null
+        ? item.sale_price_cents / 100
+        : item.price_cents / 100,
+    salePrice: item.sale_price_cents != null ? item.sale_price_cents / 100 : undefined,
+    originalPrice: item.original_price_cents != null ? item.original_price_cents / 100 : undefined,
+    images:
+      item.images && item.images.length
+        ? item.images.map((url) => ({ url }))
+        : item.image_url
+        ? [{ url: item.image_url }]
+        : [],
+    category: item.category,
+    tags: item.tags ?? [],
+    description: item.description ?? "",
+    features: item.features ?? [],
+    isNewDrop: item.is_new_drop,
+    isSale: item.is_sale,
+    variants: [],
+    sizes: [],
+    stock: item.stock,
+  }),
+    []
   );
 
   useEffect(() => {
-    const unsub = (useProductsStore.persist as any)?.onFinishHydration?.(() =>
-      setHydrated(true)
-    );
-    return () => unsub?.();
-  }, []);
-
-  const product = products.find((p) => p.id === productId);
-
-  useEffect(() => {
-    if (!hydrated || product || !productId) return;
-    // If a persisted product doesn't exist anymore, return to dashboard.
-    router.replace("/admin");
-  }, [hydrated, product, productId, router]);
-
-  const handleUpdate = (values: ProductFormValues) => {
-    const payload = {
-      ...values,
-      isSale: values.isSale,
-      salePrice: values.isSale ? values.salePrice ?? values.price : undefined,
-      originalPrice: values.isSale
-        ? values.originalPrice ?? values.price
-        : undefined,
-      price: values.isSale ? values.salePrice ?? values.price : values.price,
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getAdminProduct(productId);
+        if (cancelled) return;
+        setProduct(mapAdminToProduct(data));
+      } catch (err) {
+        if (cancelled) return;
+        const status = (err as Error & { status?: number }).status;
+        if (status === 401) {
+          setError("Unauthorized. Check admin access.");
+        } else if ((err as Error).message?.includes("Not found")) {
+          setError("Product not found.");
+        } else {
+          setError((err as Error).message || "Unable to load product.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
-    updateProduct(productId, payload);
-    router.replace("/admin");
+    if (status === "loading") return;
+    if (!isAdmin) {
+      router.replace(`/auth/sign-in?redirect=${encodeURIComponent(`/admin/products/${productId}`)}`);
+      return;
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdmin, mapAdminToProduct, productId, router, status]);
+
+  const toPayload = (values: ProductFormValues): AdminProductPayload => ({
+    name: values.name.trim(),
+    slug: values.slug.trim(),
+    category: values.category.trim().toLowerCase(),
+    description: values.description.trim(),
+    price: values.isSale ? values.salePrice ?? values.price : values.price,
+    salePrice: values.isSale ? values.salePrice ?? values.price : null,
+    originalPrice: values.isSale
+      ? values.originalPrice ?? values.price
+      : values.originalPrice ?? undefined,
+    isSale: values.isSale,
+    isNewDrop: values.isNewDrop,
+    stock: values.stock ?? 0,
+    images: values.images
+      .filter((img) => img.url && !img.url.startsWith("data:"))
+      .map((img) => ({ url: img.url, publicId: img.publicId })),
+  });
+
+  const handleUpdate = async (values: ProductFormValues) => {
+    if (!isAdmin) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await updateAdminProduct(productId, toPayload(values));
+      router.replace("/admin");
+    } catch (err) {
+      const status = (err as Error & { status?: number }).status;
+      if (status === 401) {
+        setError("Unauthorized. Check admin access.");
+      } else {
+        setError((err as Error).message || "Unable to update product.");
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -64,10 +147,22 @@ export default function EditProductPage() {
           <Button
             variant="ghost"
             className="text-red-400 hover:text-red-300"
-            onClick={() => {
-              if (confirm("Delete this product?")) {
-                deleteProduct(productId);
+            onClick={async () => {
+              if (!isAdmin) return;
+              if (!confirm("Delete this product?")) return;
+              setSaving(true);
+              try {
+                await deleteAdminProduct(productId);
                 router.replace("/admin");
+              } catch (err) {
+                const status = (err as Error & { status?: number }).status;
+                if (status === 401) {
+                  setError("Unauthorized. Check admin access.");
+                } else {
+                  setError((err as Error).message || "Unable to delete product.");
+                }
+              } finally {
+                setSaving(false);
               }
             }}
           >
@@ -75,14 +170,17 @@ export default function EditProductPage() {
           </Button>
         </div>
       </div>
-      {!hydrated ? (
-        <p className="text-white/70">Loading product…</p>
+      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      {loading ? (
+        <p className="text-white/70">Loading product...</p>
       ) : product ? (
-        <ProductForm
-          initialProduct={product}
-          submitLabel="Save Changes"
-          onSubmit={handleUpdate}
-        />
+        <>
+          <ProductForm
+            initialProduct={product}
+            submitLabel={saving ? "Saving..." : "Save Changes"}
+            onSubmit={handleUpdate}
+          />
+        </>
       ) : (
         <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-white/80">
           <p className="font-semibold">Product not found.</p>

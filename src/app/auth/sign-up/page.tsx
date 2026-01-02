@@ -4,20 +4,19 @@ import Link from "next/link";
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { useAuthStore } from "@/store/authStore";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function SignUpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const signUp = useAuthStore((s) => s.signUp);
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -30,7 +29,7 @@ function SignUpContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.firstName || !form.lastName) {
       setError("Name is required.");
@@ -54,18 +53,34 @@ function SignUpContent() {
     }
     setError(null);
     setLoading(true);
-    setTimeout(() => {
-      signUp({
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        password: form.password,
-        marketingOptIn: form.marketing,
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+          first_name: form.firstName,
+          last_name: form.lastName,
+          marketing_opt_in: form.marketing,
+        }),
       });
-      setLoading(false);
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        throw new Error(data.error || "Unable to create account.");
+      }
+      await signIn("credentials", {
+        redirect: false,
+        email: form.email.toLowerCase(),
+        password: form.password,
+      });
       const redirect = searchParams?.get("redirect");
       router.push(redirect || "/account");
-    }, 700);
+    } catch (err) {
+      setError((err as Error).message || "Unable to create account.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

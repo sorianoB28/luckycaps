@@ -4,27 +4,26 @@ import Link from "next/link";
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Mail, Lock, Chrome } from "lucide-react";
+import { signIn } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { useAuthStore } from "@/store/authStore";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const signIn = useAuthStore((s) => s.signIn);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!emailRegex.test(email)) {
       setError("Enter a valid email.");
@@ -36,12 +35,22 @@ function SignInContent() {
     }
     setError(null);
     setLoading(true);
-    setTimeout(() => {
-      signIn(email);
-      setLoading(false);
-      const redirect = searchParams?.get("redirect");
-      router.push(redirect || "/account");
-    }, 700);
+    const result = await signIn("credentials", {
+      redirect: false,
+      email: email.toLowerCase(),
+      password,
+    });
+    setLoading(false);
+    if (result?.error) {
+      setError(
+        result.error === "CredentialsSignin"
+          ? "Invalid email or password."
+          : result.error
+      );
+      return;
+    }
+    const redirect = searchParams?.get("redirect");
+    router.push(redirect || "/account");
   };
 
   return (

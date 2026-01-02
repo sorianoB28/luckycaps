@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useAuthStore } from "@/store/authStore";
 import { Review, useReviewsStore } from "@/store/reviewsStore";
 import { cn } from "@/lib/utils";
 import { StarRating } from "./StarRating";
@@ -35,7 +35,8 @@ export function ReviewsSection({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { isAuthed, user } = useAuthStore();
+  const { data: session, status } = useSession();
+  const isAuthed = status === "authenticated";
   const { reviews, markHelpful, unmarkHelpful, reportReview, hasUserVoted, setHelpfulVote } =
     useReviewsStore();
   const productReviews = reviews[productSlug] ?? [];
@@ -112,7 +113,7 @@ export function ReviewsSection({
     setIsModalOpen(true);
   };
 
-  const userKey = user?.email ?? "";
+  const userKey = session?.user?.email ?? "";
 
   return (
     <section className="mt-12 space-y-6">

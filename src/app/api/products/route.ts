@@ -36,3 +36,5 @@ export async function GET() {
 
   return NextResponse.json(rows);
 }
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
