@@ -14,7 +14,7 @@ export const revalidate = 0;
 
 async function ensurePublicIdColumn() {
   await sql`
-    ALTER TABLE IF NOT EXISTS public.product_images
+    ALTER TABLE public.product_images
     ADD COLUMN IF NOT EXISTS public_id text
   `;
 }
@@ -185,7 +185,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
   const name = payload.name?.trim() ?? "";
   const slug = slugify(payload.slug?.trim() || name);
-  const category = payload.category?.trim() ?? "";
+  const category = (payload.category ?? "").trim().toLowerCase();
   const description = payload.description?.trim() ?? "";
   const isSale = Boolean(payload.isSale);
   const isNewDrop = Boolean(payload.isNewDrop);
@@ -209,6 +209,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
   if (!slug) {
     errors.slug = "Slug is required";
+  }
+  if (!category) {
+    errors.category = "Category is required";
   }
   if (priceCents == null || priceCents < 0) {
     errors.price = "Price must be a valid number";
@@ -277,6 +280,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         INSERT INTO public.product_sizes (product_id, name)
         SELECT (SELECT id FROM updated), size_val
         FROM UNNEST(${sizes}::text[]) AS size_val
+        ON CONFLICT (product_id, name) DO NOTHING
       ),
       removed_images AS (
         DELETE FROM public.product_images
@@ -295,6 +299,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
             UNNEST(${imagesWithIds.map((i) => i.publicId ?? null)}::text[]) AS public_id,
             GENERATE_SERIES(1, ${imagesWithIds.length}) AS ord
         ) AS img
+        ON CONFLICT (product_id, sort_order) DO UPDATE
+        SET url = EXCLUDED.url, public_id = EXCLUDED.public_id
       )
       SELECT id FROM updated
     `;
@@ -302,13 +308,14 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = (err as Error).message ?? "Unable to update product";
+    console.error("Admin update product failed", { id, message, error: err });
     if (message.includes("products_slug_key")) {
       return NextResponse.json(
         { errors: { slug: "Slug must be unique" } },
         { status: 400 }
       );
     }
-    return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
+    return NextResponse.json({ error: message || "Failed to update product" }, { status: 500 });
   }
 }
 

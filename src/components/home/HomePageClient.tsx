@@ -13,7 +13,8 @@ import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 import { CategoryInfo } from "@/lib/categories";
 import { Product } from "@/types";
 
-const heroBackground = "/brand/capshop.jpg";
+const heroBackground =
+  "https://res.cloudinary.com/dgg7cxdoj/image/upload/v1767463691/heroimage_toguj8.png";
 
 interface HomePageClientProps {
   newDrops: Product[];
@@ -33,11 +34,24 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
             src={heroBackground}
             alt="Cinematic city street background"
             fill
-            className="object-cover"
+            className="object-cover object-[50%_25%]"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/70 to-lucky-darker" />
-          <div className="absolute inset-0 bg-hero-gradient opacity-80" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.78)_0%,rgba(0,0,0,0.55)_55%,rgba(0,0,0,0.35)_100%)]" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse at top, rgba(0,0,0,0.35), transparent 55%), radial-gradient(ellipse at bottom, rgba(0,0,0,0.35), transparent 55%)",
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.00) 55%)",
+            }}
+          />
         </div>
         <div className="relative mx-auto flex max-w-7xl flex-col gap-10 px-4 py-20 md:px-8 lg:flex-row lg:items-center">
           <div className="flex-1 space-y-6">
