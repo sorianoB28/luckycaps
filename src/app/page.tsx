@@ -1,4 +1,4 @@
-import HomePageClient from "@/components/home/HomePageClient";
+﻿import HomePageClient from "@/components/home/HomePageClient";
 import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 import { getProducts, type Product as ApiProduct } from "@/lib/api";
 import { getCategoriesFromProducts, type CategoryInfo } from "@/lib/categories";
