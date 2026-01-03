@@ -18,6 +18,9 @@ const STATUSES: AdminOrderDetail["status"][] = [
   "refunded",
 ];
 
+const readString = (value: unknown) =>
+  typeof value === "string" ? value : value == null ? "" : String(value);
+
 export default function AdminOrderViewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -167,17 +170,24 @@ export default function AdminOrderViewPage() {
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
               <h3 className="font-semibold">Shipping</h3>
               <p className="text-sm text-white/70">
-                {order.shipping_address?.firstName} {order.shipping_address?.lastName}
+                {readString(order.shipping_address?.firstName)}{" "}
+                {readString(order.shipping_address?.lastName)}
               </p>
-              <p className="text-sm text-white/70">{order.shipping_address?.address1}</p>
+              <p className="text-sm text-white/70">
+                {readString(order.shipping_address?.address1)}
+              </p>
               {order.shipping_address?.address2 ? (
-                <p className="text-sm text-white/70">{order.shipping_address.address2}</p>
+                <p className="text-sm text-white/70">
+                  {readString(order.shipping_address.address2)}
+                </p>
               ) : null}
               <p className="text-sm text-white/70">
-                {order.shipping_address?.city}, {order.shipping_address?.state}{" "}
-                {order.shipping_address?.zip}
+                {readString(order.shipping_address?.city)}, {readString(order.shipping_address?.state)}{" "}
+                {readString(order.shipping_address?.zip)}
               </p>
-              <p className="text-sm text-white/70">{order.shipping_address?.country}</p>
+              <p className="text-sm text-white/70">
+                {readString(order.shipping_address?.country)}
+              </p>
               <p className="mt-2 text-sm text-white/60">
                 Delivery: {order.delivery_option ?? "N/A"}
               </p>
@@ -188,7 +198,7 @@ export default function AdminOrderViewPage() {
                 {order.user_id ? "Account" : "Guest"}
               </p>
               <p className="text-sm text-white/80">
-                {order.customer_name || order.contact?.name || "Unknown customer"}
+                {order.customer_name || readString(order.contact?.name) || "Unknown customer"}
               </p>
               <p className="text-sm text-white/70">{order.email}</p>
               {order.customer_phone || order.contact?.phone ? (

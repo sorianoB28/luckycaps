@@ -200,7 +200,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const sizes = sortSizes(
     (Array.isArray(payload.sizes) ? payload.sizes : [])
       .map((s) => normalizeSize(typeof s === "string" ? s : null))
-      .filter((s): s is string => Boolean(s))
+      .filter((s): s is NonNullable<typeof s> => Boolean(s))
       .filter((s, idx, arr) => arr.indexOf(s) === idx)
   );
 

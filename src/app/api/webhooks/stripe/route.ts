@@ -7,7 +7,7 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const stripe =
   stripeSecret && stripeSecret.trim()
-    ? new Stripe(stripeSecret, { apiVersion: "2024-06-20" })
+    ? new Stripe(stripeSecret, { apiVersion: "2024-04-10" })
     : null;
 
 export const runtime = "nodejs";

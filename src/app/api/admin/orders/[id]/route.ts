@@ -82,9 +82,10 @@ export async function GET(
       [params.id]
     );
 
-    let stats = [{ first_order_at: null, order_count: 1 }];
+    type StatsRow = { first_order_at: string | null; order_count: number };
+    let stats: StatsRow[] = [{ first_order_at: null, order_count: 1 }];
     if (order.user_id) {
-      stats = await sql(
+      stats = (await sql(
         `
         SELECT
           MIN(created_at) AS first_order_at,
@@ -93,9 +94,9 @@ export async function GET(
         WHERE user_id = $1
       `,
         [order.user_id]
-      );
+      )) as unknown as StatsRow[];
     } else if (order.email) {
-      stats = await sql(
+      stats = (await sql(
         `
         SELECT
           MIN(created_at) AS first_order_at,
@@ -104,7 +105,7 @@ export async function GET(
         WHERE LOWER(email) = LOWER($1)
       `,
         [order.email]
-      );
+      )) as unknown as StatsRow[];
     }
 
     return NextResponse.json({

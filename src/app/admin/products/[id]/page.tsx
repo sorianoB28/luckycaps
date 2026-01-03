@@ -58,7 +58,7 @@ export default function EditProductPage() {
       sizes: sortSizes(
         (item.sizes ?? [])
           .map((s) => normalizeSize(s))
-          .filter((s): s is string => Boolean(s))
+          .filter((s): s is NonNullable<typeof s> => Boolean(s))
       ),
       stock: item.stock,
     }),

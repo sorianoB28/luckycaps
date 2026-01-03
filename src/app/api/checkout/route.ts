@@ -8,7 +8,7 @@ import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const stripe =
   stripeSecret && stripeSecret.trim()
-    ? new Stripe(stripeSecret, { apiVersion: "2024-06-20" })
+    ? new Stripe(stripeSecret, { apiVersion: "2024-04-10" })
     : null;
 
 type CheckoutItemInput = {
@@ -149,7 +149,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Product not available" }, { status: 400 });
       }
       const availableSizes = sortSizes(
-        (product.sizes ?? []).map((s) => normalizeSize(s)).filter((s): s is string => Boolean(s))
+        (product.sizes ?? [])
+          .filter((s): s is NonNullable<typeof s> => s != null)
+          .map((s) => normalizeSize(s))
+          .filter((s): s is NonNullable<typeof s> => Boolean(s))
       );
       if (availableSizes.length) {
         const normalized = normalizeSize(input.size);

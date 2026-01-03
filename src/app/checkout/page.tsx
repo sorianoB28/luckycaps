@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ const deliveryOptions: DeliveryOption[] = [
   { id: "express", name: "Express", description: "Priority air", price: 12, eta: "1-2 business days" },
 ];
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const { items } = useCart();
   const { data: session } = useSession();
   const searchParams = useSearchParams();
@@ -469,5 +469,19 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-4xl px-4 py-16 text-center text-white/70">
+          Loading checkout...
+        </div>
+      }
+    >
+      <CheckoutPageContent />
+    </Suspense>
   );
 }
