@@ -37,26 +37,26 @@ export default function EditProductPage() {
       name: item.name,
       price:
         item.is_sale && item.sale_price_cents != null
-        ? item.sale_price_cents / 100
-        : item.price_cents / 100,
-    salePrice: item.sale_price_cents != null ? item.sale_price_cents / 100 : undefined,
-    originalPrice: item.original_price_cents != null ? item.original_price_cents / 100 : undefined,
-    images:
-      item.images && item.images.length
-        ? item.images.map((url) => ({ url }))
-        : item.image_url
-        ? [{ url: item.image_url }]
-        : [],
-    category: item.category,
-    tags: item.tags ?? [],
-    description: item.description ?? "",
-    features: item.features ?? [],
-    isNewDrop: item.is_new_drop,
-    isSale: item.is_sale,
-    variants: [],
-    sizes: [],
-    stock: item.stock,
-  }),
+          ? item.sale_price_cents / 100
+          : item.price_cents / 100,
+      salePrice: item.sale_price_cents != null ? item.sale_price_cents / 100 : undefined,
+      originalPrice: item.original_price_cents != null ? item.original_price_cents / 100 : undefined,
+      images:
+        item.images && item.images.length
+          ? item.images
+          : item.image_url
+          ? [item.image_url]
+          : [],
+      category: item.category,
+      tags: item.tags ?? [],
+      description: item.description ?? "",
+      features: item.features ?? [],
+      isNewDrop: item.is_new_drop,
+      isSale: item.is_sale,
+      variants: [],
+      sizes: [],
+      stock: item.stock,
+    }),
     []
   );
 
