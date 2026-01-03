@@ -4,18 +4,16 @@ import { getProducts, type Product as ApiProduct } from "@/lib/api";
 import { getCategoriesFromProducts, type CategoryInfo } from "@/lib/categories";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 import { Product } from "@/types";
-import { isGenerator } from "framer-motion";
 
 const NEW_DROPS_LIMIT = 6;
 
 const mapApiProductToUiProduct = (item: ApiProduct): Product => {
   const image = item.image_url ? buildCloudinaryCardUrl(item.image_url) : "";
+  
   const sizes = sortSizes(
-// @ts-ignore
     (item.sizes ?? [])
       .filter((s): s is string => s != null)
       .map((s) => normalizeSize(s))
-      // @ts-ignore
       .filter((s): s is string => Boolean(s))
   );
 
