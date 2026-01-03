@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowUpDown, Check, Loader2, RotateCcw, Sparkles, Tag } from "lucide-react";
 
 import { ProductImageWithFallback } from "@/components/products/ProductImageWithFallback";
@@ -10,6 +11,7 @@ import { getPlaceholderImages } from "@/lib/placeholderImages";
 import { Slider } from "@/components/ui/slider";
 import { formatCategory } from "@/lib/formatCategory";
 import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
+import { getCategoriesFromProducts, type CategoryInfo } from "@/lib/categories";
 
 type SortOption = "featured" | "price-asc" | "price-desc" | "newest";
 
@@ -20,6 +22,7 @@ const effectivePrice = (product: Product) =>
     : product.price_cents;
 
 export default function ShopPage() {
+  const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,16 +65,29 @@ export default function ShopPage() {
     };
   }, []);
 
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((p) => p.category))).sort(),
+  const categories: CategoryInfo[] = useMemo(
+    () => getCategoriesFromProducts(products),
     [products]
   );
+
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+    if (!categoryParam || selectedCategories.length) return;
+    const normalized = categoryParam.trim().toLowerCase();
+    if (!normalized) return;
+    const exists = categories.some((c) => c.key === normalized);
+    if (exists) {
+      setSelectedCategories([normalized]);
+    }
+  }, [categories, searchParams, selectedCategories.length]);
 
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
     if (selectedCategories.length) {
-      list = list.filter((p) => selectedCategories.includes(p.category));
+      list = list.filter((p) =>
+        selectedCategories.includes((p.category ?? "").trim().toLowerCase())
+      );
     }
 
     if (onlyNew) {
@@ -177,16 +193,16 @@ export default function ShopPage() {
             <div className="space-y-2">
               {categories.map((category) => (
                 <label
-                  key={category}
+                  key={category.key}
                   className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent px-2 py-2 text-sm transition hover:border-white/15 hover:bg-white/5"
                 >
                   <input
                     type="checkbox"
                     className="h-4 w-4 accent-lucky-green"
-                    checked={selectedCategories.includes(category)}
-                    onChange={() => toggleCategory(category)}
+                    checked={selectedCategories.includes(category.key)}
+                    onChange={() => toggleCategory(category.key)}
                   />
-                  <span className="text-white/80">{formatCategory(category)}</span>
+                  <span className="text-white/80">{category.label}</span>
                 </label>
               ))}
               {categories.length === 0 ? (
