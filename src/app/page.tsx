@@ -12,9 +12,12 @@ const mapApiProductToUiProduct = (item: ApiProduct): Product => {
   
   const sizes = sortSizes(
     (item.sizes ?? [])
-      .filter((s): s is string => s != null)
+      // 1. Remove nulls from the original API data
+      .filter((s): s is NonNullable<typeof s> => s !== null)
+      // 2. Normalize (this might re-introduce nulls if normalization fails)
       .map((s) => normalizeSize(s))
-      .filter((s): s is string => Boolean(s))
+      // 3. Remove new nulls. "NonNullable" works with literals; "string" does not.
+      .filter((s): s is NonNullable<typeof s> => !!s)
   );
 
   return {

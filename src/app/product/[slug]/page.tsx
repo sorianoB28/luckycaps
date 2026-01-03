@@ -66,7 +66,9 @@ export default function ProductPage({ params }: ProductPageProps) {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [displayImage, setDisplayImage] = useState<string | null>(null);
-  const reviewsAnchorRef = useRef<HTMLSectionElement | null>(null);
+  
+  // FIXED: Changed HTMLSectionElement to HTMLElement
+  const reviewsAnchorRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -409,7 +411,7 @@ export default function ProductPage({ params }: ProductPageProps) {
       </div>
 
       <ProductReviews
-        anchorRef={reviewsAnchorRef}
+        anchorRef={reviewsAnchorRef as RefObject<HTMLElement>}
         productId={data.product.id}
         productSlug={data.product.slug}
         initialReviews={data.reviews}
@@ -428,7 +430,7 @@ type ProductReviewsProps = {
   initialSummary: { count: number; avgRating: number | null };
   selectedVariant: string | null;
   selectedSize: string | null;
-  anchorRef: RefObject<HTMLSectionElement | null>;
+  anchorRef: RefObject<HTMLElement>;
 };
 
 function ProductReviews({
