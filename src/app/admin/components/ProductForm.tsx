@@ -52,6 +52,7 @@ const buildInitialForm = (product?: Product): ProductFormValues => ({
   images: (product?.images ?? []).map((url) => ({ url })),
   sizes: sortSizes(
     (product?.sizes ?? [])
+      .filter((s): s is string => s != null)
       .map((size) => normalizeSize(size))
       .filter((s): s is string => Boolean(s))
   ),
