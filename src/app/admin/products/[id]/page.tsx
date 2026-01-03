@@ -13,6 +13,7 @@ import {
   getAdminProduct,
   updateAdminProduct,
 } from "@/lib/api";
+import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 import { Product } from "@/types";
 
 export default function EditProductPage() {
@@ -54,7 +55,11 @@ export default function EditProductPage() {
       isNewDrop: item.is_new_drop,
       isSale: item.is_sale,
       variants: [],
-      sizes: [],
+      sizes: sortSizes(
+        (item.sizes ?? [])
+          .map((s) => normalizeSize(s))
+          .filter((s): s is string => Boolean(s))
+      ),
       stock: item.stock,
     }),
     []
@@ -110,6 +115,7 @@ export default function EditProductPage() {
     images: values.images
       .filter((img) => img.url && !img.url.startsWith("data:"))
       .map((img) => ({ url: img.url, publicId: img.publicId })),
+    sizes: values.sizes,
   });
 
   const handleUpdate = async (values: ProductFormValues) => {

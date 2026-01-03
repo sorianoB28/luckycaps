@@ -38,30 +38,27 @@ export default function AdminLayout({
     <div className="min-h-screen bg-lucky-dark text-white">
       <header className="border-b border-white/10 bg-black/30 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Link href="/admin" className="font-display text-2xl">
               Admin
             </Link>
-            <nav className="flex items-center gap-4 text-sm uppercase tracking-[0.2em] text-white/70">
+            <nav className="flex items-center gap-3 text-sm uppercase tracking-[0.2em] text-white/70">
               <Link
                 href="/admin"
-                className={
-                  pathname === "/admin"
-                    ? "text-white"
-                    : "transition hover:text-white"
-                }
+                className={pathname === "/admin" ? "text-lucky-green" : "transition hover:text-white"}
               >
                 Products
               </Link>
+              <span className="text-white/30">/</span>
               <Link
-                href="/admin/products/new"
+                href="/admin/orders"
                 className={
-                  pathname?.startsWith("/admin/products/new")
-                    ? "text-white"
+                  pathname?.startsWith("/admin/orders")
+                    ? "text-lucky-green"
                     : "transition hover:text-white"
                 }
               >
-                {t.actions.addProduct}
+                Orders
               </Link>
             </nav>
           </div>

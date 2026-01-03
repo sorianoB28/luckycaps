@@ -57,7 +57,7 @@ export default function CartPage() {
               <div className="flex-1">
                 <p className="font-semibold">{item.name}</p>
                 <p className="text-sm text-white/50">
-                  {item.variant || "Standard"} · {item.size || "One size"}
+                  {item.variant || "Standard"} / {item.size || "One size"}
                 </p>
                 <div className="mt-4 flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">

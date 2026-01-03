@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
 import { slugify } from "@/lib/slugify";
 import { cloudinary } from "@/lib/cloudinary";
+import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -65,6 +66,7 @@ type AdminProductRow = {
   created_at: string;
   image_url: string | null;
   images: string[];
+  sizes: string[];
 };
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -108,7 +110,19 @@ export async function GET(request: Request, { params }: { params: { id: string }
           WHERE pi.product_id = p.id
         ),
         '{}'::text[]
-      ) AS images
+      ) AS images,
+      COALESCE(
+        (
+          SELECT ARRAY_AGG(ps.name ORDER BY CASE LOWER(ps.name)
+            WHEN 's/m' THEN 1
+            WHEN 'm/l' THEN 2
+            WHEN 'l/xl' THEN 3
+            ELSE 100 END, ps.name ASC)
+          FROM public.product_sizes ps
+          WHERE ps.product_id = p.id
+        ),
+        '{}'::text[]
+      ) AS sizes
     FROM public.products p
     WHERE p.id = ${id}::uuid
     LIMIT 1
@@ -136,6 +150,7 @@ type AdminProductPayload = {
   stock?: number;
   images?: ImageInput[];
   active?: boolean;
+  sizes?: string[];
 };
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
@@ -182,6 +197,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     : centsFromNumber(payload.originalPrice);
   const images = normalizeImages(payload.images);
   const active = payload.active ?? existingRows[0].active;
+  const sizes = sortSizes(
+    (Array.isArray(payload.sizes) ? payload.sizes : [])
+      .map((s) => normalizeSize(typeof s === "string" ? s : null))
+      .filter((s): s is string => Boolean(s))
+      .filter((s, idx, arr) => arr.indexOf(s) === idx)
+  );
 
   if (!name) {
     errors.name = "Name is required";
@@ -248,6 +269,15 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         WHERE id = ${id}::uuid
         RETURNING id
       ),
+      removed_sizes AS (
+        DELETE FROM public.product_sizes
+        WHERE product_id = (SELECT id FROM updated)
+      ),
+      inserted_sizes AS (
+        INSERT INTO public.product_sizes (product_id, name)
+        SELECT (SELECT id FROM updated), size_val
+        FROM UNNEST(${sizes}::text[]) AS size_val
+      ),
       removed_images AS (
         DELETE FROM public.product_images
         WHERE product_id = (SELECT id FROM updated)
@@ -308,6 +338,10 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         }
       }
     }
+
+    await sql`
+      DELETE FROM public.product_sizes WHERE product_id = ${id}::uuid
+    `;
 
     await sql`
       DELETE FROM public.product_images WHERE product_id = ${id}::uuid

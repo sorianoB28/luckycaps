@@ -21,7 +21,19 @@ export async function GET() {
       p.active,
       p.created_at,
       p.updated_at,
-      img.url AS image_url
+      img.url AS image_url,
+      COALESCE(
+        (
+          SELECT ARRAY_AGG(ps.name ORDER BY CASE LOWER(ps.name)
+            WHEN 's/m' THEN 1
+            WHEN 'm/l' THEN 2
+            WHEN 'l/xl' THEN 3
+            ELSE 100 END, ps.name ASC)
+          FROM public.product_sizes ps
+          WHERE ps.product_id = p.id
+        ),
+        '{}'::text[]
+      ) AS sizes
     FROM public.products p
     LEFT JOIN LATERAL (
       SELECT url

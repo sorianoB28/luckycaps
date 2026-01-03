@@ -14,11 +14,14 @@ interface ProductPurchasePanelProps {
 }
 
 export default function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
-  const [variant, setVariant] = useState(product.variants[0]);
-  const [size, setSize] = useState(product.sizes[0]);
+  const [variant, setVariant] = useState(product.variants[0] ?? "");
+  const [size, setSize] = useState(product.sizes[0] ?? "");
   const [quantity, setQuantity] = useState(1);
   const addItem = useCart((state) => state.addItem);
   const t = useTranslations();
+  const requiresSize = product.sizes.length > 0;
+  const requiresVariant = product.variants.length > 0;
+  const addDisabled = (requiresSize && !size) || (requiresVariant && !variant);
 
   return (
     <div className="space-y-6">
@@ -31,47 +34,51 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
         <p className="mt-4 text-white/60">{product.description}</p>
       </div>
 
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-          {t.product.variant}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {product.variants.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setVariant(option)}
-              className={cn(
-                "rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-lucky-green",
-                variant === option && "border-lucky-green bg-lucky-green/10 text-white"
-              )}
-            >
-              {option}
-            </button>
-          ))}
+      {product.variants.length ? (
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
+            {t.product.variant}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {product.variants.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setVariant(option)}
+                className={cn(
+                  "rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-lucky-green",
+                  variant === option && "border-lucky-green bg-lucky-green/10 text-white"
+                )}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-          {t.product.size}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {product.sizes.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setSize(option)}
-              className={cn(
-                "rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-lucky-green",
-                size === option && "border-lucky-green bg-lucky-green/10 text-white"
-              )}
-            >
-              {option}
-            </button>
-          ))}
+      {product.sizes.length ? (
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
+            {t.product.size}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {product.sizes.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setSize(option)}
+                className={cn(
+                  "rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 transition hover:border-lucky-green",
+                  size === option && "border-lucky-green bg-lucky-green/10 text-white"
+                )}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
@@ -106,11 +113,12 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
               priceCents: Math.round(
                 (product.isSale && product.salePrice ? product.salePrice : product.price) * 100
               ),
-              variant,
-              size,
+              variant: variant || null,
+              size: size || null,
               quantity,
             })
           }
+          disabled={addDisabled}
         >
           {t.actions.addToCart}
         </Button>

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { slugify } from "@/lib/slugify";
 import { Product } from "@/types";
+import { normalizeSize, sizeOptions, sortSizes } from "@/lib/sizeOptions";
 
 const isHttpUrl = (url?: string | null) => !!url && /^https?:\/\//i.test(url);
 
@@ -26,6 +27,7 @@ export type ProductFormValues = {
   isNewDrop: boolean;
   stock: number;
   images: { url: string; publicId?: string | null }[];
+  sizes: string[];
 };
 
 interface ProductFormProps {
@@ -48,6 +50,11 @@ const buildInitialForm = (product?: Product): ProductFormValues => ({
   isNewDrop: product?.isNewDrop ?? false,
   stock: product?.stock ?? 0,
   images: (product?.images ?? []).map((url) => ({ url })),
+  sizes: sortSizes(
+    (product?.sizes ?? [])
+      .map((size) => normalizeSize(size))
+      .filter((s): s is string => Boolean(s))
+  ),
 });
 
 export function ProductForm({
@@ -87,6 +94,18 @@ export function ProductForm({
       [key]:
         nextValue === "" ? (key === "stock" ? 0 : undefined) : Number(nextValue),
     }));
+  };
+
+  const toggleSize = (size: string) => {
+    setForm((prev) => {
+      const hasSize = prev.sizes.includes(size);
+      return {
+        ...prev,
+        sizes: hasSize
+          ? prev.sizes.filter((s) => s !== size)
+          : [...prev.sizes, size],
+      };
+    });
   };
 
   const handleAddImageUrl = () => {
@@ -345,6 +364,37 @@ export function ProductForm({
               />
               Mark as New Drop
             </Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-white/10 bg-white/5 text-white">
+        <CardHeader>
+          <CardTitle>Sizes Available</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-white/60">
+            Choose which sizes this product supports. Leave empty to hide sizing options.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {sizeOptions.map((size) => {
+              const active = form.sizes.includes(size);
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => toggleSize(size)}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-sm transition",
+                    active
+                      ? "border-lucky-green bg-lucky-green/20 text-white"
+                      : "border-white/15 bg-white/5 text-white/80 hover:border-white/40"
+                  )}
+                >
+                  {size}
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>

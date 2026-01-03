@@ -41,6 +41,7 @@ export default function NewProductPage() {
     images: values.images
       .filter((img) => img.url && !img.url.startsWith("data:"))
       .map((img) => ({ url: img.url, publicId: img.publicId })),
+    sizes: values.sizes,
   });
 
   const handleCreate = async (values: ProductFormValues) => {

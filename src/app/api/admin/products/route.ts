@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
 import { slugify } from "@/lib/slugify";
+import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 
 type AdminProductRow = {
   id: string;
@@ -22,6 +23,7 @@ type AdminProductRow = {
   created_at: string;
   image_url: string | null;
   images: string[];
+  sizes: string[];
 };
 
 export const dynamic = "force-dynamic";
@@ -98,7 +100,19 @@ export async function GET(request: Request) {
           WHERE pi.product_id = p.id
         ),
         '{}'::text[]
-      ) AS images
+      ) AS images,
+      COALESCE(
+        (
+          SELECT ARRAY_AGG(ps.name ORDER BY CASE LOWER(ps.name)
+            WHEN 's/m' THEN 1
+            WHEN 'm/l' THEN 2
+            WHEN 'l/xl' THEN 3
+            ELSE 100 END, ps.name ASC)
+          FROM public.product_sizes ps
+          WHERE ps.product_id = p.id
+        ),
+        '{}'::text[]
+      ) AS sizes
     FROM public.products p
     ORDER BY p.created_at DESC
   `) as unknown as AdminProductRow[];
@@ -119,6 +133,7 @@ type AdminProductPayload = {
   stock?: number;
   images?: ImageInput[];
   active?: boolean;
+  sizes?: string[];
 };
 
 export async function POST(request: Request) {
@@ -148,6 +163,12 @@ export async function POST(request: Request) {
     : centsFromNumber(payload.originalPrice);
   const images = normalizeImages(payload.images);
   const active = payload.active ?? true;
+  const sizes = sortSizes(
+    (Array.isArray(payload.sizes) ? payload.sizes : [])
+      .map((s) => normalizeSize(typeof s === "string" ? s : null))
+      .filter((s): s is string => Boolean(s))
+      .filter((s, idx, arr) => arr.indexOf(s) === idx)
+  );
 
   if (!name) {
     errors.name = "Name is required";
@@ -207,6 +228,14 @@ export async function POST(request: Request) {
     `) as unknown as { id: string }[];
 
     const productId = inserted[0]?.id;
+
+    if (sizes.length) {
+      await sql`
+        INSERT INTO public.product_sizes (product_id, name)
+        SELECT ${productId}, size_val
+        FROM UNNEST(${sizes}::text[]) AS size_val
+      `;
+    }
 
     if (images.length) {
       await sql`

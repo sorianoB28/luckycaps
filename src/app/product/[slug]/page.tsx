@@ -107,6 +107,11 @@ export default function ProductPage({ params }: ProductPageProps) {
     [data?.images]
   );
 
+  const requiresSizeSelection = useMemo(
+    () => (data?.sizes?.length ?? 0) > 0,
+    [data?.sizes?.length ?? 0]
+  );
+
   const priceInfo = useMemo(() => {
     if (!data) {
       return { current: 0, original: null as number | null, onSale: false };
@@ -132,6 +137,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
   const handleAddToCart = () => {
     if (!data) return;
+    if (requiresSizeSelection && !size) return;
     addToCart({
       productId: data.product.id,
       productSlug: data.product.slug,
@@ -180,6 +186,8 @@ export default function ProductPage({ params }: ProductPageProps) {
   const thumbs = galleryImages.length
     ? galleryImages
     : placeholderImages.filter(Boolean);
+  const addToCartDisabled =
+    (data?.product.stock ?? 0) === 0 || (requiresSizeSelection && !size);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 md:px-8">
@@ -337,7 +345,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                   type="button"
                   onClick={handleAddToCart}
                   className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-lucky-green px-4 py-3 font-semibold text-lucky-darker transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={data.product.stock === 0}
+                  disabled={addToCartDisabled}
                 >
                   Add to Cart
                 </button>

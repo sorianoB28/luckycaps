@@ -17,6 +17,7 @@ export type Product = {
   active: boolean;
   created_at: string;
   updated_at: string;
+  sizes: string[];
 };
 
 export type ProductImageRow = {
@@ -109,6 +110,7 @@ export type AdminProduct = {
   created_at: string;
   image_url: string | null;
   images: string[];
+  sizes: string[];
 };
 
 export type AdminImageInput = { url: string; publicId?: string | null };
@@ -125,6 +127,7 @@ export type AdminProductPayload = {
   isNewDrop: boolean;
   stock: number;
   images: AdminImageInput[];
+  sizes: string[];
   active?: boolean;
 };
 
@@ -140,9 +143,8 @@ export type CheckoutItemInput = {
 };
 
 export type CheckoutPayload = {
-  customer: { name: string; email: string; phone?: string | null };
-  contact_notes?: string | null;
-  shipping_address: {
+  contact: { email: string; phone?: string | null };
+  shippingAddress: {
     firstName: string;
     lastName: string;
     address1: string;
@@ -152,14 +154,63 @@ export type CheckoutPayload = {
     zip: string;
     country: string;
   };
-  delivery_option?: string | null;
-  promo_code?: string | null;
-  items: CheckoutItemInput[];
+  deliveryOption: string;
+  promoCode?: string | null;
   notes?: string | null;
+  items: {
+    productId: string;
+    quantity: number;
+    size?: string | null;
+    variant?: string | null;
+  }[];
 };
 
 export type CheckoutResponse = {
-  orderId: string;
+  url: string;
+  orderId?: string;
+};
+
+export type AdminOrder = {
+  id: string;
+  created_at: string;
+  status: "created" | "paid" | "shipped" | "delivered" | "cancelled" | "refunded";
+  email: string;
+  user_id?: string | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  subtotal_cents: number;
+  items_count: number;
+  tracking_number?: string | null;
+  admin_notes?: string | null;
+  paid_at?: string | null;
+  shipped_at?: string | null;
+  delivered_at?: string | null;
+  cancelled_at?: string | null;
+  refunded_at?: string | null;
+};
+
+export type AdminOrdersResponse = {
+  orders: AdminOrder[];
+  nextCursor?: string | null;
+};
+
+export type AdminOrderDetail = AdminOrder & {
+  contact?: Record<string, unknown> | null;
+  shipping_address?: Record<string, unknown> | null;
+  delivery_option?: string | null;
+  promo_code?: string | null;
+  first_order_at?: string | null;
+  order_count?: number;
+};
+
+export type AdminOrderItem = {
+  product_slug: string;
+  name: string;
+  image_url: string | null;
+  price_cents: number;
+  variant: string | null;
+  size: string | null;
+  quantity: number;
 };
 
 function getServerBaseUrl() {
@@ -351,5 +402,40 @@ export async function deleteAdminProduct(id: string) {
 export async function duplicateAdminProduct(id: string) {
   return adminFetchJson<{ productId: string }>(`/api/admin/products/${id}/duplicate`, {
     method: "POST",
+  });
+}
+
+export async function getAdminOrders(params?: {
+  status?: AdminOrder["status"];
+  q?: string;
+  sort?: "newest" | "oldest";
+  limit?: number;
+  cursor?: string | null;
+}) {
+  const search = new URLSearchParams();
+  if (params?.status) search.set("status", params.status);
+  if (params?.q) search.set("q", params.q);
+  if (params?.sort) search.set("sort", params.sort);
+  if (params?.limit) search.set("limit", String(params.limit));
+  if (params?.cursor) search.set("cursor", params.cursor);
+  const query = search.toString();
+  const path = query ? `/api/admin/orders?${query}` : "/api/admin/orders";
+  return adminFetchJson<AdminOrdersResponse>(path, { cache: "no-store" });
+}
+
+export async function getAdminOrder(id: string) {
+  return adminFetchJson<{ order: AdminOrderDetail; items: AdminOrderItem[] }>(
+    `/api/admin/orders/${id}`,
+    { cache: "no-store" }
+  );
+}
+
+export async function updateAdminOrder(
+  id: string,
+  payload: { status?: AdminOrder["status"]; tracking_number?: string | null; admin_notes?: string | null }
+) {
+  return adminFetchJson<{ order: AdminOrderDetail }>(`/api/admin/orders/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 }

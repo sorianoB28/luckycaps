@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,8 +30,10 @@ const deliveryOptions: DeliveryOption[] = [
 ];
 
 export default function CheckoutPage() {
-  const { items, clear } = useCart();
+  const { items } = useCart();
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const isCanceled = searchParams.get("canceled") === "1";
   const hasAdminToken = session?.user?.role === "admin";
   const entries = Object.entries(items);
   const [contact, setContact] = useState({ email: "", phone: "" });
@@ -45,8 +48,6 @@ export default function CheckoutPage() {
     country: "United States",
   });
   const [delivery, setDelivery] = useState<DeliveryOption>(deliveryOptions[0]);
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "paypal">("card");
-  const [cardFields, setCardFields] = useState({ number: "", expiry: "", cvc: "" });
   const [promo, setPromo] = useState("");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [errors, setErrors] = useState<string | null>(null);
@@ -66,7 +67,6 @@ export default function CheckoutPage() {
       zip: "94103",
       country: "United States",
     });
-    setCardFields({ number: "4242 4242 4242 4242", expiry: "12/28", cvc: "123" });
     setNotes("Please leave at the front desk. Test order.");
   };
 
@@ -100,26 +100,18 @@ export default function CheckoutPage() {
     }
 
     const itemsPayload = entries.map(([, item]) => ({
-      product_id: item.productId ?? null,
-      product_slug: item.productSlug,
-      name: item.name,
-      image_url: item.imageUrl ?? null,
-      variant: item.variant ?? null,
-      size: item.size ?? null,
+      productId: item.productId ?? "",
       quantity: item.quantity,
-      unit_price_cents: item.priceCents,
+      size: item.size ?? null,
+      variant: item.variant ?? null,
     }));
 
-    const customerName = `${shipping.firstName} ${shipping.lastName}`.trim();
-
     const payload = {
-      customer: {
-        name: customerName,
+      contact: {
         email: contact.email.trim(),
-        phone: contact.phone?.trim() || undefined,
+        phone: contact.phone?.trim() || null,
       },
-      contact_notes: notes.trim() ? notes.trim() : undefined,
-      shipping_address: {
+      shippingAddress: {
         firstName: shipping.firstName,
         lastName: shipping.lastName,
         address1: shipping.address1,
@@ -129,8 +121,9 @@ export default function CheckoutPage() {
         zip: shipping.zip,
         country: shipping.country,
       },
-      delivery_option: delivery.id,
-      promo_code: promo.trim() || undefined,
+      deliveryOption: delivery.id,
+      promoCode: promo.trim() || undefined,
+      notes: notes.trim() ? notes.trim() : undefined,
       items: itemsPayload,
     };
 
@@ -141,9 +134,12 @@ export default function CheckoutPage() {
 
     try {
       const response = await createCheckout(payload);
-      setOrderId(response.orderId);
+      if (!response.url) {
+        throw new Error("Missing checkout url");
+      }
+      setOrderId(response.orderId ?? null);
       setStatus("success");
-      clear();
+      window.location.href = response.url;
     } catch (err) {
       setStatus("error");
       setErrors((err as Error).message || "Unable to place order.");
@@ -169,15 +165,18 @@ export default function CheckoutPage() {
       <div className="mx-auto max-w-3xl px-4 py-16">
         <Card className="border-white/10 bg-white/5 text-white">
           <CardHeader>
-            <CardTitle className="font-display text-3xl">Order placed</CardTitle>
+            <CardTitle className="font-display text-3xl">Redirecting to payment</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-white/70">
-            <p>Thank you for your order. We&apos;ll email you when it ships.</p>
+            <p>Sending you to Stripe to securely complete payment.</p>
             <div className="rounded-lg border border-white/10 bg-black/40 p-3 text-sm">
               <p className="text-white/60">Order ID</p>
               <p className="font-mono text-white">{orderId ?? "Processing..."}</p>
             </div>
             <div className="flex gap-3">
+              <Button asChild>
+                <Link href={`/order/${orderId ?? ""}`}>View order</Link>
+              </Button>
               <Button asChild>
                 <Link href="/shop">Back to shop</Link>
               </Button>
@@ -195,6 +194,11 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 md:px-8">
+      {isCanceled ? (
+        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          Checkout canceled. You can try again or update your details below.
+        </div>
+      ) : null}
       <div className="flex flex-col gap-6 md:flex-row">
         <div className="flex-1 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -358,79 +362,6 @@ export default function CheckoutPage() {
 
           <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
-              <CardTitle>Payment method</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("card")}
-                  className={cn(
-                    "rounded-xl border px-4 py-3 text-left transition",
-                    paymentMethod === "card"
-                      ? "border-lucky-green bg-lucky-green/10"
-                      : "border-white/10 bg-white/5 hover:border-white/30"
-                  )}
-                >
-                  <p className="font-semibold text-white">Card</p>
-                  <p className="text-sm text-white/60">Visa, MasterCard, Amex</p>
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-white/50"
-                >
-                  <p className="font-semibold text-white/70">PayPal (coming soon)</p>
-                  <p className="text-sm text-white/50">Not enabled yet</p>
-                </button>
-              </div>
-
-              {paymentMethod === "card" ? (
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Card number</Label>
-                    <Input
-                      inputMode="numeric"
-                      placeholder="4242 4242 4242 4242"
-                      value={cardFields.number}
-                      onChange={(e) =>
-                        setCardFields((prev) => ({ ...prev, number: e.target.value }))
-                      }
-                      className="bg-white/5 text-white"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Expiry</Label>
-                    <Input
-                      placeholder="MM/YY"
-                      value={cardFields.expiry}
-                      onChange={(e) =>
-                        setCardFields((prev) => ({ ...prev, expiry: e.target.value }))
-                      }
-                      className="bg-white/5 text-white"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>CVC</Label>
-                    <Input
-                      placeholder="123"
-                      value={cardFields.cvc}
-                      onChange={(e) =>
-                        setCardFields((prev) => ({ ...prev, cvc: e.target.value }))
-                      }
-                      className="bg-white/5 text-white"
-                    />
-                  </div>
-                </div>
-              ) : null}
-              <p className="text-sm text-white/60">
-                Payments aren&apos;t enabled yet - this is a UI preview. Hook Stripe or your PSP here.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-white/10 bg-white/5 text-white">
-            <CardHeader>
               <CardTitle>Order notes</CardTitle>
             </CardHeader>
             <CardContent>
@@ -450,7 +381,7 @@ export default function CheckoutPage() {
               {submitting ? "Placing order..." : "Place Order"}
             </Button>
             <p className="text-xs text-white/60">
-              Orders are created now; payments will be added later.
+              You&apos;ll be redirected to Stripe to pay securely.
             </p>
           </div>
         </div>
@@ -483,7 +414,7 @@ export default function CheckoutPage() {
                     <div className="flex-1 text-sm">
                       <p className="font-semibold">{item.name}</p>
                       <p className="text-white/60">
-                        {(item.variant || "Standard")}  {(item.size || "One size")}
+                        {(item.variant || "Standard")} / {(item.size || "One size")}
                       </p>
                       <p className="mt-1 text-white/70">
                         {item.quantity} x ${(item.priceCents / 100).toFixed(2)}

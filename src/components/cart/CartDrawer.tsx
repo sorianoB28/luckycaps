@@ -56,7 +56,7 @@ export default function CartDrawer() {
               <div className="flex-1">
                 <p className="text-sm font-semibold">{item.name}</p>
                 <p className="text-xs text-white/50">
-                  {(item.variant || "Standard")} · {(item.size || "One size")}
+                  {(item.variant || "Standard")} / {(item.size || "One size")}
                 </p>
                 <p className="mt-2 text-sm text-white/80">
                   ${(item.priceCents / 100).toFixed(2)}

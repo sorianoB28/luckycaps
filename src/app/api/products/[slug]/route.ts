@@ -23,6 +23,7 @@ type ProductRow = {
   active: boolean;
   created_at: string;
   updated_at: string;
+  sizes?: string[];
 };
 
 type ProductImageRow = {
@@ -113,8 +114,13 @@ export async function GET(_request: Request, { params }: RouteParams) {
     SELECT id, product_id, name, created_at
     FROM public.product_sizes
     WHERE product_id = ${product.id}
-    ORDER BY name ASC
+    ORDER BY CASE LOWER(name)
+      WHEN 's/m' THEN 1
+      WHEN 'm/l' THEN 2
+      WHEN 'l/xl' THEN 3
+      ELSE 100 END, name ASC
   `) as unknown as ProductSizeRow[];
+  const sizeNames = sizes.map((s) => s.name);
 
   const variants = (await sql`
     SELECT id, product_id, name, created_at
@@ -159,7 +165,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
   const imageUrl = images[0]?.url ?? null;
 
   return NextResponse.json({
-    product: { ...product, image_url: imageUrl },
+    product: { ...product, image_url: imageUrl, sizes: sizeNames },
     images,
     sizes,
     variants,

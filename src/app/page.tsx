@@ -2,12 +2,19 @@ import HomePageClient from "@/components/home/HomePageClient";
 import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 import { getProducts, type Product as ApiProduct } from "@/lib/api";
 import { getCategoriesFromProducts, type CategoryInfo } from "@/lib/categories";
+import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 import { Product } from "@/types";
 
 const NEW_DROPS_LIMIT = 6;
 
 const mapApiProductToUiProduct = (item: ApiProduct): Product => {
   const image = item.image_url ? buildCloudinaryCardUrl(item.image_url) : "";
+  const sizes = sortSizes(
+    (item.sizes ?? [])
+      .filter((s): s is NonNullable<typeof s> => s !== null)
+      .map((s) => normalizeSize(s))
+      .filter((s): s is string => Boolean(s))
+  );
 
   return {
     id: item.id,
@@ -27,7 +34,7 @@ const mapApiProductToUiProduct = (item: ApiProduct): Product => {
     isNewDrop: item.is_new_drop,
     isSale: item.is_sale,
     variants: [],
-    sizes: [],
+    sizes,
     stock: item.stock,
   };
 };
