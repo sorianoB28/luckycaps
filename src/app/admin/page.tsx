@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTranslations } from "@/lib/translations";
+import { useT } from "@/components/providers/LanguageProvider";
 import {
   AdminProduct,
   deleteAdminProduct,
@@ -19,7 +19,7 @@ const PLACEHOLDER_IMAGE = "/images/placeholder-product.svg";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const t = useTranslations();
+  const t = useT();
   const { data: session, status } = useSession();
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,15 +38,15 @@ export default function AdminDashboard() {
       } catch (err) {
         const status = (err as Error & { status?: number }).status;
         if (status === 401) {
-          setError("Unauthorized. Please sign in as admin.");
+          setError(t("admin.unauthorized"));
         } else {
-          setError((err as Error).message || "Unable to load products.");
+          setError((err as Error).message || t("admin.unableToLoadProducts"));
         }
       } finally {
         setLoading(false);
       }
     },
-    []
+    [t]
   );
 
   useEffect(() => {
@@ -63,12 +63,12 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-white/50">
-            Admin
+            {t("admin.title")}
           </p>
-          <h1 className="font-display text-4xl">Products</h1>
+          <h1 className="font-display text-4xl">{t("admin.products")}</h1>
         </div>
         <Button onClick={() => router.push("/admin/products/new")}>
-          {t.actions.addProduct}
+          {t("admin.addProduct")}
         </Button>
       </div>
 
@@ -80,25 +80,25 @@ export default function AdminDashboard() {
 
       <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
-          <CardTitle className="text-lg">Inventory</CardTitle>
+          <CardTitle className="text-lg">{t("admin.inventory")}</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {status === "loading" ? (
-            <p className="text-sm text-white/60">Checking access...</p>
+            <p className="text-sm text-white/60">{t("admin.checkingAccess")}</p>
           ) : loading ? (
-            <p className="text-sm text-white/60">Loading products...</p>
+            <p className="text-sm text-white/60">{t("admin.loadingProducts")}</p>
           ) : products.length === 0 ? (
-            <p className="text-sm text-white/60">No products found.</p>
+            <p className="text-sm text-white/60">{t("admin.noProducts")}</p>
           ) : (
             <table className="w-full text-left text-sm">
               <thead className="text-white/60">
                 <tr className="border-b border-white/10">
-                  <th className="py-3 pr-3">Product</th>
-                  <th className="py-3 pr-3">Category</th>
-                  <th className="py-3 pr-3">Price</th>
-                  <th className="py-3 pr-3">Stock</th>
-                  <th className="py-3 pr-3">Flags</th>
-                  <th className="py-3 pr-3 text-right">Actions</th>
+                  <th className="py-3 pr-3">{t("admin.product")}</th>
+                  <th className="py-3 pr-3">{t("admin.category")}</th>
+                  <th className="py-3 pr-3">{t("admin.price")}</th>
+                  <th className="py-3 pr-3">{t("admin.stock")}</th>
+                  <th className="py-3 pr-3">{t("admin.flags")}</th>
+                  <th className="py-3 pr-3 text-right">{t("common.actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
@@ -153,17 +153,17 @@ export default function AdminDashboard() {
                         <div className="flex gap-2 text-xs">
                           {product.is_new_drop ? (
                             <span className="rounded-full bg-lucky-green/20 px-3 py-1 text-lucky-green">
-                              New Drop
+                              {t("shop.newDrop")}
                             </span>
                           ) : null}
                           {product.is_sale ? (
                             <span className="rounded-full bg-red-600/20 px-3 py-1 text-red-300">
-                              Sale
+                              {t("shop.sale")}
                             </span>
                           ) : null}
                           {!product.active ? (
                             <span className="rounded-full bg-white/10 px-3 py-1 text-white/70">
-                              Inactive
+                              {t("admin.inactive")}
                             </span>
                           ) : null}
                         </div>
@@ -177,7 +177,7 @@ export default function AdminDashboard() {
                             className="bg-white/10"
                           >
                             <Link href={`/admin/products/${product.id}`}>
-                              Edit
+                              {t("admin.edit")}
                             </Link>
                           </Button>
                           <Button
@@ -191,13 +191,13 @@ export default function AdminDashboard() {
                                 await duplicateAdminProduct(product.id);
                                 await loadProducts();
                               } catch (err) {
-                                setError((err as Error).message || "Unable to duplicate.");
+                                setError((err as Error).message || t("admin.unableToDuplicate"));
                               } finally {
                                 setActionId(null);
                               }
                             }}
                           >
-                            Duplicate
+                            {t("admin.duplicate")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -207,7 +207,7 @@ export default function AdminDashboard() {
                             onClick={async () => {
                               if (
                                 !confirm(
-                                  `Delete ${product.name}? This cannot be undone.`
+                                  t("admin.deleteConfirm", { name: product.name })
                                 )
                               ) {
                                 return;
@@ -217,13 +217,13 @@ export default function AdminDashboard() {
                                 await deleteAdminProduct(product.id);
                                 await loadProducts();
                               } catch (err) {
-                                setError((err as Error).message || "Unable to delete.");
+                                setError((err as Error).message || t("admin.unableToDelete"));
                               } finally {
                                 setActionId(null);
                               }
                             }}
                           >
-                            Delete
+                            {t("common.delete")}
                           </Button>
                         </div>
                       </td>

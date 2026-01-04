@@ -8,7 +8,7 @@ import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Product } from "@/types";
-import { useTranslations } from "@/lib/translations";
+import { useT } from "@/components/providers/LanguageProvider";
 import { getPlaceholderImages } from "@/lib/placeholderImages";
 
 interface ProductCardProps {
@@ -16,7 +16,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const t = useTranslations();
+  const t = useT();
   const fallbacks = getPlaceholderImages(product.category, product.slug, 3);
   const primaryImage =
     product.images && product.images.length > 0
@@ -47,12 +47,12 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div className="absolute left-3 top-3 z-10 flex flex-col gap-2">
             {product.isNewDrop ? (
               <Badge className="rounded-none bg-lucky-green px-3 py-1 text-xs font-bold uppercase tracking-wide text-lucky-darker">
-                {t.badges.newDrop}
+                {t("shop.newDrop")}
               </Badge>
             ) : null}
             {product.isSale ? (
               <Badge className="rounded-none bg-red-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
-                {t.badges.sale}
+                {t("shop.sale")}
               </Badge>
             ) : null}
           </div>
@@ -80,7 +80,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <p className="text-lg font-semibold">${product.price}</p>
           )}
           <Button variant="secondary" size="sm" asChild>
-            <Link href={`/product/${product.slug}`}>{t.actions.view}</Link>
+            <Link href={`/product/${product.slug}`}>{t("common.view")}</Link>
           </Button>
         </div>
       </div>

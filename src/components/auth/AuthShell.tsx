@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/providers/LanguageProvider";
 
 interface AuthShellProps {
   title: string;
@@ -13,6 +14,8 @@ interface AuthShellProps {
 }
 
 export function AuthShell({ title, subtitle, children }: AuthShellProps) {
+  const t = useT();
+
   return (
     <div className="relative min-h-screen bg-lucky-dark text-white">
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-lucky-darker/70 to-black" />
@@ -27,7 +30,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
               <div className="relative h-12 w-12 overflow-hidden rounded-full border border-white/20 bg-black">
                 <Image
                   src="/brand/luckycaps-logo.png"
-                  alt="Lucky Caps logo"
+                  alt={t("header.logoAlt")}
                   fill
                   className="object-cover"
                 />
@@ -35,7 +38,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
               <div>
                 <p className="font-display text-2xl">Lucky Caps</p>
                 <p className="text-xs uppercase tracking-[0.3em] text-white/50">
-                  Lucky Supply
+                  {t("footer.tagline")}
                 </p>
               </div>
             </div>
@@ -46,10 +49,10 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
             <div className="space-y-6">{children}</div>
             <div className="flex items-center justify-between text-sm text-white/60">
               <Link href="/shop" className="hover:text-white">
-                Back to shop
+                {t("common.backToShop")}
               </Link>
               <Link href="/about" className="hover:text-white">
-                Story
+                {t("nav.story")}
               </Link>
             </div>
           </div>

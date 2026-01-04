@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { slugify } from "@/lib/slugify";
 import { Product } from "@/types";
 import { normalizeSize, sizeOptions, sortSizes } from "@/lib/sizeOptions";
+import { useT } from "@/components/providers/LanguageProvider";
 
 const isHttpUrl = (url?: string | null) => !!url && /^https?:\/\//i.test(url);
 
@@ -63,6 +64,7 @@ export function ProductForm({
   onSubmit,
   submitLabel,
 }: ProductFormProps) {
+  const t = useT();
   const [form, setForm] = useState<ProductFormValues>(
     buildInitialForm(initialProduct)
   );
@@ -147,10 +149,10 @@ export function ProductForm({
       if (!res.ok || !payload.images) {
         const baseMessage =
           res.status === 401 || res.status === 403
-            ? "Your admin session expired. Please sign in again."
+            ? t("adminProductForm.sessionExpired")
             : payload.error
             ? `${payload.error} (status ${res.status})`
-            : `Upload failed (status ${res.status})`;
+            : t("adminProductForm.uploadFailedStatus", { status: res.status });
         throw new Error(baseMessage);
       }
       const urls = payload.images.map((img) => img.url).filter(Boolean);
@@ -169,10 +171,10 @@ export function ProductForm({
       const inputEl = document.getElementById(fileInputId) as HTMLInputElement | null;
       if (inputEl) inputEl.value = "";
     } catch (err) {
-      const message = (err as Error).message || "Upload failed";
+      const message = (err as Error).message || t("adminProductForm.uploadFailed");
       setUploadErrors([
         message,
-        "Check admin login and CLOUDINARY_* env vars.",
+        t("adminProductForm.checkEnv"),
       ]);
       setUploadStatuses((prev) =>
         prev.map((s, idx) =>
@@ -199,22 +201,22 @@ export function ProductForm({
     [form.images]
   );
   const submitBlockedReason = useMemo(() => {
-    if (uploading) return "Please wait for uploads to finish.";
+    if (uploading) return t("adminProductForm.waitUploads");
     if (uploadErrors.length) return uploadErrors[0];
     if (hasInvalidImages)
-      return "Images must be uploaded to Cloudinary or use http(s) URLs.";
+      return t("adminProductForm.invalidImages");
     return null;
-  }, [uploadErrors, uploading, hasInvalidImages]);
+  }, [hasInvalidImages, t, uploadErrors, uploading]);
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
       <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>{t("adminProductForm.details")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="name">{t("adminProductForm.name")}</Label>
             <Input
               id="name"
               value={form.name}
@@ -224,7 +226,7 @@ export function ProductForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="slug">Slug</Label>
+            <Label htmlFor="slug">{t("adminProductForm.slug")}</Label>
             <div className="flex items-center gap-2">
               <Input
                 id="slug"
@@ -248,15 +250,15 @@ export function ProductForm({
                   }));
                 }}
               >
-                Auto
+                {t("adminProductForm.autoSlug")}
               </Button>
             </div>
             <p className="text-xs text-white/50">
-              Must be unique; auto-generates from the name.
+              {t("adminProductForm.slugHelp")}
             </p>
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t("adminProductForm.description")}</Label>
             <textarea
               id="description"
               value={form.description}
@@ -267,11 +269,11 @@ export function ProductForm({
                 "min-h-[90px] w-full rounded-md border border-white/10 bg-white/5 p-3 text-sm text-white",
                 "placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green/60"
               )}
-              placeholder="Short product description"
+              placeholder={t("adminProductForm.descriptionPlaceholder")}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="category">{t("adminProductForm.category")}</Label>
             <Input
               id="category"
               value={form.category}
@@ -279,11 +281,11 @@ export function ProductForm({
                 setForm((prev) => ({ ...prev, category: e.target.value }))
               }
               className="bg-white/5 text-white"
-              placeholder="Snapbacks, Beanies..."
+              placeholder={t("adminProductForm.categoryPlaceholder")}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="stock">Stock</Label>
+            <Label htmlFor="stock">{t("adminProductForm.stock")}</Label>
             <Input
               id="stock"
               type="number"
@@ -298,11 +300,11 @@ export function ProductForm({
 
       <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
-          <CardTitle>Pricing</CardTitle>
+          <CardTitle>{t("adminProductForm.pricing")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="price">Base Price</Label>
+            <Label htmlFor="price">{t("adminProductForm.basePrice")}</Label>
             <Input
               id="price"
               type="number"
@@ -324,14 +326,14 @@ export function ProductForm({
                   setForm((prev) => ({ ...prev, isSale: e.target.checked }))
                 }
               />
-              On Sale
+              {t("adminProductForm.onSale")}
             </Label>
             <div className="grid grid-cols-2 gap-2">
               <Input
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="Sale price"
+                placeholder={t("adminProductForm.salePricePlaceholder")}
                 value={form.salePrice ?? ""}
                 onChange={(e) => handleNumberChange(e, "salePrice")}
                 className="bg-white/5 text-white"
@@ -341,7 +343,7 @@ export function ProductForm({
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="Original price"
+                placeholder={t("adminProductForm.originalPricePlaceholder")}
                 value={form.originalPrice ?? ""}
                 onChange={(e) => handleNumberChange(e, "originalPrice")}
                 className="bg-white/5 text-white"
@@ -349,8 +351,7 @@ export function ProductForm({
               />
             </div>
             <p className="text-xs text-white/50">
-              When on sale, the red price is the sale price and the muted value
-              is the crossed-out original.
+              {t("adminProductForm.saleHint")}
             </p>
           </div>
           <div className="space-y-2">
@@ -363,7 +364,7 @@ export function ProductForm({
                   setForm((prev) => ({ ...prev, isNewDrop: e.target.checked }))
                 }
               />
-              Mark as New Drop
+              {t("adminProductForm.markNewDrop")}
             </Label>
           </div>
         </CardContent>
@@ -371,11 +372,11 @@ export function ProductForm({
 
       <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
-          <CardTitle>Sizes Available</CardTitle>
+          <CardTitle>{t("adminProductForm.sizesAvailable")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-white/60">
-            Choose which sizes this product supports. Leave empty to hide sizing options.
+            {t("adminProductForm.sizesHelp")}
           </p>
           <div className="flex flex-wrap gap-2">
             {sizeOptions.map((size) => {
@@ -402,18 +403,18 @@ export function ProductForm({
 
       <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
-          <CardTitle>Images</CardTitle>
+          <CardTitle>{t("adminProductForm.images")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-[2fr_1fr] md:items-end">
             <div className="space-y-2">
-              <Label htmlFor="image-url">Add image by URL</Label>
+              <Label htmlFor="image-url">{t("adminProductForm.addImageByUrl")}</Label>
               <div className="flex gap-2">
                 <Input
                   id="image-url"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://..."
+                  placeholder={t("adminProductForm.photoUrlPlaceholder")}
                   className="bg-white/5 text-white"
                 />
                 <Button
@@ -422,12 +423,12 @@ export function ProductForm({
                   className="bg-white/10"
                   onClick={handleAddImageUrl}
                 >
-                  Add
+                  {t("common.add")}
                 </Button>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="image-file">Upload for preview</Label>
+              <Label htmlFor="image-file">{t("adminProductForm.uploadForPreview")}</Label>
               <Input
                 id={fileInputId}
                 type="file"
@@ -438,17 +439,17 @@ export function ProductForm({
                 className="bg-white/5 text-white"
               />
               <p className="text-xs text-white/50">
-                Select images to auto-upload to Cloudinary. You can also paste hosted URLs.
+                {t("adminProductForm.uploadHelp")}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {uploading ? (
-                <span className="text-xs text-white/70">Uploading...</span>
+                <span className="text-xs text-white/70">{t("common.uploading")}</span>
               ) : null}
             </div>
             {uploadErrors.length ? (
               <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-100">
-                <p className="font-semibold">Upload failed</p>
+                <p className="font-semibold">{t("adminProductForm.uploadFailed")}</p>
                 <ul className="mt-1 space-y-1 text-xs">
                   {uploadErrors.map((err, idx) => (
                     <li key={idx}>{err}</li>
@@ -472,10 +473,10 @@ export function ProductForm({
                       )}
                     >
                       {stat.status === "uploaded"
-                        ? "Uploaded"
+                        ? t("common.uploaded")
                         : stat.status === "failed"
-                        ? "Failed"
-                        : "Uploading..."}
+                        ? t("common.failed")
+                        : t("common.uploading")}
                     </span>
                     {stat.message ? <span className="text-red-200">{stat.message}</span> : null}
                   </div>
@@ -494,7 +495,7 @@ export function ProductForm({
                   <div className="relative h-32 w-full">
                     <img
                       src={img.url?.trim() || PLACEHOLDER_IMAGE}
-                      alt={`Preview ${idx + 1}`}
+                      alt={t("adminProductForm.previewAlt", { index: idx + 1 })}
                       className="h-full w-full object-cover"
                       onError={(e) => {
                         e.currentTarget.src = PLACEHOLDER_IMAGE;
@@ -513,7 +514,7 @@ export function ProductForm({
     }))
                       }
                     >
-                      Remove
+                      {t("common.remove")}
                     </button>
                   </div>
                 </div>
@@ -521,7 +522,7 @@ export function ProductForm({
             </div>
           ) : (
             <p className="text-sm text-white/50">
-              No images yet. Add a URL or upload to Cloudinary.
+              {t("adminProductForm.noImages")}
             </p>
           )}
         </CardContent>

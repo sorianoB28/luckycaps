@@ -5,6 +5,7 @@ import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 import { getPlaceholderImages } from "@/lib/placeholderImages";
+import { useT } from "@/components/providers/LanguageProvider";
 
 interface ProductGalleryProps {
   images: string[];
@@ -14,6 +15,7 @@ interface ProductGalleryProps {
 }
 
 export default function ProductGallery({ images, name, category, slug }: ProductGalleryProps) {
+  const t = useT();
   const [active, setActive] = useState(0);
   const fallbacks = getPlaceholderImages(category ?? "General", slug ?? name, 4);
   const galleryImages =
@@ -43,7 +45,7 @@ export default function ProductGallery({ images, name, category, slug }: Product
               "relative h-20 w-20 overflow-hidden rounded-2xl border border-white/10 bg-white/5 transition",
               active === index && "border-lucky-green shadow-glow"
             )}
-            aria-label={`View ${name} image ${index + 1}`}
+            aria-label={t("product.galleryImageAria", { name, index: index + 1 })}
           >
             <Image
               src={image}

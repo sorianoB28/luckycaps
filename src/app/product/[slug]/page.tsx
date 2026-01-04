@@ -34,6 +34,7 @@ import { ProductImageWithFallback } from "@/components/products/ProductImageWith
 import { getPlaceholderImages } from "@/lib/placeholderImages";
 import { StarRating } from "@/components/reviews/StarRating";
 import { formatCategory } from "@/lib/formatCategory";
+import { useT } from "@/components/providers/LanguageProvider";
 
 type ProductPageProps = {
   params: { slug: string };
@@ -56,6 +57,7 @@ const makeVoterKey = () =>
     : `voter_${Math.random().toString(36).slice(2)}`);
 
 export default function ProductPage({ params }: ProductPageProps) {
+  const t = useT();
   const router = useRouter();
   const addToCart = useCart((s) => s.addItem);
   const [data, setData] = useState<ProductDetailResponse | null>(null);
@@ -85,9 +87,9 @@ export default function ProductPage({ params }: ProductPageProps) {
       .catch((err) => {
         if (!mounted) return;
         if ((err as Error).message.includes("404")) {
-          setError("Product not found");
+          setError(t("product.productNotFound"));
         } else {
-          setError("Unable to load product");
+          setError(t("product.unableToLoadProduct"));
         }
       })
       .finally(() => mounted && setLoading(false));
@@ -170,8 +172,8 @@ export default function ProductPage({ params }: ProductPageProps) {
   if (error || !data) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-16 text-center">
-        <p className="text-xl font-semibold text-white">{error ?? "Product not found"}</p>
-        <p className="mt-2 text-white/70">Try browsing other products.</p>
+        <p className="text-xl font-semibold text-white">{error ?? t("product.productNotFound")}</p>
+        <p className="mt-2 text-white/70">{t("product.tryOtherProducts")}</p>
         <div className="mt-6">
           <button
             type="button"
@@ -274,7 +276,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
             {data.variants.length ? (
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-white/80">Variants</p>
+                <p className="text-sm font-semibold text-white/80">{t("product.variant")}</p>
                 <div className="flex flex-wrap gap-2">
                   {data.variants.map((v) => (
                     <button
@@ -296,7 +298,7 @@ export default function ProductPage({ params }: ProductPageProps) {
 
             {data.sizes.length ? (
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-white/80">Sizes</p>
+                <p className="text-sm font-semibold text-white/80">{t("product.size")}</p>
                 <div className="flex flex-wrap gap-2">
                   {data.sizes.map((s) => (
                     <button
@@ -323,7 +325,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                     type="button"
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                     className="rounded-full p-1 text-white transition hover:bg-white/10"
-                    aria-label="Decrease quantity"
+                    aria-label={t("product.decreaseQuantityAria")}
                   >
                     <Minus className="h-4 w-4" />
                   </button>
@@ -338,7 +340,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                       )
                     }
                     className="rounded-full p-1 text-white transition hover:bg-white/10"
-                    aria-label="Increase quantity"
+                    aria-label={t("product.increaseQuantityAria")}
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -353,7 +355,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                 </button>
                 <button
                   type="button"
-                  aria-label="Add to wishlist"
+                  aria-label={t("product.addToWishlistAria")}
                   className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 text-white transition hover:border-white/40 hover:bg-white/5"
                 >
                   <Heart className="h-5 w-5" />
@@ -368,7 +370,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               </button>
               {data.product.features?.length ? (
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-sm font-semibold text-white/80">Highlights</p>
+                  <p className="text-sm font-semibold text-white/80">{t("shop.highlights")}</p>
                   <ul className="mt-3 space-y-2 text-sm text-white/70">
                     {data.product.features.map((feature, idx) => (
                       <li key={`${feature}-${idx}`} className="flex items-start gap-2">
@@ -387,22 +389,22 @@ export default function ProductPage({ params }: ProductPageProps) {
               <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
                 <Truck className="h-5 w-5 text-lucky-green" />
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-white">Fast shipping</p>
-                  <p className="text-xs text-white/60">Dispatch within 2 business days.</p>
+                  <p className="text-sm font-semibold text-white">{t("product.fastShipping")}</p>
+                  <p className="text-xs text-white/60">{t("product.fastShippingCopy")}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
                 <ShieldCheck className="h-5 w-5 text-lucky-green" />
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-white">Easy returns</p>
-                  <p className="text-xs text-white/60">30-day hassle-free returns.</p>
+                  <p className="text-sm font-semibold text-white">{t("product.easyReturns")}</p>
+                  <p className="text-xs text-white/60">{t("product.easyReturnsCopy")}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/30 p-4">
                 <Package className="h-5 w-5 text-lucky-green" />
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-white">Secure checkout</p>
-                  <p className="text-xs text-white/60">Encrypted payments for peace of mind.</p>
+                  <p className="text-sm font-semibold text-white">{t("product.secureCheckout")}</p>
+                  <p className="text-xs text-white/60">{t("product.secureCheckoutCopy")}</p>
                 </div>
               </div>
             </div>
@@ -522,7 +524,7 @@ function ProductReviews({
         setSummary(res.summary);
       } catch {
         if (cancelled) return;
-        setReviewsError("Unable to load reviews.");
+        setReviewsError(t("reviews.unableToLoadReviews"));
       } finally {
         if (!cancelled) setReviewsLoading(false);
       }
@@ -570,7 +572,7 @@ function ProductReviews({
       !formBody.trim() ||
       !formAuthorEmail.trim()
     ) {
-      setSubmitError("Rating, title, body, and email are required.");
+      setSubmitError(t("reviews.errors.requiredWithEmail"));
       return;
     }
 
@@ -588,7 +590,7 @@ function ProductReviews({
         size: formSize.trim() || undefined,
         images: [],
       });
-      setSubmitSuccess("Thanks for your review!");
+      setSubmitSuccess(t("reviews.thanks"));
       setFormRating(0);
       setFormTitle("");
       setFormBody("");
@@ -601,7 +603,7 @@ function ProductReviews({
       setSummary(refreshed.summary);
       setShowReviewModal(false);
     } catch (err) {
-      setSubmitError((err as Error).message || "Unable to submit review.");
+      setSubmitError((err as Error).message || t("reviews.unableToSubmitReview"));
     } finally {
       setSubmitting(false);
     }
@@ -641,27 +643,27 @@ function ProductReviews({
     >
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="font-display text-3xl text-white">Customer Reviews</h2>
+          <h2 className="font-display text-3xl text-white">{t("reviews.title")}</h2>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/70">
             <StarRating value={summary.avg_rating ?? 0} readOnly allowHalf />
             <span className="font-semibold">
               {(summary.avg_rating ?? 0).toFixed(1)}
             </span>
-            <span>({summary.review_count} reviews)</span>
+            <span>{t("reviews.totalCount", { count: summary.review_count })}</span>
           </div>
         </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm text-white">
-              <span className="text-white/60">Sort</span>
+              <span className="text-white/60">{t("shop.sort")}</span>
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortKey)}
                 className="bg-transparent text-sm text-white focus:outline-none"
               >
-                <option value="recent">Most recent</option>
-                <option value="high">Highest rating</option>
-                <option value="low">Lowest rating</option>
-                <option value="helpful">Most helpful</option>
+                <option value="recent">{t("reviews.sortOptions.recent")}</option>
+                <option value="high">{t("reviews.sortOptions.high")}</option>
+                <option value="low">{t("reviews.sortOptions.low")}</option>
+                <option value="helpful">{t("reviews.sortOptions.helpful")}</option>
               </select>
             </div>
             <button
@@ -669,17 +671,17 @@ function ProductReviews({
               onClick={() => setShowReviewModal(true)}
               className="inline-flex items-center gap-2 rounded-full bg-lucky-green px-4 py-2 text-sm font-semibold text-lucky-darker transition hover:brightness-110"
             >
-              Write a review
+              {t("reviews.writeReview")}
             </button>
           </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[0.75fr_1.25fr]">
         <div className="space-y-4 rounded-2xl border border-white/10 bg-black/30 p-4">
-          <p className="text-sm text-white/70">Rating breakdown</p>
+          <p className="text-sm text-white/70">{t("reviews.ratingBreakdown")}</p>
           {distribution.map((item) => (
             <div key={item.star} className="flex items-center gap-3 text-sm">
-              <span className="w-10 text-white/70">{item.star}★</span>
+              <span className="w-10 text-white/70">{item.star}</span>
               <div className="h-2 flex-1 rounded-full bg-white/10">
                 <div
                   className="h-2 rounded-full bg-lucky-green"
@@ -698,12 +700,12 @@ function ProductReviews({
           {reviewsLoading ? (
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 text-white/70">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading reviews...
+              {t("reviews.loadingReviews")}
             </div>
           ) : reviews.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/20 bg-black/30 p-6 text-center text-white/70">
-              <p className="font-semibold text-white">No reviews yet</p>
-              <p className="text-sm text-white/60">Be the first to review.</p>
+              <p className="font-semibold text-white">{t("reviews.noneYetTitle")}</p>
+              <p className="text-sm text-white/60">{t("reviews.noneYetCopy")}</p>
             </div>
           ) : (
             sortedReviews.map((review) => (
@@ -719,7 +721,7 @@ function ProductReviews({
                     </p>
                   </div>
                   <span className="text-xs text-white/60">
-                    {review.author_name || "Anonymous"}
+                    {review.author_name || t("reviews.anonymous")}
                   </span>
                 </div>
                 <h4 className="text-lg font-semibold text-white">{review.title}</h4>
@@ -727,11 +729,13 @@ function ProductReviews({
                   {review.body}
                 </p>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-white/50">
-                  {review.variant ? <span>Variant: {review.variant}</span> : null}
-                  {review.size ? <span>Size: {review.size}</span> : null}
+                  {review.variant ? (
+                    <span>{t("reviews.variantValue", { value: review.variant })}</span>
+                  ) : null}
+                  {review.size ? <span>{t("reviews.sizeValue", { value: review.size })}</span> : null}
                   {review.verified_purchase ? (
                     <span className="rounded-full bg-lucky-green/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-lucky-green">
-                      Verified Purchase
+                      {t("reviews.verifiedPurchase")}
                     </span>
                   ) : null}
                 </div>
@@ -743,7 +747,7 @@ function ProductReviews({
                     className="flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-sm text-white transition hover:border-white/40 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <ThumbsUp className="h-4 w-4" />
-                    <span>Helpful</span>
+                    <span>{t("reviews.helpful")}</span>
                     <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-semibold">
                       {review.helpful_count}
                     </span>
@@ -751,9 +755,9 @@ function ProductReviews({
                   <button
                     type="button"
                     className="text-xs text-white/50 transition hover:text-white"
-                    aria-label="Report review"
+                    aria-label={t("product.reportReviewAria")}
                   >
-                    Report
+                    {t("reviews.report")}
                   </button>
                 </div>
               </article>
@@ -767,80 +771,80 @@ function ProductReviews({
           <div className="w-full max-w-2xl space-y-4 rounded-2xl border border-white/10 bg-lucky-dark/90 p-6 shadow-2xl backdrop-blur">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-display text-2xl text-white">Write a review</h3>
-                <p className="text-sm text-white/60">Share your experience.</p>
+                <h3 className="font-display text-2xl text-white">{t("reviews.modalTitle")}</h3>
+                <p className="text-sm text-white/60">{t("reviews.shareExperience")}</p>
               </div>
               <button
                 type="button"
                 className="rounded-full border border-white/20 px-3 py-1 text-sm text-white hover:border-white/40"
                 onClick={() => setShowReviewModal(false)}
               >
-                Close
+                {t("common.close")}
               </button>
             </div>
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
-                <label className="text-sm text-white/80">Rating</label>
+                <label className="text-sm text-white/80">{t("reviews.ratingLabel")}</label>
                 <StarRating value={formRating} onChange={setFormRating} />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-white/80">Title</label>
+                <label className="text-sm text-white/80">{t("reviews.titleLabel")}</label>
                 <input
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   className="w-full rounded-md border border-white/10 bg-black/40 p-2 text-white"
-                  placeholder="Premium quality"
+                  placeholder={t("reviews.titlePlaceholder")}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-white/80">Review</label>
+                <label className="text-sm text-white/80">{t("reviews.reviewLabel")}</label>
                 <textarea
                   value={formBody}
                   onChange={(e) => setFormBody(e.target.value)}
                   className="w-full rounded-md border border-white/10 bg-black/40 p-2 text-white"
                   rows={4}
-                  placeholder="Share fit, feel, and build quality."
+                  placeholder={t("reviews.reviewPlaceholder")}
                 />
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm text-white/80">Your name (optional)</label>
+                  <label className="text-sm text-white/80">{t("reviews.yourNameLabel")}</label>
                   <input
                     value={formAuthorName}
                     onChange={(e) => setFormAuthorName(e.target.value)}
                     className="w-full rounded-md border border-white/10 bg-black/40 p-2 text-white"
-                    placeholder="Alex Doe"
+                    placeholder={t("reviews.namePlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-white/80">Email</label>
+                  <label className="text-sm text-white/80">{t("auth.emailLabel")}</label>
                   <input
                     type="email"
                     value={formAuthorEmail}
                     onChange={(e) => setFormAuthorEmail(e.target.value)}
                     className="w-full rounded-md border border-white/10 bg-black/40 p-2 text-white"
-                    placeholder="you@example.com"
+                    placeholder={t("auth.emailPlaceholder")}
                     required
                   />
                 </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <label className="text-sm text-white/80">Variant (optional)</label>
+                  <label className="text-sm text-white/80">{t("reviews.variantLabel")}</label>
                   <input
                     value={formVariant}
                     onChange={(e) => setFormVariant(e.target.value)}
                     className="w-full rounded-md border border-white/10 bg-black/40 p-2 text-white"
-                    placeholder="Snapback / Trucker"
+                    placeholder={t("reviews.variantPlaceholderShort")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-white/80">Size (optional)</label>
+                  <label className="text-sm text-white/80">{t("reviews.sizeLabel")}</label>
                   <input
                     value={formSize}
                     onChange={(e) => setFormSize(e.target.value)}
                     className="w-full rounded-md border border-white/10 bg-black/40 p-2 text-white"
-                    placeholder="Adjustable / 7 1/4..."
+                    placeholder={t("reviews.sizePlaceholder")}
                   />
                 </div>
               </div>
@@ -856,14 +860,14 @@ function ProductReviews({
                   disabled={submitting}
                   className="flex-1 rounded-full bg-lucky-green px-4 py-2.5 font-semibold text-lucky-darker transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {submitting ? "Submitting..." : "Submit review"}
+                  {submitting ? t("common.submitting") : t("reviews.submit")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowReviewModal(false)}
                   className="rounded-full border border-white/20 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/40"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
               </div>
             </form>

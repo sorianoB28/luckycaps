@@ -20,7 +20,7 @@ import { useCart } from "@/store/cart";
 import { useUIStore } from "@/store/uiStore";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "@/lib/translations";
+import { useLanguage, useT } from "@/components/providers/LanguageProvider";
 import { signOut, useSession } from "next-auth/react";
 
 const navLinks = [
@@ -30,7 +30,8 @@ const navLinks = [
 ];
 
 export default function Header() {
-  const { setLanguage, language, cartOpen, setCartOpen } = useUIStore();
+  const { cartOpen, setCartOpen } = useUIStore();
+  const { setLanguage, language } = useLanguage();
   const { data: session, status } = useSession();
   const isAuthed = status === "authenticated";
   const isAdmin = session?.user?.role === "admin";
@@ -42,7 +43,7 @@ export default function Header() {
   const previousCount = useRef<number | null>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const t = useTranslations();
+  const t = useT();
   const prefersReducedMotion = useReducedMotion();
   const [cartPulseKey, setCartPulseKey] = useState(0);
 
@@ -74,7 +75,7 @@ export default function Header() {
           >
             <Image
               src="/brand/luckycaps-logo.png"
-              alt="Lucky Caps logo"
+              alt={t("header.logoAlt")}
               width={48}
               height={48}
               className="h-full w-full object-cover"
@@ -84,7 +85,7 @@ export default function Header() {
           <div>
             <p className="font-display text-2xl tracking-wide">Lucky Caps</p>
             <p className="text-xs uppercase tracking-[0.3em] text-white/50">
-              Lucky Supply
+              {t("footer.tagline")}
             </p>
           </div>
         </Link>
@@ -101,7 +102,7 @@ export default function Header() {
                   : "text-white/70 hover:text-white"
               )}
             >
-              {t.nav[link.key]}
+              {t(`nav.${link.key}`)}
             </Link>
           ))}
         </nav>
@@ -117,9 +118,9 @@ export default function Header() {
                   ? "text-white"
                   : "text-white/60 hover:text-white"
               )}
-              aria-label="Switch to English"
+              aria-label={t("header.switchToEnglish")}
             >
-              {t.langToggle.en}
+              {t("langToggle.en")}
             </button>
             <span className="text-white/40">|</span>
             <button
@@ -131,15 +132,15 @@ export default function Header() {
                   ? "text-white"
                   : "text-white/60 hover:text-white"
               )}
-              aria-label="Switch to Spanish"
+              aria-label={t("header.switchToSpanish")}
             >
-              {t.langToggle.es}
+              {t("langToggle.es")}
             </button>
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Account menu">
+              <Button variant="ghost" size="icon" aria-label={t("header.accountMenu")}>
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -149,13 +150,13 @@ export default function Header() {
             >
               <DropdownMenuItem asChild>
                 <Link href={isAuthed ? "/account" : "/auth/sign-in"} className="w-full">
-                  {t.nav.account}
+                  {t("nav.account")}
                 </Link>
               </DropdownMenuItem>
               {isAdmin ? (
                 <DropdownMenuItem asChild>
                   <Link href="/admin" className="w-full">
-                    {t.nav.admin}
+                    {t("nav.admin")}
                   </Link>
                 </DropdownMenuItem>
               ) : null}
@@ -169,12 +170,12 @@ export default function Header() {
                     router.push("/");
                   }}
                 >
-                  Sign out
+                  {t("auth.signOut")}
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem asChild>
                   <Link href="/auth/sign-in" className="w-full">
-                    Sign in
+                    {t("auth.signIn")}
                   </Link>
                 </DropdownMenuItem>
               )}
@@ -202,7 +203,7 @@ export default function Header() {
               variant="outline"
               size="icon"
               onClick={() => setCartOpen(true)}
-              aria-label="Open cart"
+              aria-label={t("header.openCart")}
               className="relative"
             >
               <ShoppingBag className="h-5 w-5" />
@@ -223,15 +224,15 @@ export default function Header() {
           <div className="md:hidden">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open menu">
+                <Button variant="ghost" size="icon" aria-label={t("header.openMenu")}>
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent className="flex w-[70vw] max-w-xs flex-col gap-5 p-4">
                 <div className="flex items-center justify-between">
-                  <p className="font-display text-lg">Menu</p>
+                  <p className="font-display text-lg">{t("header.menuTitle")}</p>
                   <SheetClose asChild>
-                    <Button variant="ghost" size="icon" aria-label="Close menu">
+                    <Button variant="ghost" size="icon" aria-label={t("header.closeMenu")}>
                       <X className="h-5 w-5" />
                     </Button>
                   </SheetClose>
@@ -249,7 +250,7 @@ export default function Header() {
                             : "text-white/80 hover:text-white"
                         )}
                       >
-                        {t.nav[link.key]}
+                        {t(`nav.${link.key}`)}
                       </Link>
                     </SheetClose>
                   ))}
@@ -259,7 +260,7 @@ export default function Header() {
                       href={isAuthed ? "/account" : "/auth/sign-in"}
                       className="text-base uppercase tracking-[0.2em] text-white/80 hover:text-white"
                     >
-                      {t.nav.account}
+                      {t("nav.account")}
                     </Link>
                   </SheetClose>
 
@@ -269,7 +270,7 @@ export default function Header() {
                         href="/admin"
                         className="text-base uppercase tracking-[0.2em] text-white/80 hover:text-white"
                       >
-                        {t.nav.admin}
+                        {t("nav.admin")}
                       </Link>
                     </SheetClose>
                   ) : null}

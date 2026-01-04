@@ -7,7 +7,7 @@ import { motion, useReducedMotion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/products/ProductCard";
-import { useTranslations } from "@/lib/translations";
+import { useT } from "@/components/providers/LanguageProvider";
 import { foundersSocialUrls } from "@/config/foundersSocial";
 import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 import { CategoryInfo } from "@/lib/categories";
@@ -22,7 +22,7 @@ interface HomePageClientProps {
 }
 
 export default function HomePageClient({ newDrops, categories }: HomePageClientProps) {
-  const t = useTranslations();
+  const t = useT();
   const prefersReducedMotion = useReducedMotion();
   const hasNewDrops = newDrops.length > 0;
 
@@ -32,7 +32,7 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
         <div className="absolute inset-0">
           <Image
             src={heroBackground}
-            alt="Cinematic city street background"
+            alt={t("home.heroImageAlt")}
             fill
             className="object-cover object-[50%_25%]"
             priority
@@ -61,7 +61,7 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
               <h1 className="font-display text-5xl tracking-wide md:text-7xl">
-                {t.home.heroHeadline}
+                {t("home.heroHeadline")}
               </h1>
             </motion.div>
             <motion.p
@@ -70,7 +70,7 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
               animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
             >
-              {t.home.heroSub}
+              {t("home.heroSub")}
             </motion.p>
             <motion.div
               className="flex flex-wrap gap-4"
@@ -79,7 +79,7 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
             >
               <Button size="lg" asChild>
-                <Link href="/shop">{t.home.heroCtaPrimary}</Link>
+                <Link href="/shop">{t("home.heroCtaPrimary")}</Link>
               </Button>
             </motion.div>
             <motion.div
@@ -90,9 +90,9 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
             >
               <div className="flex items-center gap-2">
                 <Star className="h-4 w-4 text-lucky-green" />
-                {t.home.heroStatsOne}
+                {t("home.heroStatsOne")}
               </div>
-              <div>{t.home.heroStatsTwo}</div>
+              <div>{t("home.heroStatsTwo")}</div>
             </motion.div>
             <motion.div
               className="mt-2 overflow-hidden rounded-full border border-white/10 bg-black/40"
@@ -101,14 +101,17 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.35 }}
             >
               <div className="flex animate-marquee items-center space-x-6 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white/60">
-                {["DROP 01", "LIMITED RUN", "RESTOCK FRIDAY 9PM", "PREMIUM EMBROIDERY"].map(
-                  (item, idx, arr) => (
-                    <span key={item} className="flex items-center whitespace-nowrap gap-3">
-                      <span>{item}</span>
-                      {idx < arr.length - 1 ? <span className="text-white/30"></span> : null}
-                    </span>
-                  )
-                )}
+                {[
+                  t("home.marquee.drop01"),
+                  t("home.marquee.limitedRun"),
+                  t("home.marquee.restock"),
+                  t("home.marquee.premiumEmbroidery"),
+                ].map((item, idx, arr) => (
+                  <span key={`${item}-${idx}`} className="flex items-center whitespace-nowrap gap-3">
+                    <span>{item}</span>
+                    {idx < arr.length - 1 ? <span className="text-white/30">•</span> : null}
+                  </span>
+                ))}
               </div>
             </motion.div>
           </div>
@@ -124,12 +127,12 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <div>
-            <p className="section-heading">{t.home.newDrops}</p>
-            <h2 className="mt-3 font-display text-4xl">{t.home.freshHeading}</h2>
+            <p className="section-heading">{t("home.newDrops")}</p>
+            <h2 className="mt-3 font-display text-4xl">{t("home.freshHeading")}</h2>
           </div>
           <Button variant="ghost" asChild>
             <Link href="/shop" className="flex items-center gap-2">
-              {t.actions.explore} <ArrowUpRight className="h-4 w-4" />
+              {t("home.explore")} <ArrowUpRight className="h-4 w-4" />
             </Link>
           </Button>
         </motion.div>
@@ -157,9 +160,9 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
             ))
           ) : (
             <div className="min-w-[260px] rounded-2xl border border-white/10 bg-black/30 p-6 text-white/70">
-              <p className="text-lg font-semibold text-white">No new drops yet.</p>
+              <p className="text-lg font-semibold text-white">{t("home.emptyNewDropsTitle")}</p>
               <p className="mt-2 text-sm">
-                Check back soon or explore the full shop.
+                {t("home.emptyNewDropsCopy")}
               </p>
             </div>
           )}
@@ -170,14 +173,14 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
         <div className="mx-auto max-w-7xl px-4 py-20 md:px-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="section-heading">{t.home.featuredCategories}</p>
-              <h2 className="mt-3 font-display text-4xl">{t.home.builtForEveryDrop}</h2>
+              <p className="section-heading">{t("home.featuredCategories")}</p>
+              <h2 className="mt-3 font-display text-4xl">{t("home.builtForEveryDrop")}</h2>
             </div>
             <Link
               href="/shop"
               className="inline-flex items-center gap-2 text-sm font-semibold text-lucky-green transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green"
             >
-              View all <ArrowUpRight className="h-4 w-4" />
+              {t("home.viewAll")} <ArrowUpRight className="h-4 w-4" />
             </Link>
           </div>
           <div className="mt-10 grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -190,7 +193,7 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
               >
                 <Link
                   href={`/shop?category=${encodeURIComponent(category.key)}`}
-                  aria-label={`Shop category: ${category.label}`}
+                  aria-label={t("home.shopCategoryAria", { category: category.label })}
                   className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lucky-green"
                 >
                   <div className="pointer-events-none absolute inset-0 rounded-3xl border border-transparent transition duration-300 group-hover:border-lucky-green/60 group-hover:shadow-[0_0_30px_rgba(104,240,160,0.25)]" />
@@ -207,16 +210,16 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
                   </div>
                   <div className="mt-4 flex flex-1 flex-col justify-between gap-2">
                     <p className="text-lg font-semibold">{category.label}</p>
-                    <p className="text-sm text-white/60">{t.home.featuredCopy}</p>
+                    <p className="text-sm text-white/60">{t("home.featuredCopy")}</p>
                   </div>
                   <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white transition group-hover:text-lucky-green">
-                    Shop now <ArrowUpRight className="h-4 w-4" />
+                    {t("home.shopNow")} <ArrowUpRight className="h-4 w-4" />
                   </span>
                 </Link>
               </motion.div>
             )) : (
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-white/70">
-                <p className="text-sm">No categories available yet.</p>
+                <p className="text-sm">{t("home.emptyCategories")}</p>
               </div>
             )}
           </div>
@@ -225,7 +228,7 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
 
       <section className="border-y border-white/10 bg-lucky-dark">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 text-center md:grid-cols-3 md:px-8">
-          {[t.home.midBandOne, t.home.midBandTwo, t.home.midBandThree].map((item) => (
+          {[t("home.midBand.one"), t("home.midBand.two"), t("home.midBand.three")].map((item) => (
             <div key={item} className="text-sm uppercase tracking-[0.3em]">
               {item}
             </div>
@@ -234,8 +237,8 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-        <p className="section-heading">{t.home.luckySocial}</p>
-        <h2 className="mt-3 font-display text-4xl">{t.home.seenOn}</h2>
+        <p className="section-heading">{t("home.luckySocial")}</p>
+        <h2 className="mt-3 font-display text-4xl">{t("home.seenOn")}</h2>
         <motion.div
           className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-4"
           initial={prefersReducedMotion ? undefined : { opacity: 0, y: 24 }}
@@ -254,7 +257,7 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
             >
               <img
                 src={buildCloudinaryCardUrl(url)}
-                alt="Lucky Caps social gallery"
+                alt={t("home.socialImageAlt")}
                 className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
                 onError={(e) => {
                   e.currentTarget.src = "/images/placeholder-product.svg";

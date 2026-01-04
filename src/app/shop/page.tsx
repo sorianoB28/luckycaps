@@ -12,6 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { formatCategory } from "@/lib/formatCategory";
 import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 import { getCategoriesFromProducts, type CategoryInfo } from "@/lib/categories";
+import { useT } from "@/components/providers/LanguageProvider";
 
 type SortOption = "featured" | "price-asc" | "price-desc" | "newest";
 
@@ -22,6 +23,7 @@ const effectivePrice = (product: Product) =>
     : product.price_cents;
 
 export default function ShopPage() {
+  const t = useT();
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,17 +158,17 @@ export default function ShopPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-white/50">
-            Shop Collection
+            {t("shop.kicker")}
           </p>
-          <h1 className="font-display text-4xl text-white">Premium Drops</h1>
+          <h1 className="font-display text-4xl text-white">{t("shop.heading")}</h1>
           <p className="mt-2 text-sm text-white/70">
-            Filter by category, price, and drop status to find your next cap.
+            {t("shop.description")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm text-white/70">
             <Sparkles className="h-4 w-4 text-lucky-green" />
-            <span>{filteredProducts.length} items</span>
+            <span>{t("shop.itemsCount", { count: filteredProducts.length })}</span>
           </div>
           <button
             type="button"
@@ -174,7 +176,7 @@ export default function ShopPage() {
             className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-white transition hover:border-white/40"
           >
             <RotateCcw className="h-4 w-4" />
-            Reset
+            {t("shop.reset")}
           </button>
         </div>
       </div>
@@ -184,12 +186,12 @@ export default function ShopPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
               <ArrowUpDown className="h-4 w-4" />
-              Filters
+              {t("shop.filters")}
             </div>
-            <span className="text-xs text-white/50">Refine</span>
+            <span className="text-xs text-white/50">{t("shop.refine")}</span>
           </div>
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-white/80">Categories</p>
+            <p className="text-sm font-semibold text-white/80">{t("shop.categories")}</p>
             <div className="space-y-2">
               {categories.map((category) => (
                 <label
@@ -206,13 +208,13 @@ export default function ShopPage() {
                 </label>
               ))}
               {categories.length === 0 ? (
-                <p className="text-xs text-white/60">No categories available.</p>
+                <p className="text-xs text-white/60">{t("shop.noCategories")}</p>
               ) : null}
             </div>
           </div>
 
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-white/80">Price range</p>
+            <p className="text-sm font-semibold text-white/80">{t("shop.priceRange")}</p>
             <div className="flex items-center justify-between text-xs text-white/60">
               <span>{formatPrice(priceBounds[0] ?? 0)}</span>
               <span>{formatPrice(priceBounds[1] ?? 0)}</span>
@@ -236,7 +238,7 @@ export default function ShopPage() {
           </div>
 
           <div className="space-y-3">
-            <p className="text-sm font-semibold text-white/80">Highlights</p>
+            <p className="text-sm font-semibold text-white/80">{t("shop.highlights")}</p>
             <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent px-2 py-2 text-sm transition hover:border-white/15 hover:bg-white/5">
               <input
                 type="checkbox"
@@ -246,7 +248,7 @@ export default function ShopPage() {
               />
               <span className="flex items-center gap-2 text-white/80">
                 <Sparkles className="h-4 w-4 text-lucky-green" />
-                New drops
+                {t("shop.newDropsFilter")}
               </span>
             </label>
             <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent px-2 py-2 text-sm transition hover:border-white/15 hover:bg-white/5">
@@ -258,7 +260,7 @@ export default function ShopPage() {
               />
               <span className="flex items-center gap-2 text-white/80">
                 <Tag className="h-4 w-4 text-lucky-green" />
-                On sale
+                {t("shop.onSale")}
               </span>
             </label>
           </div>
@@ -267,7 +269,7 @@ export default function ShopPage() {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-white/70">
-              Showing {filteredProducts.length} of {products.length} products
+              {t("shop.showing", { shown: filteredProducts.length, total: products.length })}
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm text-white">
@@ -277,10 +279,10 @@ export default function ShopPage() {
                   onChange={(e) => setSort(e.target.value as SortOption)}
                   className="bg-transparent text-sm text-white focus:outline-none"
                 >
-                  <option value="featured">Featured</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="newest">Newest</option>
+                  <option value="featured">{t("shop.featured")}</option>
+                  <option value="price-asc">{t("shop.priceLowHigh")}</option>
+                  <option value="price-desc">{t("shop.priceHighLow")}</option>
+                  <option value="newest">{t("shop.newest")}</option>
                 </select>
               </div>
             </div>
@@ -289,7 +291,7 @@ export default function ShopPage() {
           {loading ? (
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-6 text-white/70">
               <Loader2 className="h-5 w-5 animate-spin" />
-              Loading products...
+              {t("shop.loadingProducts")}
             </div>
           ) : error ? (
             <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-red-100">
@@ -298,10 +300,10 @@ export default function ShopPage() {
           ) : filteredProducts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/20 bg-black/30 p-8 text-center text-white/70">
               <p className="text-lg font-semibold text-white">
-                No products match your filters.
+                {t("shop.emptyTitle")}
               </p>
               <p className="mt-2 text-sm">
-                Adjust filters or reset to see everything.
+                {t("shop.emptyCopy")}
               </p>
               <button
                 type="button"
@@ -309,7 +311,7 @@ export default function ShopPage() {
                 className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm text-white transition hover:border-white/40"
               >
                 <Check className="h-4 w-4" />
-                Clear filters
+                {t("shop.clearFilters")}
               </button>
             </div>
           ) : (

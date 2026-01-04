@@ -5,13 +5,12 @@ import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 
 import { ProductForm, ProductFormValues } from "@/app/admin/components/ProductForm";
-import { useTranslations } from "@/lib/translations";
+import { useT } from "@/components/providers/LanguageProvider";
 import { createAdminProduct, type AdminProductPayload } from "@/lib/api";
-import { Button } from "@/components/ui/button";
 
 export default function NewProductPage() {
   const router = useRouter();
-  const t = useTranslations();
+  const t = useT();
   const { data: session, status } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -54,9 +53,9 @@ export default function NewProductPage() {
     } catch (err) {
       const status = (err as Error & { status?: number }).status;
       if (status === 401) {
-        setError("Unauthorized. Please sign in as admin.");
+        setError(t("admin.unauthorized"));
       } else {
-        setError((err as Error).message || "Unable to create product.");
+        setError((err as Error).message || t("admin.unableToCreateProduct"));
       }
     } finally {
       setSubmitting(false);
@@ -67,13 +66,13 @@ export default function NewProductPage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm uppercase tracking-[0.2em] text-white/50">
-          Admin
+          {t("admin.title")}
         </p>
-        <h1 className="font-display text-4xl">{t.actions.addProduct}</h1>
+        <h1 className="font-display text-4xl">{t("admin.addProduct")}</h1>
       </div>
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
       <ProductForm
-        submitLabel={submitting ? "Saving..." : t.actions.addProduct}
+        submitLabel={submitting ? t("common.saving") : t("admin.addProduct")}
         onSubmit={handleCreate}
       />
     </div>

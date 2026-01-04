@@ -15,8 +15,10 @@ import {
 } from "@/lib/api";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 import { Product } from "@/types";
+import { useT } from "@/components/providers/LanguageProvider";
 
 export default function EditProductPage() {
+  const t = useT();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const productId = useMemo(
@@ -78,11 +80,11 @@ export default function EditProductPage() {
         if (cancelled) return;
         const status = (err as Error & { status?: number }).status;
         if (status === 401) {
-          setError("Unauthorized. Check admin access.");
+          setError(t("admin.unauthorizedCheckAccess"));
         } else if ((err as Error).message?.includes("Not found")) {
-          setError("Product not found.");
+          setError(t("admin.productNotFound"));
         } else {
-          setError((err as Error).message || "Unable to load product.");
+          setError((err as Error).message || t("admin.unableToLoadProduct"));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -128,9 +130,9 @@ export default function EditProductPage() {
     } catch (err) {
       const status = (err as Error & { status?: number }).status;
       if (status === 401) {
-        setError("Unauthorized. Check admin access.");
+        setError(t("admin.unauthorizedCheckAccess"));
       } else {
-        setError((err as Error).message || "Unable to update product.");
+        setError((err as Error).message || t("admin.unableToUpdateProduct"));
       }
     } finally {
       setSaving(false);
@@ -142,20 +144,20 @@ export default function EditProductPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-white/50">
-            Admin
+            {t("admin.title")}
           </p>
-          <h1 className="font-display text-4xl">Edit Product</h1>
+          <h1 className="font-display text-4xl">{t("admin.editProduct")}</h1>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => router.back()}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant="ghost"
             className="text-red-400 hover:text-red-300"
             onClick={async () => {
               if (!isAdmin) return;
-              if (!confirm("Delete this product?")) return;
+              if (!confirm(t("admin.deleteProductConfirm"))) return;
               setSaving(true);
               try {
                 await deleteAdminProduct(productId);
@@ -163,39 +165,38 @@ export default function EditProductPage() {
               } catch (err) {
                 const status = (err as Error & { status?: number }).status;
                 if (status === 401) {
-                  setError("Unauthorized. Check admin access.");
+                  setError(t("admin.unauthorizedCheckAccess"));
                 } else {
-                  setError((err as Error).message || "Unable to delete product.");
+                  setError((err as Error).message || t("admin.unableToDeleteProduct"));
                 }
               } finally {
                 setSaving(false);
               }
             }}
           >
-            Delete
+            {t("common.delete")}
           </Button>
         </div>
       </div>
       {error ? <p className="text-sm text-red-300">{error}</p> : null}
       {loading ? (
-        <p className="text-white/70">Loading product...</p>
+        <p className="text-white/70">{t("admin.loadingProduct")}</p>
       ) : product ? (
         <>
           <ProductForm
             initialProduct={product}
-            submitLabel={saving ? "Saving..." : "Save Changes"}
+            submitLabel={saving ? t("common.saving") : t("admin.saveChanges")}
             onSubmit={handleUpdate}
           />
         </>
       ) : (
         <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-white/80">
-          <p className="font-semibold">Product not found.</p>
+          <p className="font-semibold">{t("admin.productNotFound")}</p>
           <p className="text-sm text-white/60">
-            The item may have been removed. Return to the dashboard to view the
-            current catalog.
+            {t("admin.productNotFoundCopy")}
           </p>
           <div className="mt-4">
-            <Button onClick={() => router.replace("/admin")}>Back to Admin</Button>
+            <Button onClick={() => router.replace("/admin")}>{t("admin.backToAdmin")}</Button>
           </div>
         </div>
       )}

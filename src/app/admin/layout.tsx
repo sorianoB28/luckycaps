@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
-import { useTranslations } from "@/lib/translations";
+import { useT } from "@/components/providers/LanguageProvider";
 
 export default function AdminLayout({
   children,
@@ -16,7 +16,7 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const t = useTranslations();
+  const t = useT();
   const isAdmin = session?.user?.role === "admin";
 
   useEffect(() => {
@@ -27,7 +27,11 @@ export default function AdminLayout({
   }, [isAdmin, pathname, router, status]);
 
   if (status === "loading") {
-    return <div className="min-h-screen bg-lucky-dark text-white px-4 py-10">Checking access...</div>;
+    return (
+      <div className="min-h-screen bg-lucky-dark text-white px-4 py-10">
+        {t("admin.checkingAccess")}
+      </div>
+    );
   }
 
   if (!isAdmin) {
@@ -40,14 +44,14 @@ export default function AdminLayout({
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-4">
             <Link href="/admin" className="font-display text-2xl">
-              Admin
+              {t("admin.title")}
             </Link>
             <nav className="flex items-center gap-3 text-sm uppercase tracking-[0.2em] text-white/70">
               <Link
                 href="/admin"
                 className={pathname === "/admin" ? "text-lucky-green" : "transition hover:text-white"}
               >
-                Products
+                {t("admin.products")}
               </Link>
               <span className="text-white/30">/</span>
               <Link
@@ -58,7 +62,7 @@ export default function AdminLayout({
                     : "transition hover:text-white"
                 }
               >
-                Orders
+                {t("admin.orders")}
               </Link>
             </nav>
           </div>
@@ -69,7 +73,7 @@ export default function AdminLayout({
               disabled={!isAdmin}
               onClick={() => signOut({ callbackUrl: "/" })}
             >
-              Log out
+              {t("admin.logOut")}
             </Button>
           </div>
         </div>

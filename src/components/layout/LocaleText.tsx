@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 
-import { useUIStore } from "@/store/uiStore";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 interface LocaleTextProps {
   en: ReactNode;
@@ -10,6 +10,6 @@ interface LocaleTextProps {
 }
 
 export default function LocaleText({ en, es }: LocaleTextProps) {
-  const language = useUIStore((state) => state.language);
+  const { language } = useLanguage();
   return <>{language === "EN" ? en : es}</>;
 }

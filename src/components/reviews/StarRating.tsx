@@ -3,6 +3,7 @@
 import { Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/providers/LanguageProvider";
 
 interface StarRatingProps {
   value: number;
@@ -19,6 +20,7 @@ export function StarRating({
   allowHalf = false,
   size = 18,
 }: StarRatingProps) {
+  const t = useT();
   const stars = [1, 2, 3, 4, 5];
 
   const handleClick = (starValue: number) => {
@@ -41,7 +43,7 @@ export function StarRating({
               readOnly ? "cursor-default" : "cursor-pointer hover:scale-105"
             )}
             onClick={() => handleClick(star)}
-            aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+            aria-label={t("reviews.rateStarsAria", { stars: star, suffix: star > 1 ? "s" : "" })}
             disabled={readOnly}
           >
             <Star

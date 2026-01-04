@@ -7,7 +7,7 @@ import { Product } from "@/types";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "@/lib/translations";
+import { useT } from "@/components/providers/LanguageProvider";
 
 interface ProductPurchasePanelProps {
   product: Product;
@@ -18,7 +18,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
   const [size, setSize] = useState(product.sizes[0] ?? "");
   const [quantity, setQuantity] = useState(1);
   const addItem = useCart((state) => state.addItem);
-  const t = useTranslations();
+  const t = useT();
   const requiresSize = product.sizes.length > 0;
   const requiresVariant = product.variants.length > 0;
   const addDisabled = (requiresSize && !size) || (requiresVariant && !variant);
@@ -37,7 +37,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
       {product.variants.length ? (
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-            {t.product.variant}
+            {t("product.variant")}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {product.variants.map((option) => (
@@ -60,7 +60,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
       {product.sizes.length ? (
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-            {t.product.size}
+            {t("product.size")}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {product.sizes.map((option) => (
@@ -86,7 +86,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
             type="button"
             onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
             className="h-8 w-8 rounded-full bg-white/10 text-white"
-            aria-label="Decrease quantity"
+            aria-label={t("product.decreaseQuantityAria")}
           >
             -
           </button>
@@ -97,7 +97,7 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
             type="button"
             onClick={() => setQuantity((prev) => prev + 1)}
             className="h-8 w-8 rounded-full bg-white/10 text-white"
-            aria-label="Increase quantity"
+            aria-label={t("product.increaseQuantityAria")}
           >
             +
           </button>
@@ -120,16 +120,16 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
           }
           disabled={addDisabled}
         >
-          {t.actions.addToCart}
+          {t("product.addToCart")}
         </Button>
-        <Button variant="outline" size="icon" aria-label="Add to wishlist">
+        <Button variant="outline" size="icon" aria-label={t("product.addToWishlistAria")}>
           <Heart className="h-5 w-5" />
         </Button>
       </div>
 
       <div>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
-          {t.product.features}
+          {t("product.features")}
         </p>
         <ul className="mt-3 space-y-2 text-sm text-white/60">
           {product.features.map((feature) => (
@@ -140,13 +140,13 @@ export default function ProductPurchasePanel({ product }: ProductPurchasePanelPr
 
       <div className="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">
         <div className="flex items-center gap-3">
-          <Truck className="h-4 w-4 text-lucky-green" /> {t.product.fastShipping}
+          <Truck className="h-4 w-4 text-lucky-green" /> {t("product.fastShipping")}
         </div>
         <div className="flex items-center gap-3">
-          <Undo2 className="h-4 w-4 text-lucky-green" /> {t.product.returns}
+          <Undo2 className="h-4 w-4 text-lucky-green" /> {t("product.returns")}
         </div>
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-4 w-4 text-lucky-green" /> {t.product.secureCheckout}
+          <ShieldCheck className="h-4 w-4 text-lucky-green" /> {t("product.secureCheckout")}
         </div>
       </div>
     </div>

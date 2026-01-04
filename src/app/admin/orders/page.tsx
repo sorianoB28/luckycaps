@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getAdminOrders, type AdminOrder } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useT } from "@/components/providers/LanguageProvider";
 
 const STATUSES: AdminOrder["status"][] = [
   "created",
@@ -21,6 +22,7 @@ const STATUSES: AdminOrder["status"][] = [
 type SortOption = "newest" | "oldest";
 
 export default function AdminOrdersPage() {
+  const t = useT();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export default function AdminOrdersPage() {
       setNextCursor(res.nextCursor ?? null);
       setOrders((prev) => (append ? [...prev, ...res.orders] : res.orders));
     } catch (err) {
-      setError((err as Error).message || "Unable to load orders.");
+      setError((err as Error).message || t("admin.unableToLoadOrders"));
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -72,11 +74,11 @@ export default function AdminOrdersPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-white/50">Admin</p>
-          <h1 className="font-display text-4xl">Orders</h1>
+          <p className="text-sm uppercase tracking-[0.2em] text-white/50">{t("admin.title")}</p>
+          <h1 className="font-display text-4xl">{t("admin.orders")}</h1>
         </div>
         <Button variant="outline" asChild>
-          <Link href="/admin">Back to Products</Link>
+          <Link href="/admin">{t("admin.backToProducts")}</Link>
         </Button>
       </div>
 
@@ -87,12 +89,12 @@ export default function AdminOrdersPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by order ID or email"
+              placeholder={t("admin.searchOrdersPlaceholder")}
               className="bg-black/40 pl-9 text-white"
             />
           </div>
           <Button type="submit" variant="secondary" className="bg-white/10">
-            Search
+            {t("common.search")}
           </Button>
         </form>
         <div className="flex flex-wrap items-center gap-2">
@@ -101,7 +103,7 @@ export default function AdminOrdersPage() {
             onChange={(e) => setStatusFilter(e.target.value as AdminOrder["status"] | "all")}
             className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
           >
-            <option value="all">All statuses</option>
+            <option value="all">{t("admin.allStatuses")}</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -113,37 +115,37 @@ export default function AdminOrdersPage() {
             onChange={(e) => setSort(e.target.value as SortOption)}
             className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
           >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
+            <option value="newest">{t("admin.newestFirst")}</option>
+            <option value="oldest">{t("admin.oldestFirst")}</option>
           </select>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
         <div className="grid grid-cols-[1.3fr_1fr_1fr_0.8fr_0.6fr_0.6fr_0.8fr_0.9fr] items-center gap-4 border-b border-white/10 px-4 py-3 text-xs uppercase tracking-[0.2em] text-white/50">
-          <span>Order</span>
-          <span>Created</span>
-          <span>Customer</span>
-          <span>Type</span>
-          <span>Status</span>
-          <span>Items</span>
-          <span>Subtotal</span>
-          <span className="text-right">Actions</span>
+          <span>{t("common.order")}</span>
+          <span>{t("common.created")}</span>
+          <span>{t("common.customer")}</span>
+          <span>{t("common.type")}</span>
+          <span>{t("common.status")}</span>
+          <span>{t("common.items")}</span>
+          <span>{t("common.subtotal")}</span>
+          <span className="text-right">{t("common.actions")}</span>
         </div>
 
         {loading ? (
           <div className="flex items-center gap-3 px-4 py-6 text-white/70">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Loading orders...
+            {t("admin.loadingOrders")}
           </div>
         ) : error ? (
           <div className="px-4 py-6 text-sm text-red-400">{error}</div>
         ) : orders.length === 0 ? (
           <div className="flex flex-col gap-3 px-4 py-12 text-center text-white/70">
-            <p className="text-lg font-semibold text-white">No orders yet</p>
-            <p className="text-sm">Orders will appear here once customers checkout.</p>
+            <p className="text-lg font-semibold text-white">{t("admin.noOrdersYet")}</p>
+            <p className="text-sm">{t("admin.ordersEmptyCopy")}</p>
             <Button variant="secondary" asChild className="mx-auto bg-white/10">
-              <Link href="/admin/products">Go to Products</Link>
+              <Link href="/admin/products">{t("admin.goToProducts")}</Link>
             </Button>
           </div>
         ) : (
@@ -159,7 +161,7 @@ export default function AdminOrdersPage() {
                 </span>
                 <div className="space-y-0.5">
                   <p className="text-white/80">
-                    {order.customer_name || "Guest"}
+                    {order.customer_name || t("account.guest")}
                   </p>
                   <p className="text-xs text-white/60">{order.email}</p>
                 </div>
@@ -169,7 +171,7 @@ export default function AdminOrdersPage() {
                     order.user_id ? "bg-lucky-green/15 text-lucky-green" : "bg-white/10 text-white/70"
                   )}
                 >
-                  {order.user_id ? "Account" : "Guest"}
+                  {order.user_id ? t("admin.orderTypeAccount") : t("account.guest")}
                 </span>
                 <span
                   className={cn(
@@ -195,10 +197,10 @@ export default function AdminOrdersPage() {
                 </span>
                 <div className="flex justify-end gap-2">
                   <Button variant="secondary" size="sm" asChild className="bg-white/10">
-                    <Link href={`/admin/orders/${order.id}/view`}>View</Link>
+                    <Link href={`/admin/orders/${order.id}/view`}>{t("common.view")}</Link>
                   </Button>
                   <Button variant="secondary" size="sm" asChild className="bg-white/10">
-                    <Link href={`/admin/orders/${order.id}`}>Manage</Link>
+                    <Link href={`/admin/orders/${order.id}`}>{t("common.manage")}</Link>
                   </Button>
                 </div>
               </div>
@@ -215,7 +217,7 @@ export default function AdminOrdersPage() {
             disabled={loadingMore}
             onClick={() => loadOrders(nextCursor, true)}
           >
-            {loadingMore ? "Loading..." : "Load more"}
+            {loadingMore ? t("common.loading") : t("common.loadMore")}
           </Button>
         </div>
       ) : null}

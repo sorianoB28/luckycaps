@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { StarRating } from "./StarRating";
 import { WriteReviewModal } from "./WriteReviewModal";
 import { ThumbsUp, ChevronDown, Filter } from "lucide-react";
+import { useT } from "@/components/providers/LanguageProvider";
 
 type SortKey = "recent" | "high" | "low" | "helpful";
 
@@ -32,6 +33,7 @@ export function ReviewsSection({
   variants,
   sizes,
 }: ReviewsSectionProps) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -120,12 +122,12 @@ export function ReviewsSection({
       <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
-            <CardTitle className="text-2xl">Customer Reviews</CardTitle>
+            <CardTitle className="text-2xl">{t("reviews.title")}</CardTitle>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/70">
               <StarRating value={average} readOnly allowHalf />
               <span className="font-semibold">{average ? average.toFixed(1) : "0.0"}</span>
               <span>
-                ({filtered.length} / {productReviews.length} reviews)
+                {t("reviews.count", { shown: filtered.length, total: productReviews.length })}
               </span>
             </div>
           </div>
@@ -136,25 +138,25 @@ export function ReviewsSection({
                 onClick={() => setSortOpen((p) => !p)}
                 className="flex h-10 items-center gap-2 rounded-md border border-white/20 bg-white/5 px-3 text-sm text-white transition hover:border-white/40 focus:outline-none focus:ring-2 focus:ring-lucky-green"
               >
-                Sort:{" "}
+                {t("reviews.sortLabel")}{" "}
                 <span className="font-semibold capitalize">
                   {sort === "recent"
-                    ? "Most recent"
+                    ? t("reviews.sortOptions.recent")
                     : sort === "high"
-                    ? "Highest rating"
+                    ? t("reviews.sortOptions.high")
                     : sort === "low"
-                    ? "Lowest rating"
-                    : "Most helpful"}
+                    ? t("reviews.sortOptions.low")
+                    : t("reviews.sortOptions.helpful")}
                 </span>
                 <ChevronDown className="h-4 w-4 text-white/60" />
               </button>
               {sortOpen ? (
                 <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-lg border border-white/10 bg-lucky-dark text-sm text-white shadow-2xl">
                   {[
-                    ["recent", "Most recent"],
-                    ["high", "Highest rating"],
-                    ["low", "Lowest rating"],
-                    ["helpful", "Most helpful"],
+                    ["recent", t("reviews.sortOptions.recent")],
+                    ["high", t("reviews.sortOptions.high")],
+                    ["low", t("reviews.sortOptions.low")],
+                    ["helpful", t("reviews.sortOptions.helpful")],
                   ].map(([key, label]) => (
                     <button
                       key={key}
@@ -183,7 +185,7 @@ export function ReviewsSection({
                 )}
               >
                 <Filter className="h-4 w-4" />
-                <span>Filter</span>
+                <span>{t("reviews.filter")}</span>
                 {selectedStars.length ? (
                   <span className="ml-1 rounded-full bg-lucky-green px-2 text-[11px] font-semibold text-lucky-darker">
                     {selectedStars.length}
@@ -193,13 +195,13 @@ export function ReviewsSection({
               {filterOpen ? (
                 <div className="absolute right-0 z-20 mt-2 w-56 space-y-3 rounded-lg border border-white/10 bg-lucky-dark p-3 text-sm text-white shadow-2xl">
                   <div className="flex items-center justify-between">
-                    <p className="text-white/80">Filter by rating</p>
+                    <p className="text-white/80">{t("reviews.filterByRating")}</p>
                     <button
                       type="button"
                       className="text-xs text-white/60 hover:text-white"
                       onClick={() => setSelectedStars([])}
                     >
-                      Clear
+                      {t("common.clear")}
                     </button>
                   </div>
                   <Separator className="bg-white/10" />
@@ -214,7 +216,9 @@ export function ReviewsSection({
                         >
                           <span className="flex items-center gap-2">
                             <StarRating value={star} readOnly />
-                            <span className="text-white/80">{star} stars</span>
+                            <span className="text-white/80">
+                              {t("reviews.starsLabel", { count: star, suffix: star === 1 ? "" : "s" })}
+                            </span>
                           </span>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-white/60">({count})</span>
@@ -236,16 +240,16 @@ export function ReviewsSection({
                 </div>
               ) : null}
             </div>
-            <Button onClick={handleWrite}>Write a review</Button>
+            <Button onClick={handleWrite}>{t("reviews.writeReview")}</Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-6 md:grid-cols-[240px_1fr]">
             <div className="space-y-3 rounded-2xl border border-white/10 bg-black/30 p-4">
-              <p className="text-sm text-white/60">Rating breakdown</p>
+              <p className="text-sm text-white/60">{t("reviews.ratingBreakdown")}</p>
               {distribution.map((item) => (
                 <div key={item.star} className="flex items-center gap-3 text-sm">
-                  <span className="w-6 text-white/70">{item.star}★</span>
+                  <span className="w-6 text-white/70">{item.star}</span>
                   <div className="h-2 flex-1 rounded-full bg-white/10">
                     <div
                       className="h-2 rounded-full bg-lucky-green"
@@ -259,14 +263,14 @@ export function ReviewsSection({
             <div className="space-y-4">
               {productReviews.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/20 bg-black/30 p-6 text-center text-white/70">
-                  <p className="font-semibold text-white">No reviews yet</p>
-                  <p className="text-sm text-white/60">Be the first to review.</p>
+                  <p className="font-semibold text-white">{t("reviews.noneYetTitle")}</p>
+                  <p className="text-sm text-white/60">{t("reviews.noneYetCopy")}</p>
                 </div>
               ) : sorted.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/20 bg-black/30 p-6 text-center text-white/70">
-                  <p className="font-semibold text-white">No reviews match your filters</p>
+                  <p className="font-semibold text-white">{t("reviews.noneMatchTitle")}</p>
                   <p className="text-sm text-white/60">
-                    Try adjusting your rating filters or clear filters to see all reviews.
+                    {t("reviews.noneMatchCopy")}
                   </p>
                   <div className="mt-3 flex justify-center gap-3">
                     <Button
@@ -274,14 +278,14 @@ export function ReviewsSection({
                       className="bg-white/10"
                       onClick={() => setSelectedStars([])}
                     >
-                      Clear filters
+                      {t("shop.clearFilters")}
                     </Button>
                     <Button
                       variant="outline"
                       className="border-white/20 text-white"
                       onClick={() => setSelectedStars([])}
                     >
-                      Show all reviews
+                      {t("reviews.showAll")}
                     </Button>
                   </div>
                 </div>
@@ -302,7 +306,7 @@ export function ReviewsSection({
                         <span>{review.authorName || review.authorEmail.split("@")[0]}</span>
                         {review.verifiedPurchase ? (
                           <span className="rounded-full bg-lucky-green/15 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-lucky-green">
-                            Verified Purchase
+                            {t("reviews.verifiedPurchase")}
                           </span>
                         ) : null}
                       </div>
@@ -310,14 +314,21 @@ export function ReviewsSection({
                     <h4 className="text-lg font-semibold text-white">{review.title}</h4>
                     <p className="text-sm text-white/80 whitespace-pre-line">{review.body}</p>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-white/50">
-                      {review.variant ? <span>Variant: {review.variant}</span> : null}
-                      {review.size ? <span>Size: {review.size}</span> : null}
+                      {review.variant ? (
+                        <span>{t("reviews.variantValue", { value: review.variant })}</span>
+                      ) : null}
+                      {review.size ? <span>{t("reviews.sizeValue", { value: review.size })}</span> : null}
                       {review.images && review.images.length ? (
-                        <span>{review.images.length} photo{review.images.length > 1 ? "s" : ""}</span>
+                        <span>
+                          {t("reviews.photoCount", {
+                            count: review.images.length,
+                            suffix: review.images.length > 1 ? "s" : "",
+                          })}
+                        </span>
                       ) : null}
                       {review.reported ? (
                         <span className="rounded-full bg-red-500/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-red-300">
-                          Reported
+                          {t("reviews.reported")}
                         </span>
                       ) : null}
                     </div>
@@ -360,7 +371,7 @@ export function ReviewsSection({
                           className="text-xs text-white/50 hover:text-white"
                           onClick={() => reportReview(review.productSlug, review.id)}
                         >
-                          Report
+                          {t("reviews.report")}
                         </button>
                       ) : null}
                     </div>

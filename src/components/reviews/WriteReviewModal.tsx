@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useReviewsStore } from "@/store/reviewsStore";
+import { useT } from "@/components/providers/LanguageProvider";
 import { StarRating } from "./StarRating";
 
 interface WriteReviewModalProps {
@@ -30,6 +31,7 @@ export function WriteReviewModal({
   isOpen,
   onClose,
 }: WriteReviewModalProps) {
+  const t = useT();
   const { data: session, status } = useSession();
   const addReview = useReviewsStore((s) => s.addReview);
   const router = useRouter();
@@ -78,11 +80,11 @@ export function WriteReviewModal({
       return;
     }
     if (!rating || !title.trim() || !body.trim()) {
-      setError("Rating, title, and body are required.");
+      setError(t("reviews.errors.required"));
       return;
     }
     if (!guidelines) {
-      setError("Please agree to the community guidelines.");
+      setError(t("reviews.errors.guidelines"));
       return;
     }
     setError(null);
@@ -109,57 +111,57 @@ export function WriteReviewModal({
       <div className="w-full max-w-2xl space-y-4 rounded-2xl border border-white/10 bg-lucky-dark/90 p-6 shadow-2xl backdrop-blur">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-display text-2xl">Write a review</h3>
-            <p className="text-sm text-white/60">for {productName}</p>
+            <h3 className="font-display text-2xl">{t("reviews.modalTitle")}</h3>
+            <p className="text-sm text-white/60">{t("reviews.forProduct", { product: productName })}</p>
           </div>
           <Button variant="ghost" onClick={onClose}>
-            Close
+            {t("common.close")}
           </Button>
         </div>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Rating</Label>
+            <Label>{t("reviews.ratingLabel")}</Label>
             <StarRating value={rating} onChange={setRating} allowHalf={false} />
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Title</Label>
+              <Label>{t("reviews.titleLabel")}</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Premium quality"
+                placeholder={t("reviews.titlePlaceholder")}
                 className="bg-white/5 text-white"
               />
             </div>
             <div className="space-y-2">
-              <Label>Photo URL (optional)</Label>
+              <Label>{t("reviews.photoUrlLabel")}</Label>
               <Input
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://..."
+                placeholder={t("reviews.photoUrlPlaceholder")}
                 className="bg-white/5 text-white"
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Review</Label>
+            <Label>{t("reviews.reviewLabel")}</Label>
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={4}
-              placeholder="Share fit, feel, and build quality."
+              placeholder={t("reviews.reviewPlaceholder")}
               className="bg-white/5 text-white"
             />
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Variant (optional)</Label>
+              <Label>{t("reviews.variantLabel")}</Label>
               <Input
                 list="review-variant"
                 value={variant ?? ""}
                 onChange={(e) => setVariant(e.target.value)}
                 className="bg-white/5 text-white"
-                placeholder="Snapback / Fitted / Trucker"
+                placeholder={t("reviews.variantPlaceholder")}
               />
               {variants.length ? (
                 <datalist id="review-variant">
@@ -170,13 +172,13 @@ export function WriteReviewModal({
               ) : null}
             </div>
             <div className="space-y-2">
-              <Label>Size (optional)</Label>
+              <Label>{t("reviews.sizeLabel")}</Label>
               <Input
                 list="review-size"
                 value={size ?? ""}
                 onChange={(e) => setSize(e.target.value)}
                 className="bg-white/5 text-white"
-                placeholder="Adjustable / 7 1/4..."
+                placeholder={t("reviews.sizePlaceholder")}
               />
               {sizes.length ? (
                 <datalist id="review-size">
@@ -194,13 +196,13 @@ export function WriteReviewModal({
               onChange={(e) => setGuidelines(e.target.checked)}
               className="accent-lucky-green"
             />
-            I agree to the community guidelines
+            {t("reviews.guidelinesAgree")}
           </label>
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
           <div className="flex items-center gap-3">
-            <Button onClick={handleSubmit}>Submit review</Button>
+            <Button onClick={handleSubmit}>{t("reviews.submit")}</Button>
             <Button variant="ghost" onClick={onClose}>
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         </div>

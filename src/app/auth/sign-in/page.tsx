@@ -11,10 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { useT } from "@/components/providers/LanguageProvider";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function SignInContent() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -26,11 +28,11 @@ function SignInContent() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!emailRegex.test(email)) {
-      setError("Enter a valid email.");
+      setError(t("auth.errors.invalidEmail"));
       return;
     }
     if (!password) {
-      setError("Password is required.");
+      setError(t("auth.errors.passwordRequired"));
       return;
     }
     setError(null);
@@ -44,7 +46,7 @@ function SignInContent() {
     if (result?.error) {
       setError(
         result.error === "CredentialsSignin"
-          ? "Invalid email or password."
+          ? t("auth.errors.invalidCredentials")
           : result.error
       );
       return;
@@ -54,23 +56,23 @@ function SignInContent() {
   };
 
   return (
-    <AuthShell title="Sign in" subtitle="Access your Lucky Caps account.">
+    <AuthShell title={t("auth.signIn")} subtitle={t("auth.signInSubtitle")}>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-2">
-          <Label>Email</Label>
+          <Label>{t("auth.emailLabel")}</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
             <Input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
-              placeholder="you@example.com"
+              placeholder={t("auth.emailPlaceholder")}
               className="bg-white/5 pl-10 text-white"
             />
           </div>
         </div>
         <div className="space-y-2">
-          <Label>Password</Label>
+          <Label>{t("auth.passwordLabel")}</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
             <Input
@@ -90,16 +92,16 @@ function SignInContent() {
               onChange={(e) => setRemember(e.target.checked)}
               className="accent-lucky-green"
             />
-            Remember me
+            {t("auth.rememberMe")}
           </label>
           <Link href="/auth/forgot-password" className="text-white hover:text-lucky-green">
-            Forgot password?
+            {t("auth.forgotPasswordLink")}
           </Link>
         </div>
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Sign in
+          {t("auth.signIn")}
         </Button>
         <Button
           type="button"
@@ -107,17 +109,17 @@ function SignInContent() {
           className="w-full border-white/20 text-white"
           onClick={() => router.push("/shop")}
         >
-          Continue as guest
+          {t("auth.continueAsGuest")}
         </Button>
         <Separator className="border-white/10" />
         <Button type="button" variant="secondary" className="w-full bg-white/10" disabled>
           <Chrome className="mr-2 h-4 w-4" />
-          Sign in with Google (coming soon)
+          {t("auth.googleSoon")}
         </Button>
         <p className="text-sm text-white/70">
-          Don&apos;t have an account?{" "}
+          {t("auth.noAccount")}{" "}
           <Link href="/auth/sign-up" className="text-white hover:text-lucky-green">
-            Create one
+            {t("auth.createOne")}
           </Link>
         </p>
       </form>

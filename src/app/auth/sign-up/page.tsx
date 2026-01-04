@@ -11,10 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { useT } from "@/components/providers/LanguageProvider";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function SignUpContent() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [form, setForm] = useState({
@@ -32,23 +34,23 @@ function SignUpContent() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.firstName || !form.lastName) {
-      setError("Name is required.");
+      setError(t("auth.errors.nameRequired"));
       return;
     }
     if (!emailRegex.test(form.email)) {
-      setError("Enter a valid email.");
+      setError(t("auth.errors.invalidEmail"));
       return;
     }
     if (form.password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(t("auth.errors.passwordTooShort"));
       return;
     }
     if (form.password !== form.confirm) {
-      setError("Passwords must match.");
+      setError(t("auth.errors.passwordsMustMatch"));
       return;
     }
     if (!form.terms) {
-      setError("You must agree to the Terms & Privacy.");
+      setError(t("auth.errors.mustAgreeTerms"));
       return;
     }
     setError(null);
@@ -67,7 +69,7 @@ function SignUpContent() {
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        throw new Error(data.error || "Unable to create account.");
+        throw new Error(data.error || t("auth.errors.unableToCreateAccount"));
       }
       await signIn("credentials", {
         redirect: false,
@@ -77,7 +79,7 @@ function SignUpContent() {
       const redirect = searchParams?.get("redirect");
       router.push(redirect || "/account");
     } catch (err) {
-      setError((err as Error).message || "Unable to create account.");
+      setError((err as Error).message || t("auth.errors.unableToCreateAccount"));
     } finally {
       setLoading(false);
     }
@@ -85,13 +87,13 @@ function SignUpContent() {
 
   return (
     <AuthShell
-      title="Create account"
-      subtitle="Save your drops, track orders, and stay ahead of releases."
+      title={t("auth.signUp")}
+      subtitle={t("auth.signUpSubtitle")}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>First name</Label>
+            <Label>{t("auth.firstNameLabel")}</Label>
             <Input
               value={form.firstName}
               onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
@@ -99,7 +101,7 @@ function SignUpContent() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Last name</Label>
+            <Label>{t("auth.lastNameLabel")}</Label>
             <Input
               value={form.lastName}
               onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
@@ -108,18 +110,18 @@ function SignUpContent() {
           </div>
         </div>
         <div className="space-y-2">
-          <Label>Email</Label>
+          <Label>{t("auth.emailLabel")}</Label>
           <Input
             type="email"
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
             className="bg-white/5 text-white"
-            placeholder="you@example.com"
+            placeholder={t("auth.emailPlaceholder")}
           />
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-2">
-            <Label>Password</Label>
+            <Label>{t("auth.passwordLabel")}</Label>
             <Input
               type="password"
               value={form.password}
@@ -127,10 +129,10 @@ function SignUpContent() {
               className="bg-white/5 text-white"
               placeholder="••••••••"
             />
-            <p className="text-xs text-white/50">Minimum 8 characters.</p>
+            <p className="text-xs text-white/50">{t("auth.minPasswordHint")}</p>
           </div>
           <div className="space-y-2">
-            <Label>Confirm password</Label>
+            <Label>{t("auth.confirmPasswordLabel")}</Label>
             <Input
               type="password"
               value={form.confirm}
@@ -148,7 +150,7 @@ function SignUpContent() {
               onChange={(e) => setForm((prev) => ({ ...prev, terms: e.target.checked }))}
               className="accent-lucky-green"
             />
-            I agree to the Terms & Privacy
+            {t("auth.termsAgree")}
           </label>
           <label className="flex items-center gap-2">
             <input
@@ -157,20 +159,20 @@ function SignUpContent() {
               onChange={(e) => setForm((prev) => ({ ...prev, marketing: e.target.checked }))}
               className="accent-lucky-green"
             />
-            Email me product drops and promos
+            {t("auth.marketingOptIn")}
           </label>
-          <p className="text-xs text-white/50">You can unsubscribe anytime.</p>
+          <p className="text-xs text-white/50">{t("auth.unsubscribeCopy")}</p>
         </div>
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Create account
+          {t("auth.signUp")}
         </Button>
         <Separator className="border-white/10" />
         <p className="text-sm text-white/70">
-          Already have an account?{" "}
+          {t("auth.alreadyAccount")}{" "}
           <Link href="/auth/sign-in" className="text-white hover:text-lucky-green">
-            Sign in
+            {t("auth.signIn")}
           </Link>
         </p>
       </form>

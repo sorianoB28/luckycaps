@@ -6,8 +6,10 @@ import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/store/cart";
+import { useT } from "@/components/providers/LanguageProvider";
 
 export default function CartPage() {
+  const t = useT();
   const { items, setQuantity, removeItem } = useCart();
   const entries = Object.entries(items);
 
@@ -20,12 +22,12 @@ export default function CartPage() {
     return (
       <div className="mx-auto flex max-w-3xl flex-col items-center px-4 py-20 text-center md:px-8">
         <ShoppingBag className="h-12 w-12 text-lucky-green" />
-        <h1 className="mt-4 font-display text-4xl">Your cart is empty</h1>
+        <h1 className="mt-4 font-display text-4xl">{t("cart.emptyPageTitle")}</h1>
         <p className="mt-2 text-white/70">
-          Start a new drop and add premium Lucky Caps to your cart.
+          {t("cart.emptyPageCopy")}
         </p>
         <Button className="mt-6" asChild>
-          <Link href="/shop">Browse collection</Link>
+          <Link href="/shop">{t("cart.browseCollection")}</Link>
         </Button>
       </div>
     );
@@ -33,7 +35,7 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 md:px-8">
-      <h1 className="font-display text-4xl">Your Cart</h1>
+      <h1 className="font-display text-4xl">{t("cart.title")}</h1>
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-4">
           {entries.map(([key, item]) => (
@@ -50,14 +52,14 @@ export default function CartPage() {
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs text-white/50">
-                    No image
+                    {t("cart.noImage")}
                   </div>
                 )}
               </div>
               <div className="flex-1">
                 <p className="font-semibold">{item.name}</p>
                 <p className="text-sm text-white/50">
-                  {item.variant || "Standard"} / {item.size || "One size"}
+                  {item.variant || t("cart.variantFallback")} / {item.size || t("cart.sizeFallback")}
                 </p>
                 <div className="mt-4 flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
@@ -67,7 +69,7 @@ export default function CartPage() {
                         setQuantity(key, Math.max(1, item.quantity - 1))
                       }
                       className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white"
-                      aria-label="Decrease quantity"
+                      aria-label={t("product.decreaseQuantityAria")}
                     >
                       <Minus className="h-4 w-4" />
                     </button>
@@ -78,7 +80,7 @@ export default function CartPage() {
                       type="button"
                       onClick={() => setQuantity(key, item.quantity + 1)}
                       className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white"
-                      aria-label="Increase quantity"
+                      aria-label={t("product.increaseQuantityAria")}
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -87,7 +89,7 @@ export default function CartPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => removeItem(key)}
-                    aria-label="Remove item"
+                    aria-label={t("cart.removeItemAria")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -100,27 +102,27 @@ export default function CartPage() {
           ))}
         </div>
         <div className="h-fit rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 className="font-display text-2xl">Order Summary</h2>
+          <h2 className="font-display text-2xl">{t("cart.orderSummary")}</h2>
           <Separator className="my-4" />
           <div className="space-y-3 text-sm text-white/70">
             <div className="flex items-center justify-between">
-              <span>Subtotal</span>
+              <span>{t("common.subtotal")}</span>
               <span className="font-semibold text-white">
                 ${(subtotalCents / 100).toFixed(2)}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Shipping</span>
-              <span>Calculated at checkout</span>
+              <span>{t("cart.shipping")}</span>
+              <span>{t("cart.calculatedAtCheckout")}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Tax</span>
-              <span>Calculated at checkout</span>
+              <span>{t("cart.tax")}</span>
+              <span>{t("cart.calculatedAtCheckout")}</span>
             </div>
           </div>
-          <Button className="mt-6 w-full">Checkout</Button>
+          <Button className="mt-6 w-full">{t("cart.checkout")}</Button>
           <Button variant="outline" className="mt-3 w-full" asChild>
-            <Link href="/shop">Continue shopping</Link>
+            <Link href="/shop">{t("cart.continueShopping")}</Link>
           </Button>
         </div>
       </div>
