@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingBag, Menu, User } from "lucide-react";
+import { ShoppingBag, Menu, User, X } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCart } from "@/store/cart";
 import { useUIStore } from "@/store/uiStore";
 import CartDrawer from "@/components/cart/CartDrawer";
@@ -227,38 +227,51 @@ export default function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent className="flex flex-col gap-6">
+              <SheetContent className="flex w-[70vw] max-w-xs flex-col gap-5 p-4">
                 <div className="flex items-center justify-between">
-                  <p className="font-display text-xl">Menu</p>
+                  <p className="font-display text-lg">Menu</p>
+                  <SheetClose asChild>
+                    <Button variant="ghost" size="icon" aria-label="Close menu">
+                      <X className="h-5 w-5" />
+                    </Button>
+                  </SheetClose>
                 </div>
-                <div className="flex flex-col gap-4">
+
+                <div className="flex flex-col gap-3">
                   {navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={cn(
-                        "text-lg uppercase tracking-[0.2em] transition",
-                        isActive(link.href)
-                          ? "text-white"
-                          : "text-white/80 hover:text-white"
-                      )}
-                    >
-                      {t.nav[link.key]}
-                    </Link>
+                    <SheetClose asChild key={link.href}>
+                      <Link
+                        href={link.href}
+                        className={cn(
+                          "text-base uppercase tracking-[0.2em] transition",
+                          isActive(link.href)
+                            ? "text-white"
+                            : "text-white/80 hover:text-white"
+                        )}
+                      >
+                        {t.nav[link.key]}
+                      </Link>
+                    </SheetClose>
                   ))}
-                  <Link
-                  href={isAuthed ? "/account" : "/auth/sign-in"}
-                  className="text-lg uppercase tracking-[0.2em] text-white/80 hover:text-white"
-                >
-                  {t.nav.account}
-                </Link>
-                  {isAdmin ? (
+
+                  <SheetClose asChild>
                     <Link
-                      href="/admin"
-                      className="text-lg uppercase tracking-[0.2em] text-white/80 hover:text-white"
+                      href={isAuthed ? "/account" : "/auth/sign-in"}
+                      className="text-base uppercase tracking-[0.2em] text-white/80 hover:text-white"
                     >
-                      {t.nav.admin}
+                      {t.nav.account}
                     </Link>
+                  </SheetClose>
+
+                  {isAdmin ? (
+                    <SheetClose asChild>
+                      <Link
+                        href="/admin"
+                        className="text-base uppercase tracking-[0.2em] text-white/80 hover:text-white"
+                      >
+                        {t.nav.admin}
+                      </Link>
+                    </SheetClose>
                   ) : null}
                 </div>
               </SheetContent>
