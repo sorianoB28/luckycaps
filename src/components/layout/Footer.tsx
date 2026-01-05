@@ -61,7 +61,7 @@ export default function Footer() {
                 />
               </div>
               <div>
-                <p className="font-display text-2xl">Lucky Caps</p>
+                <p className="font-display text-2xl">{t("brand.name")}</p>
                 <p className="text-xs uppercase tracking-[0.3em] text-white/50">
                   {t("footer.tagline")}
                 </p>

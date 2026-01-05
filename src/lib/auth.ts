@@ -77,6 +77,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name,
           role,
+          firstName: user.first_name ?? undefined,
+          lastName: user.last_name ?? undefined,
         };
       },
     }),
@@ -85,6 +87,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as any).role ?? "customer";
+        token.firstName = (user as any).firstName ?? undefined;
+        token.lastName = (user as any).lastName ?? undefined;
       }
       return token;
     },
@@ -92,6 +96,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.role = (token as any).role ?? "customer";
         session.user.id = token.sub ?? "";
+        session.user.firstName = (token as any).firstName ?? undefined;
+        session.user.lastName = (token as any).lastName ?? undefined;
       }
       return session;
     },

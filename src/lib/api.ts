@@ -167,7 +167,6 @@ export type CheckoutPayload = {
 
 export type CheckoutResponse = {
   url: string;
-  orderId?: string;
 };
 
 export type AdminOrder = {
@@ -176,6 +175,8 @@ export type AdminOrder = {
   status: "created" | "paid" | "shipped" | "delivered" | "cancelled" | "refunded";
   email: string;
   user_id?: string | null;
+  account_email?: string | null;
+  account_name?: string | null;
   customer_name?: string | null;
   customer_phone?: string | null;
   subtotal_cents: number;
@@ -211,6 +212,24 @@ export type AdminOrderItem = {
   variant: string | null;
   size: string | null;
   quantity: number;
+};
+
+export type AdminPromoCode = {
+  id: string;
+  code: string;
+  active: boolean;
+  discount_type: "percent" | "amount";
+  percent_off: number | null;
+  amount_off_cents: number | null;
+  currency: string | null;
+  min_subtotal_cents: number | null;
+  max_redemptions: number | null;
+  times_redeemed: number | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  stripe_coupon_id: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 function getServerBaseUrl() {
@@ -269,6 +288,7 @@ export async function createCheckout(payload: CheckoutPayload) {
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(payload),
   });
 
@@ -436,6 +456,31 @@ export async function updateAdminOrder(
 ) {
   return adminFetchJson<{ order: AdminOrderDetail }>(`/api/admin/orders/${id}`, {
     method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getAdminPromoCodes() {
+  return adminFetchJson<AdminPromoCode[]>("/api/admin/promo-codes", { cache: "no-store" });
+}
+
+export async function getAdminPromoCode(id: string) {
+  return adminFetchJson<AdminPromoCode>(`/api/admin/promo-codes/${id}`, { cache: "no-store" });
+}
+
+export async function createAdminPromoCode(payload: Partial<AdminPromoCode> & { code: string }) {
+  return adminFetchJson<AdminPromoCode>("/api/admin/promo-codes", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminPromoCode(
+  id: string,
+  payload: Partial<AdminPromoCode> & { code?: string }
+) {
+  return adminFetchJson<AdminPromoCode>(`/api/admin/promo-codes/${id}`, {
+    method: "PUT",
     body: JSON.stringify(payload),
   });
 }

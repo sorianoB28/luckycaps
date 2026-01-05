@@ -1,15 +1,25 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { getServerSession } from "next-auth/next";
 
 import sql from "@/lib/db";
+import { authOptions } from "@/lib/auth";
 import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
-import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
+import {
+  attachStripeSessionToCheckout,
+  ensureCheckoutSessionsTable,
+} from "@/lib/checkoutSessions";
+import { computeCheckoutQuote } from "@/lib/checkoutQuote";
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const stripe =
   stripeSecret && stripeSecret.trim()
     ? new Stripe(stripeSecret, { apiVersion: "2024-04-10" })
     : null;
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type CheckoutItemInput = {
   productId: string;
@@ -44,6 +54,12 @@ const isUuid = (value: string) =>
   );
 
 export async function POST(request: Request) {
+  const authSession = await getServerSession(authOptions);
+  const sessionUserId =
+    authSession?.user?.id && isUuid(authSession.user.id)
+      ? authSession.user.id
+      : null;
+
   let body: CheckoutRequestBody;
   try {
     body = (await request.json()) as CheckoutRequestBody;
@@ -95,106 +111,28 @@ export async function POST(request: Request) {
   }
 
   try {
-    const productIds = itemInputs.map((i) => i.productId);
-    const products = (await sql`
-      SELECT
-        p.id,
-        p.slug,
-        p.name,
-        p.price_cents,
-        p.sale_price_cents,
-        p.original_price_cents,
-        p.is_sale,
-        p.stock,
-        p.active,
-        (
-          SELECT url
-          FROM public.product_images pi
-          WHERE pi.product_id = p.id
-          ORDER BY pi.sort_order ASC NULLS LAST, pi.created_at ASC
-          LIMIT 1
-        ) AS primary_image,
-        COALESCE(
-          (
-            SELECT ARRAY_AGG(ps.name ORDER BY CASE LOWER(ps.name)
-              WHEN 's/m' THEN 1
-              WHEN 'm/l' THEN 2
-              WHEN 'l/xl' THEN 3
-              ELSE 100 END, ps.name ASC)
-            FROM public.product_sizes ps
-            WHERE ps.product_id = p.id
-          ),
-          '{}'::text[]
-        ) AS sizes
-      FROM public.products p
-      WHERE p.id = ANY(${productIds}::uuid[])
-    `) as Array<{
-      id: string;
-      slug: string;
-      name: string;
-      price_cents: number;
-      sale_price_cents: number | null;
-      original_price_cents: number | null;
-      is_sale: boolean;
-      stock: number;
-      active: boolean;
-      primary_image: string | null;
-      sizes: string[];
-    }>;
-
-    const productMap = new Map(products.map((p) => [p.id, p]));
-    for (const input of itemInputs) {
-      const product = productMap.get(input.productId);
-      if (!product || !product.active) {
-        return NextResponse.json({ error: "Product not available" }, { status: 400 });
-      }
-      const availableSizes = sortSizes(
-        (product.sizes ?? [])
-          .filter((s): s is NonNullable<typeof s> => s != null)
-          .map((s) => normalizeSize(s))
-          .filter((s): s is NonNullable<typeof s> => Boolean(s))
-      );
-      if (availableSizes.length) {
-        const normalized = normalizeSize(input.size);
-        if (!normalized || !availableSizes.includes(normalized)) {
-          return NextResponse.json(
-            { error: `Size required for ${product.name}` },
-            { status: 400 }
-          );
-        }
-        input.size = normalized;
-      } else {
-        input.size = null;
-      }
-      if (product.stock < input.quantity) {
-        return NextResponse.json(
-          { error: `Insufficient stock for ${product.name}` },
-          { status: 409 }
-        );
-      }
-    }
-
-    const orderItems = itemInputs.map((input) => {
-      const product = productMap.get(input.productId)!;
-      const price = product.is_sale && product.sale_price_cents != null
-        ? product.sale_price_cents
-        : product.price_cents;
-      return {
-        product_id: product.id,
-        product_slug: product.slug,
-        name: product.name,
-        image_url: product.primary_image,
-        price_cents: price,
-        quantity: input.quantity,
-        variant: input.variant ?? null,
-        size: input.size,
-      };
+    const quoteResult = await computeCheckoutQuote({
+      items: itemInputs,
+      deliveryOption: body.deliveryOption,
+      promoCode: body.promoCode,
+      currency: "usd",
     });
 
-    const subtotalCents = orderItems.reduce(
-      (sum, item) => sum + item.price_cents * item.quantity,
-      0
-    );
+    if (!quoteResult.ok) {
+      return NextResponse.json({ error: quoteResult.error }, { status: 400 });
+    }
+
+    const quote = quoteResult.quote;
+    const orderItems = quote.items;
+
+    const appliedPromo = quote.promo
+      ? {
+          promo_code_id: quote.promo.promo_code_id,
+          normalized_code: quote.promo.normalized_code,
+          stripe_coupon_id: quote.promo.stripe_coupon_id,
+          discount_cents: quote.discount_cents,
+        }
+      : null;
 
     const contactJson = JSON.stringify({
       email: body.contact.email.trim(),
@@ -216,108 +154,75 @@ export async function POST(request: Request) {
       shipping!.firstName?.trim?.() || shipping!.lastName?.trim?.()
         ? `${shipping!.firstName.trim()} ${shipping!.lastName?.trim?.() || ""}`.trim()
         : null;
-    const results = (await sql`
-      WITH new_order AS (
-        INSERT INTO public.orders (
-          user_id,
-          customer_name,
-          customer_phone,
-          email,
-          status,
-          contact,
-          shipping_address,
-          delivery_option,
-          promo_code,
-          subtotal_cents,
-          payment_provider,
-          currency,
-          stripe_checkout_session_id,
-          stripe_payment_intent_id
-        )
-        VALUES (
-          ${null},
-          ${customerName},
-          ${body.contact.phone?.trim?.() || null},
-          ${body.contact.email.trim()},
-          'created',
-          ${contactJson}::jsonb,
-          ${shippingJson}::jsonb,
-          ${body.deliveryOption},
-          ${body.promoCode?.trim?.() || null},
-          ${subtotalCents},
-          'stripe',
-          'usd',
-          null,
-          null
-        )
-        RETURNING id
-      ),
-      inserted_items AS (
-        INSERT INTO public.order_items (
-          order_id,
-          product_id,
-          product_slug,
-          name,
-          image_url,
-          price_cents,
-          variant,
-          size,
-          quantity
-        )
-        SELECT
-          (SELECT id FROM new_order),
-          item.product_id::uuid,
-          item.product_slug,
-          item.name,
-          item.image_url,
-          item.price_cents,
-          item.variant,
-          item.size,
-          item.quantity
-        FROM jsonb_to_recordset(${JSON.stringify(orderItems)}::jsonb) AS item(
-          product_id text,
-          product_slug text,
-          name text,
-          image_url text,
-          price_cents int,
-          variant text,
-          size text,
-          quantity int
-        )
-      ),
-      updated_stock AS (
-        UPDATE public.products p
-        SET stock = p.stock - src.qty
-        FROM (
-          SELECT product_id::uuid AS pid, SUM(quantity) AS qty
-          FROM jsonb_to_recordset(${JSON.stringify(orderItems)}::jsonb) AS item(
-            product_id text,
-            product_slug text,
-            name text,
-            image_url text,
-            price_cents int,
-            variant text,
-            size text,
-            quantity int
-          )
-          GROUP BY product_id
-        ) AS src
-        WHERE p.id = src.pid
-      )
-      SELECT id AS order_id FROM new_order
-    `) as Array<{ order_id: string }>;
 
-    const orderId = results[0]?.order_id;
-    if (!orderId) {
-      throw new Error("Failed to create order");
+    const checkoutId =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === "x" ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+
+    await ensureCheckoutSessionsTable();
+    if (!isUuid(checkoutId)) {
+      throw new Error("Failed to create checkout session");
     }
 
+    await sql`
+      INSERT INTO public.checkout_sessions (
+        id,
+        stripe_checkout_session_id,
+        user_id,
+        email,
+        customer_name,
+        customer_phone,
+        contact,
+        shipping_address,
+        delivery_option,
+        promo_code,
+        promo_code_id,
+        discount_cents,
+        subtotal_cents,
+        shipping_cents,
+        tax_cents,
+        total_cents,
+        currency,
+        items
+      )
+      VALUES (
+        ${checkoutId}::uuid,
+        null,
+        ${sessionUserId}::uuid,
+        ${body.contact.email.trim()},
+        ${customerName},
+        ${body.contact.phone?.trim?.() || null},
+        ${contactJson}::jsonb,
+        ${shippingJson}::jsonb,
+        ${quote.delivery_option},
+        ${appliedPromo?.normalized_code ?? null},
+        ${appliedPromo?.promo_code_id ?? null}::uuid,
+        ${appliedPromo?.discount_cents ?? 0},
+        ${quote.subtotal_cents},
+        ${quote.shipping_cents},
+        ${quote.tax_cents},
+        ${quote.total_cents},
+        'usd',
+        ${JSON.stringify(orderItems)}::jsonb
+      )
+    `;
+
     const origin = new URL(request.url).origin;
-    const successTemplate =
-      process.env.STRIPE_SUCCESS_URL || `${origin}/order/{ORDER_ID}?success=1`;
-    const cancelTemplate = process.env.STRIPE_CANCEL_URL || `${origin}/checkout?canceled=1`;
-    const successUrl = successTemplate.replace("{ORDER_ID}", orderId);
-    const cancelUrl = cancelTemplate.replace("{ORDER_ID}", orderId);
+    const defaultSuccessUrl = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+    const rawSuccessUrl = process.env.STRIPE_SUCCESS_URL;
+    const successUrl =
+      rawSuccessUrl && rawSuccessUrl.includes("{CHECKOUT_SESSION_ID}")
+        ? rawSuccessUrl
+        : defaultSuccessUrl;
+
+    const defaultCancelUrl = `${origin}/checkout?canceled=1`;
+    const rawCancelUrl = process.env.STRIPE_CANCEL_URL;
+    const cancelUrl = rawCancelUrl && rawCancelUrl.includes("{ORDER_ID}") ? defaultCancelUrl : rawCancelUrl || defaultCancelUrl;
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = orderItems.map((item) => ({
       quantity: item.quantity,
@@ -336,29 +241,43 @@ export async function POST(request: Request) {
       },
     }));
 
-    const session = await stripe.checkout.sessions.create({
+    if (quote.shipping_cents > 0) {
+      lineItems.push({
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: quote.shipping_cents,
+          product_data: {
+            name: quote.delivery_option === "express" ? "Express shipping" : "Shipping",
+            metadata: { delivery_option: quote.delivery_option, item_type: "shipping" },
+          },
+        },
+      });
+    }
+
+    const stripeSession = await stripe.checkout.sessions.create({
       mode: "payment",
-      metadata: { order_id: orderId },
+      metadata: {
+        checkout_id: checkoutId,
+        user_id: sessionUserId ?? "",
+        expected_total_cents: String(quote.total_cents),
+      },
+      discounts: appliedPromo ? [{ coupon: appliedPromo.stripe_coupon_id }] : undefined,
       line_items: lineItems,
       success_url: successUrl,
       cancel_url: cancelUrl,
     });
 
-    await sql`
-      UPDATE public.orders
-      SET
-        stripe_checkout_session_id = ${session.id},
-        stripe_payment_intent_id = ${session.payment_intent ? String(session.payment_intent) : null},
-        payment_provider = 'stripe',
-        currency = ${session.currency ?? "usd"}
-      WHERE id = ${orderId}::uuid
-    `;
+    await attachStripeSessionToCheckout({
+      checkoutId,
+      stripeCheckoutSessionId: stripeSession.id,
+    });
 
-    if (!session.url) {
+    if (!stripeSession.url) {
       throw new Error("Stripe session missing url");
     }
 
-    return NextResponse.json({ url: session.url, orderId });
+    return NextResponse.json({ url: stripeSession.url });
   } catch (err) {
     console.error("Checkout error", err);
     return NextResponse.json({ error: "Unable to process order" }, { status: 500 });

@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     if (q) {
       if (isEmailLike(q)) {
         params.push(q);
-        whereParts.push(`LOWER(o.email) = LOWER($${params.length})`);
+        whereParts.push(`LOWER(COALESCE(u.email, o.email)) = LOWER($${params.length})`);
       } else {
         params.push(`${q}%`);
         whereParts.push(`o.id::text ILIKE $${params.length}`);
@@ -76,11 +76,14 @@ export async function GET(request: Request) {
         o.status,
         o.email,
         o.user_id,
+        u.email AS account_email,
+        NULLIF(CONCAT_WS(' ', u.first_name, u.last_name), '') AS account_name,
         o.customer_name,
         o.customer_phone,
         o.subtotal_cents,
         COALESCE(items.items_count, 0) AS items_count
       FROM public.orders o
+      LEFT JOIN public.users u ON u.id = o.user_id
       LEFT JOIN LATERAL (
         SELECT COALESCE(SUM(oi.quantity), 0)::int AS items_count
         FROM public.order_items oi

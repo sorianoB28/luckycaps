@@ -9,6 +9,10 @@ type Order = {
   email: string;
   delivery_option: string | null;
   subtotal_cents: number;
+  discount_cents: number;
+  shipping_cents: number;
+  tax_cents: number;
+  total_cents: number;
   contact: { email?: string; phone?: string | null; notes?: string | null } | null;
   shipping_address: {
     firstName?: string;
@@ -123,17 +127,25 @@ export default function OrderPageClient({
               <span>{t("common.subtotal")}</span>
               <span className="font-semibold text-white">${(order.subtotal_cents / 100).toFixed(2)}</span>
             </div>
+            {order.discount_cents > 0 ? (
+              <div className="flex items-center justify-between text-sm text-white/70">
+                <span>{t("common.discount")}</span>
+                <span className="font-semibold text-lucky-green">
+                  -${(order.discount_cents / 100).toFixed(2)}
+                </span>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between text-sm text-white/70">
               <span>{t("cart.shipping")}</span>
-              <span>$0.00</span>
+              <span>${(order.shipping_cents / 100).toFixed(2)}</span>
             </div>
             <div className="flex items-center justify-between text-sm text-white/70">
               <span>{t("cart.tax")}</span>
-              <span>$0.00</span>
+              <span>${(order.tax_cents / 100).toFixed(2)}</span>
             </div>
             <div className="mt-2 flex items-center justify-between text-sm font-semibold text-white">
               <span>{t("common.total")}</span>
-              <span>${(order.subtotal_cents / 100).toFixed(2)}</span>
+              <span>${(order.total_cents / 100).toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -141,4 +153,3 @@ export default function OrderPageClient({
     </div>
   );
 }
-

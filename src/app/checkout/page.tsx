@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { createCheckout } from "@/lib/api";
 import { useSession } from "next-auth/react";
 import { useT } from "@/components/providers/LanguageProvider";
+import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 
 const SHOW_DEV_TOOLS = process.env.NODE_ENV !== "production";
 
@@ -42,14 +43,47 @@ const deliveryOptions: DeliveryOption[] = [
   },
 ];
 
+type Quote = {
+  currency: "usd";
+  delivery_option: string;
+  subtotal_cents: number;
+  discount_cents: number;
+  shipping_cents: number;
+  tax_cents: number;
+  total_cents: number;
+  promo:
+    | null
+    | {
+        promo_code_id: string;
+        normalized_code: string;
+        stripe_coupon_id: string;
+      };
+  items: Array<{
+    product_id: string;
+    product_slug: string;
+    name: string;
+    image_url: string | null;
+    price_cents: number;
+    quantity: number;
+    variant: string | null;
+    size: string | null;
+  }>;
+};
+
+type QuoteResponseOk = { ok: true; quote: Quote };
+type QuoteResponseErr = {
+  ok: false;
+  error?: string;
+  promoError?: { valid?: false; reason?: string; min_subtotal_cents?: number | null } | null;
+};
+
 function CheckoutPageContent() {
   const t = useT();
   const { items } = useCart();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const searchParams = useSearchParams();
   const isCanceled = searchParams.get("canceled") === "1";
-  const hasAdminToken = session?.user?.role === "admin";
-  const entries = Object.entries(items);
+  const entries = useMemo(() => Object.entries(items), [items]);
   const [contact, setContact] = useState({ email: "", phone: "" });
   const [shipping, setShipping] = useState({
     firstName: "",
@@ -63,11 +97,59 @@ function CheckoutPageContent() {
   });
   const [delivery, setDelivery] = useState<DeliveryOption>(deliveryOptions[0]);
   const [promo, setPromo] = useState("");
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [appliedPromo, setAppliedPromo] = useState<
+    | null
+    | {
+        promo_code_id: string;
+        normalized_code: string;
+      }
+  >(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoApplying, setPromoApplying] = useState(false);
   const [errors, setErrors] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const didPrefillRef = useRef(false);
+  const quoteReqIdRef = useRef(0);
+
+  useEffect(() => {
+    if (didPrefillRef.current) return;
+    if (sessionStatus !== "authenticated") return;
+    const user = session?.user;
+    if (!user) return;
+
+    didPrefillRef.current = true;
+
+    const email = user.email?.toString().trim() ?? "";
+    const fullName = user.name?.toString().trim() ?? "";
+    const firstNameFromProfile = user.firstName?.toString().trim() ?? "";
+    const lastNameFromProfile = user.lastName?.toString().trim() ?? "";
+
+    let derivedFirst = "";
+    let derivedLast = "";
+    if (fullName) {
+      const parts = fullName.split(/\s+/).filter(Boolean);
+      derivedFirst = parts[0] ?? "";
+      derivedLast = parts.slice(1).join(" ");
+    }
+
+    const nextFirst = firstNameFromProfile || derivedFirst;
+    const nextLast = lastNameFromProfile || derivedLast;
+
+    if (email) {
+      setContact((prev) => (prev.email ? prev : { ...prev, email }));
+    }
+    if (nextFirst || nextLast) {
+      setShipping((prev) => ({
+        ...prev,
+        firstName: prev.firstName || nextFirst || prev.firstName,
+        lastName: prev.lastName || nextLast || prev.lastName,
+      }));
+    }
+  }, [session?.user, sessionStatus]);
 
   const handleAutofill = () => {
     setContact({ email: "jane.doe@example.com", phone: "+1 (555) 123-4567" });
@@ -84,17 +166,89 @@ function CheckoutPageContent() {
     setNotes("Please leave at the front desk. Test order.");
   };
 
-  const lineSubtotal = useMemo(
+  const itemsPayload = useMemo(
     () =>
-      entries.reduce(
-        (sum, [, item]) => sum + item.priceCents * item.quantity,
-        0
-      ) / 100,
+      entries.map(([, item]) => ({
+        productId: item.productId ?? "",
+        quantity: item.quantity,
+        size: item.size ?? null,
+        variant: item.variant ?? null,
+      })),
     [entries]
   );
-  const shippingCost = delivery.price;
-  const tax = Math.round(lineSubtotal * 0.06 * 100) / 100;
-  const total = lineSubtotal + shippingCost + tax;
+
+  const requestQuote = async (overrides?: {
+    promoCode?: string | null;
+    deliveryOption?: string;
+    preserveExisting?: boolean;
+  }) => {
+    const nextId = ++quoteReqIdRef.current;
+    setQuoteLoading(true);
+    setQuoteError(null);
+    const preserveExisting = overrides?.preserveExisting ?? false;
+
+    try {
+      const res = await fetch("/api/checkout/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: itemsPayload,
+          currency: "usd",
+          deliveryOption: overrides?.deliveryOption ?? delivery.id,
+          promoCode: overrides?.promoCode ?? appliedPromo?.normalized_code ?? null,
+          shippingAddress: shipping,
+        }),
+      });
+
+      const data = (await res.json()) as QuoteResponseOk | QuoteResponseErr;
+      if (nextId !== quoteReqIdRef.current) return null;
+
+      if (!("ok" in data) || !data.ok) {
+        if (!preserveExisting) setQuote(null);
+        const message = data.error || t("checkout.unableToPlaceOrder");
+        if (preserveExisting && data.promoError) {
+          setQuoteError(null);
+        } else {
+          setQuoteError(message);
+        }
+        return data;
+      }
+
+      setQuote(data.quote);
+      setQuoteError(null);
+      return data;
+    } catch {
+      if (nextId !== quoteReqIdRef.current) return null;
+      if (!preserveExisting) setQuote(null);
+      setQuoteError(t("checkout.unableToPlaceOrder"));
+      return { ok: false, error: t("checkout.unableToPlaceOrder") } satisfies QuoteResponseErr;
+    } finally {
+      if (nextId === quoteReqIdRef.current) setQuoteLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (entries.length === 0) return;
+    requestQuote().catch(() => null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsPayload, delivery.id, entries.length]);
+
+  useEffect(() => {
+    if (entries.length === 0) return;
+    const id = window.setTimeout(() => {
+      requestQuote().catch(() => null);
+    }, 400);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    shipping.address1,
+    shipping.address2,
+    shipping.city,
+    shipping.state,
+    shipping.zip,
+    shipping.country,
+    entries.length,
+  ]);
 
   const requiredFilled =
     contact.email &&
@@ -107,18 +261,14 @@ function CheckoutPageContent() {
 
   const handlePlaceOrder = async () => {
     if (submitting) return;
-    if (!requiredFilled || entries.length === 0) {
-      setErrors("Please complete required fields and add items to your cart.");
-      setStatus("error");
+    if (!quote || quoteLoading || quoteError) {
+      setErrors(quoteError || t("checkout.unableToPlaceOrder"));
       return;
     }
-
-    const itemsPayload = entries.map(([, item]) => ({
-      productId: item.productId ?? "",
-      quantity: item.quantity,
-      size: item.size ?? null,
-      variant: item.variant ?? null,
-    }));
+    if (!requiredFilled || entries.length === 0) {
+      setErrors(t("checkout.requiredFieldsError"));
+      return;
+    }
 
     const payload = {
       contact: {
@@ -136,33 +286,96 @@ function CheckoutPageContent() {
         country: shipping.country,
       },
       deliveryOption: delivery.id,
-      promoCode: promo.trim() || undefined,
+      promoCode: appliedPromo?.normalized_code || undefined,
       notes: notes.trim() ? notes.trim() : undefined,
       items: itemsPayload,
     };
 
     setSubmitting(true);
     setErrors(null);
-    setStatus("idle");
-    setOrderId(null);
 
     try {
       const response = await createCheckout(payload);
       if (!response.url) {
-        throw new Error("Missing checkout url");
+        throw new Error(t("checkout.missingCheckoutUrl"));
       }
-      setOrderId(response.orderId ?? null);
-      setStatus("success");
       window.location.href = response.url;
     } catch (err) {
-      setStatus("error");
       setErrors((err as Error).message || t("checkout.unableToPlaceOrder"));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (entries.length === 0 && status !== "success") {
+  const promoMessageFromReason = (
+    reason: string,
+    meta?: { min_subtotal_cents?: number | null }
+  ) => {
+    if (reason === "missing_code") return t("checkout.promoErrors.missing");
+    if (reason === "not_found") return t("checkout.promoErrors.notFound");
+    if (reason === "inactive") return t("checkout.promoErrors.inactive");
+    if (reason === "not_started") return t("checkout.promoErrors.notStarted");
+    if (reason === "expired") return t("checkout.promoErrors.expired");
+    if (reason === "max_redemptions") return t("checkout.promoErrors.maxRedemptions");
+    if (reason === "no_stripe_coupon") return t("checkout.promoErrors.notAvailable");
+    if (reason === "min_subtotal") {
+      const min = (meta?.min_subtotal_cents ?? 0) / 100;
+      return t("checkout.promoErrors.minSubtotal", { min: min.toFixed(2) });
+    }
+    return t("checkout.promoErrors.invalid");
+  };
+
+  const handleApplyPromo = async () => {
+    if (promoApplying) return;
+
+    const code = promo.trim();
+    if (!code) {
+      setPromoError(t("checkout.promoErrors.missing"));
+      return;
+    }
+
+    setPromoApplying(true);
+    setPromoError(null);
+    try {
+      const res = await requestQuote({ promoCode: code, preserveExisting: true });
+      if (!res || !("ok" in res)) return;
+
+      if (!res.ok) {
+        setAppliedPromo(null);
+        const reason = res.promoError?.reason ?? "invalid";
+        setPromoError(promoMessageFromReason(reason, res.promoError ?? undefined));
+        return;
+      }
+
+      if (!res.quote.promo) {
+        setAppliedPromo(null);
+        setPromoError(t("checkout.promoErrors.invalid"));
+        return;
+      }
+
+      setAppliedPromo({
+        promo_code_id: res.quote.promo.promo_code_id,
+        normalized_code: res.quote.promo.normalized_code,
+      });
+      setPromo(res.quote.promo.normalized_code);
+      setPromoError(null);
+    } catch {
+      setAppliedPromo(null);
+      setPromoError(t("checkout.promoErrors.invalid"));
+    } finally {
+      setPromoApplying(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromo("");
+    setPromoError(null);
+    requestQuote({ promoCode: null }).catch(() => null);
+  };
+
+
+  if (entries.length === 0) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 text-center">
         <p className="text-2xl font-semibold text-white">{t("checkout.emptyTitle")}</p>
@@ -170,38 +383,6 @@ function CheckoutPageContent() {
         <Button className="mt-6" asChild>
           <Link href="/shop">{t("common.backToShop")}</Link>
         </Button>
-      </div>
-    );
-  }
-
-  if (status === "success") {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-16">
-        <Card className="border-white/10 bg-white/5 text-white">
-          <CardHeader>
-            <CardTitle className="font-display text-3xl">{t("checkout.redirectingTitle")}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-white/70">
-            <p>{t("checkout.redirectingCopy")}</p>
-            <div className="rounded-lg border border-white/10 bg-black/40 p-3 text-sm">
-              <p className="text-white/60">{t("checkout.orderIdLabel")}</p>
-              <p className="font-mono text-white">{orderId ?? t("checkout.processing")}</p>
-            </div>
-            <div className="flex gap-3">
-              <Button asChild>
-                <Link href={`/order/${orderId ?? ""}`}>{t("checkout.viewOrder")}</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/shop">{t("common.backToShop")}</Link>
-              </Button>
-              {hasAdminToken ? (
-                <Button variant="outline" asChild>
-                  <Link href="/admin">{t("checkout.goToAdmin")}</Link>
-                </Button>
-              ) : null}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -219,7 +400,6 @@ function CheckoutPageContent() {
             <div>
               <p className="text-sm uppercase tracking-[0.2em] text-white/50">{t("checkout.title")}</p>
               <h1 className="font-display text-4xl text-white">{t("checkout.heading")}</h1>
-              <p className="text-white/60">{t("checkout.notice")}</p>
             </div>
             {SHOW_DEV_TOOLS ? (
               <Button
@@ -391,8 +571,22 @@ function CheckoutPageContent() {
 
           <div className="flex flex-col gap-3">
             {errors ? <p className="text-sm text-red-400">{errors}</p> : null}
-            <Button onClick={handlePlaceOrder} disabled={!requiredFilled || entries.length === 0 || submitting}>
-              {submitting ? t("checkout.placingOrder") : t("checkout.placeOrder")}
+            <Button
+              onClick={handlePlaceOrder}
+              disabled={
+                !requiredFilled ||
+                entries.length === 0 ||
+                submitting ||
+                quoteLoading ||
+                !quote ||
+                Boolean(quoteError)
+              }
+            >
+              {submitting
+                ? t("checkout.placingOrder")
+                : quoteLoading
+                  ? t("common.loading")
+                  : t("checkout.placeOrder")}
             </Button>
             <p className="text-xs text-white/60">
               {t("checkout.redirectNotice")}
@@ -407,7 +601,39 @@ function CheckoutPageContent() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-3">
-                {entries.map(([key, item]) => (
+                {quote?.items?.length ? (
+                  quote.items.map((item, idx) => (
+                    <div
+                      key={`${item.product_id}-${item.size ?? "na"}-${idx}`}
+                      className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-3"
+                    >
+                      <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-white/5">
+                        {item.image_url ? (
+                          <img
+                            src={buildCloudinaryCardUrl(item.image_url)}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[10px] text-white/50">
+                            {t("cart.noImage")}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 text-sm">
+                        <p className="font-semibold">{item.name}</p>
+                        <p className="text-white/60">
+                          {(item.variant || t("cart.variantFallback"))} /{" "}
+                          {(item.size || t("cart.sizeFallback"))}
+                        </p>
+                        <p className="mt-1 text-white/70">
+                          {item.quantity} x ${(item.price_cents / 100).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  entries.map(([key, item]) => (
                   <div
                     key={key}
                     className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-3"
@@ -430,32 +656,51 @@ function CheckoutPageContent() {
                       <p className="text-white/60">
                         {(item.variant || t("cart.variantFallback"))} / {(item.size || t("cart.sizeFallback"))}
                       </p>
-                      <p className="mt-1 text-white/70">
-                        {item.quantity} x ${(item.priceCents / 100).toFixed(2)}
-                      </p>
+                      <p className="mt-1 text-white/70">{item.quantity} x {t("common.loading")}</p>
                     </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
               <Separator className="border-white/10" />
               <div className="space-y-2 text-sm text-white/80">
                 <div className="flex items-center justify-between">
                   <span>{t("common.subtotal")}</span>
-                  <span>${lineSubtotal.toFixed(2)}</span>
+                  <span>
+                    {quote ? `$${(quote.subtotal_cents / 100).toFixed(2)}` : t("common.loading")}
+                  </span>
                 </div>
+                {quote && quote.discount_cents > 0 ? (
+                  <div className="flex items-center justify-between">
+                    <span>{t("common.discount")}</span>
+                    <span className="text-lucky-green">
+                      -${(quote.discount_cents / 100).toFixed(2)}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between">
                   <span>{t("cart.shipping")}</span>
-                  <span>{shippingCost === 0 ? t("checkout.free") : `$${shippingCost.toFixed(2)}`}</span>
+                  <span>
+                    {quote
+                      ? quote.shipping_cents === 0
+                        ? t("checkout.free")
+                        : `$${(quote.shipping_cents / 100).toFixed(2)}`
+                      : t("common.loading")}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>{t("cart.tax")}</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>
+                    {quote ? `$${(quote.tax_cents / 100).toFixed(2)}` : t("common.loading")}
+                  </span>
                 </div>
               </div>
               <Separator className="border-white/10" />
               <div className="flex items-center justify-between text-lg font-semibold">
                 <span>{t("common.total")}</span>
-                <span>${total.toFixed(2)}</span>
+                <span>
+                  {quote ? `$${(quote.total_cents / 100).toFixed(2)}` : t("common.loading")}
+                </span>
               </div>
               <Separator className="border-white/10" />
               <div className="space-y-2">
@@ -463,20 +708,43 @@ function CheckoutPageContent() {
                 <div className="flex gap-2">
                   <Input
                     value={promo}
-                    onChange={(e) => setPromo(e.target.value)}
+                    onChange={(e) => {
+                      setPromo(e.target.value);
+                      setPromoError(null);
+                    }}
                     placeholder={t("checkout.couponPlaceholder")}
+                    disabled={Boolean(appliedPromo)}
                     className="bg-white/5 text-white"
                   />
-                  <Button
-                    variant="secondary"
-                    className="bg-white/10"
-                    type="button"
-                    onClick={() => setStatus("error")}
-                  >
-                    {t("checkout.apply")}
-                  </Button>
+                  {appliedPromo ? (
+                    <Button
+                      variant="secondary"
+                      className="bg-white/10"
+                      type="button"
+                      onClick={handleRemovePromo}
+                    >
+                      {t("checkout.promoRemove")}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      className="bg-white/10"
+                      type="button"
+                      disabled={promoApplying}
+                      onClick={handleApplyPromo}
+                    >
+                      {promoApplying ? t("common.loading") : t("checkout.apply")}
+                    </Button>
+                  )}
                 </div>
-                <p className="text-xs text-white/60">{t("checkout.promoSoon")}</p>
+                {promoError ? (
+                  <p className="text-xs text-red-300">{promoError}</p>
+                ) : appliedPromo ? (
+                  <p className="text-xs text-white/60">
+                    {t("checkout.promoApplied")}: {appliedPromo.normalized_code}
+                  </p>
+                ) : null}
+                {quoteError ? <p className="text-xs text-red-300">{quoteError}</p> : null}
               </div>
             </CardContent>
           </Card>

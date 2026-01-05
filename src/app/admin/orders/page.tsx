@@ -161,9 +161,14 @@ export default function AdminOrdersPage() {
                 </span>
                 <div className="space-y-0.5">
                   <p className="text-white/80">
-                    {order.customer_name || t("account.guest")}
+                    {order.account_name ||
+                      order.customer_name ||
+                      order.account_email ||
+                      t("account.guest")}
                   </p>
-                  <p className="text-xs text-white/60">{order.email}</p>
+                  <p className="text-xs text-white/60">
+                    {order.account_email || order.email}
+                  </p>
                 </div>
                 <span
                   className={cn(

@@ -83,7 +83,7 @@ export default function Header() {
             />
           </motion.div>
           <div>
-            <p className="font-display text-2xl tracking-wide">Lucky Caps</p>
+            <p className="font-display text-2xl tracking-wide">{t("brand.name")}</p>
             <p className="text-xs uppercase tracking-[0.3em] text-white/50">
               {t("footer.tagline")}
             </p>

@@ -22,9 +22,10 @@ export const revalidate = 0;
 
 export async function GET() {
   const { response, session } = await requireUser();
-  if (response || !session?.user?.email) return response ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const email = session.user.email.toLowerCase();
+  const userId = session?.user?.id;
+  if (response || !userId) {
+    return response ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const rows = (await sql`
     SELECT
@@ -50,7 +51,7 @@ export async function GET() {
         '[]'::json
       ) AS items
     FROM public.orders o
-    WHERE lower(o.email) = ${email}
+    WHERE o.user_id = ${userId}::uuid
     ORDER BY o.created_at DESC
   `) as unknown as OrderRow[];
 

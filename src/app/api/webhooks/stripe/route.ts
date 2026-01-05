@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-import sql from "@/lib/db";
+import {
+  attachStripeSessionToCheckout,
+  finalizeCheckoutByStripeSession,
+  recordCheckoutTotalMismatch,
+} from "@/lib/checkoutSessions";
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -36,38 +40,47 @@ export async function POST(request: Request) {
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-      const orderId = session.metadata?.order_id;
+      const checkoutId = session.metadata?.checkout_id;
       const paymentIntentId =
         typeof session.payment_intent === "string"
           ? session.payment_intent
           : session.payment_intent?.id ?? null;
 
-      if (orderId) {
-        await sql`
-          UPDATE public.orders
-          SET
-            status = 'paid',
-            paid_at = COALESCE(paid_at, now()),
-            stripe_checkout_session_id = ${session.id},
-            stripe_payment_intent_id = ${paymentIntentId},
-            payment_provider = 'stripe',
-            currency = ${session.currency ?? "usd"},
-            updated_at = now()
-          WHERE id = ${orderId}::uuid OR stripe_checkout_session_id = ${session.id}
-        `;
-      } else {
-        await sql`
-          UPDATE public.orders
-          SET
-            status = 'paid',
-            paid_at = COALESCE(paid_at, now()),
-            stripe_checkout_session_id = ${session.id},
-            stripe_payment_intent_id = ${paymentIntentId},
-            payment_provider = 'stripe',
-            currency = ${session.currency ?? "usd"},
-            updated_at = now()
-          WHERE stripe_checkout_session_id = ${session.id}
-        `;
+      if (checkoutId) {
+        await attachStripeSessionToCheckout({
+          checkoutId,
+          stripeCheckoutSessionId: session.id,
+        }).catch(() => {
+          // ignore missing checkout row; finalize will handle
+        });
+      }
+
+      const { orderId } = await finalizeCheckoutByStripeSession({
+        stripeCheckoutSessionId: session.id,
+        stripePaymentIntentId: paymentIntentId,
+      });
+
+      const amountTotal =
+        typeof session.amount_total === "number" ? session.amount_total : null;
+      const currency = typeof session.currency === "string" ? session.currency : null;
+      const check = await recordCheckoutTotalMismatch({
+        stripeCheckoutSessionId: session.id,
+        stripeAmountTotalCents: amountTotal,
+        stripeCurrency: currency,
+      });
+      if (check.ok && check.mismatch) {
+        console.error("Stripe webhook: total mismatch", {
+          stripeCheckoutSessionId: session.id,
+          expected_total_cents: check.expected_total_cents,
+          stripe_amount_total_cents: check.stripe_amount_total_cents,
+        });
+      }
+
+      if (!orderId) {
+        console.error("Stripe webhook: unable to finalize checkout session", {
+          stripeCheckoutSessionId: session.id,
+        });
+        return NextResponse.json({ error: "Unable to finalize checkout" }, { status: 500 });
       }
     }
   } catch (err) {

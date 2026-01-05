@@ -20,6 +20,8 @@ const orderSelectFieldsText = `
   o.status,
   o.subtotal_cents,
   o.user_id,
+  u.email AS account_email,
+  NULLIF(CONCAT_WS(' ', u.first_name, u.last_name), '') AS account_name,
   o.customer_name,
   o.customer_phone,
   o.contact,
@@ -54,6 +56,7 @@ export async function GET(
       SELECT
         ${orderSelectFieldsText}
       FROM public.orders o
+      LEFT JOIN public.users u ON u.id = o.user_id
       WHERE o.id = $1::uuid
       LIMIT 1
     `,
@@ -195,15 +198,30 @@ export async function PATCH(
       UPDATE public.orders o
       SET ${setParts.join(", ")}
       WHERE o.id = $${values.length}::uuid
-      RETURNING ${orderSelectFieldsText}
+      RETURNING o.id
     `,
       values
     );
 
-    const order = updated[0];
-    if (!order) {
+    const updatedId = updated[0]?.id;
+    if (!updatedId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+
+    const orderRows = await sql(
+      `
+      SELECT
+        ${orderSelectFieldsText}
+      FROM public.orders o
+      LEFT JOIN public.users u ON u.id = o.user_id
+      WHERE o.id = $1::uuid
+      LIMIT 1
+    `,
+      [params.id]
+    );
+
+    const order = orderRows[0];
+    if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     return NextResponse.json({ order });
   } catch (err) {

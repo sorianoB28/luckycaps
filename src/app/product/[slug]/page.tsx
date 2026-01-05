@@ -444,6 +444,7 @@ function ProductReviews({
   selectedSize,
   anchorRef,
 }: ProductReviewsProps) {
+  const t = useT();
   const [reviews, setReviews] = useState<Review[]>(initialReviews ?? []);
   const [summary, setSummary] = useState<ReviewsSummary>({
     avg_rating: initialSummary?.avgRating ?? null,

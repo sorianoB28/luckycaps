@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useT } from "@/components/providers/LanguageProvider";
 import { getAdminOrder, type AdminOrderDetail, type AdminOrderItem } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -18,10 +19,20 @@ const STATUSES: AdminOrderDetail["status"][] = [
   "refunded",
 ];
 
+const STATUS_LABEL_KEYS: Record<AdminOrderDetail["status"], string> = {
+  created: "common.created",
+  paid: "common.paid",
+  shipped: "common.shipped",
+  delivered: "common.delivered",
+  cancelled: "common.cancelled",
+  refunded: "common.refunded",
+};
+
 const readString = (value: unknown) =>
   typeof value === "string" ? value : value == null ? "" : String(value);
 
 export default function AdminOrderViewPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const orderId = useMemo(() => {
@@ -36,7 +47,7 @@ export default function AdminOrderViewPage() {
   useEffect(() => {
     const load = async () => {
       if (!orderId) {
-        setError("Invalid order id");
+        setError(t("admin.invalidOrderId"));
         setLoading(false);
         return;
       }
@@ -47,13 +58,13 @@ export default function AdminOrderViewPage() {
         setOrder(res.order);
         setItems(res.items);
       } catch (err) {
-        setError((err as Error).message || "Unable to load order");
+        setError((err as Error).message || t("admin.unableToLoadOrder"));
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [orderId]);
+  }, [orderId, t]);
 
   const statusBadgeClass = (value: AdminOrderDetail["status"]) =>
     cn(
@@ -73,11 +84,11 @@ export default function AdminOrderViewPage() {
 
   const timestamps = useMemo(
     () => [
-      { label: "Paid", value: order?.paid_at },
-      { label: "Shipped", value: order?.shipped_at },
-      { label: "Delivered", value: order?.delivered_at },
-      { label: "Cancelled", value: order?.cancelled_at },
-      { label: "Refunded", value: order?.refunded_at },
+      { status: "paid" as const, value: order?.paid_at },
+      { status: "shipped" as const, value: order?.shipped_at },
+      { status: "delivered" as const, value: order?.delivered_at },
+      { status: "cancelled" as const, value: order?.cancelled_at },
+      { status: "refunded" as const, value: order?.refunded_at },
     ],
     [order]
   );
@@ -86,7 +97,7 @@ export default function AdminOrderViewPage() {
     return (
       <div className="flex items-center gap-3 text-white/70">
         <Loader2 className="h-5 w-5 animate-spin" />
-        Loading order...
+        {t("admin.loadingOrder")}
       </div>
     );
   }
@@ -94,9 +105,11 @@ export default function AdminOrderViewPage() {
   if (error || !order) {
     return (
       <div className="space-y-4 text-white/80">
-        <p className="text-lg font-semibold text-white">{error ?? "Order not found"}</p>
+        <p className="text-lg font-semibold text-white">
+          {error ?? t("admin.orderNotFound")}
+        </p>
         <Button variant="secondary" onClick={() => router.push("/admin/orders")}>
-          Back to Orders
+          {t("admin.backToOrders")}
         </Button>
       </div>
     );
@@ -106,18 +119,23 @@ export default function AdminOrderViewPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm uppercase tracking-[0.2em] text-white/50">Admin</p>
-          <h1 className="font-display text-3xl text-white">Order {order.id}</h1>
+          <p className="text-sm uppercase tracking-[0.2em] text-white/50">
+            {t("admin.title")}
+          </p>
+          <h1 className="font-display text-3xl text-white">
+            {t("order.title", { id: order.id })}
+          </h1>
           <p className="text-sm text-white/60">
-            {new Date(order.created_at).toLocaleString()} · {order.email}
+            {new Date(order.created_at).toLocaleString()} •{" "}
+            {order.account_email || order.email}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
-            <Link href="/admin/orders">Back to Orders</Link>
+            <Link href="/admin/orders">{t("admin.backToOrders")}</Link>
           </Button>
           <Button asChild>
-            <Link href={`/admin/orders/${order.id}`}>Manage Order</Link>
+            <Link href={`/admin/orders/${order.id}`}>{t("admin.manageOrder")}</Link>
           </Button>
         </div>
       </div>
@@ -126,8 +144,10 @@ export default function AdminOrderViewPage() {
         <div className="space-y-5">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-white">Items</h2>
-              <span className={statusBadgeClass(order.status)}>{order.status}</span>
+              <h2 className="font-semibold text-white">{t("admin.itemsTitle")}</h2>
+              <span className={statusBadgeClass(order.status)}>
+                {t(STATUS_LABEL_KEYS[order.status])}
+              </span>
             </div>
             <div className="mt-4 space-y-3">
               {items.map((item, idx) => (
@@ -147,16 +167,19 @@ export default function AdminOrderViewPage() {
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-[10px] text-white/50">
-                        No image
+                        {t("cart.noImage")}
                       </div>
                     )}
                   </div>
                   <div className="flex-1 text-sm text-white/80">
                     <p className="font-semibold text-white">{item.name}</p>
                     <p className="text-white/60">
-                      {item.variant || "Standard"} · {item.size || "One size"}
+                      {item.variant || t("cart.variantFallback")} •{" "}
+                      {item.size || t("cart.sizeFallback")}
                     </p>
-                    <p className="text-white/60">Qty: {item.quantity}</p>
+                    <p className="text-white/60">
+                      {t("order.qtyValue", { qty: item.quantity })}
+                    </p>
                   </div>
                   <p className="text-sm font-semibold text-white">
                     ${((item.price_cents * item.quantity) / 100).toFixed(2)}
@@ -168,7 +191,7 @@ export default function AdminOrderViewPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
-              <h3 className="font-semibold">Shipping</h3>
+              <h3 className="font-semibold">{t("admin.shippingTitle")}</h3>
               <p className="text-sm text-white/70">
                 {readString(order.shipping_address?.firstName)}{" "}
                 {readString(order.shipping_address?.lastName)}
@@ -189,18 +212,26 @@ export default function AdminOrderViewPage() {
                 {readString(order.shipping_address?.country)}
               </p>
               <p className="mt-2 text-sm text-white/60">
-                Delivery: {order.delivery_option ?? "N/A"}
+                {t("order.deliveryValue", {
+                  delivery: order.delivery_option ?? t("order.na"),
+                })}
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
-              <h3 className="font-semibold">Customer</h3>
+              <h3 className="font-semibold">{t("admin.customerTitle")}</h3>
               <p className="text-xs uppercase tracking-[0.2em] text-white/50">
-                {order.user_id ? "Account" : "Guest"}
+                {order.user_id ? t("admin.orderTypeAccount") : t("account.guest")}
               </p>
               <p className="text-sm text-white/80">
-                {order.customer_name || readString(order.contact?.name) || "Unknown customer"}
+                {order.account_name ||
+                  order.customer_name ||
+                  readString(order.contact?.name) ||
+                  order.account_email ||
+                  t("admin.unknownCustomer")}
               </p>
-              <p className="text-sm text-white/70">{order.email}</p>
+              <p className="text-sm text-white/70">
+                {order.account_email || order.email}
+              </p>
               {order.customer_phone || order.contact?.phone ? (
                 <p className="text-sm text-white/70">{order.customer_phone || String(order.contact?.phone)}</p>
               ) : null}
@@ -208,9 +239,9 @@ export default function AdminOrderViewPage() {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
-            <h3 className="font-semibold">Totals</h3>
+            <h3 className="font-semibold">{t("admin.totalsTitle")}</h3>
             <div className="mt-3 flex items-center justify-between text-sm text-white/70">
-              <span>Subtotal</span>
+              <span>{t("common.subtotal")}</span>
               <span className="font-semibold text-white">
                 ${(order.subtotal_cents / 100).toFixed(2)}
               </span>
@@ -220,19 +251,19 @@ export default function AdminOrderViewPage() {
 
         <div className="space-y-5">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white space-y-3">
-            <h3 className="font-semibold">Tracking & Notes</h3>
+            <h3 className="font-semibold">{t("admin.trackingNotesTitle")}</h3>
             <p className="text-sm text-white/70">
-              Tracking: {order.tracking_number ?? "None"}
+              {t("common.tracking")}: {order.tracking_number ?? t("common.none")}
             </p>
             <p className="text-sm text-white/70 whitespace-pre-line">
-              {order.admin_notes ?? "No notes"}
+              {order.admin_notes ?? t("admin.noNotes")}
             </p>
             <div className="space-y-2 border-t border-white/10 pt-3 text-sm text-white/70">
               {timestamps.map(
                 (ts) =>
                   ts.value && (
-                    <div key={ts.label} className="flex items-center justify-between">
-                      <span>{ts.label}</span>
+                    <div key={ts.status} className="flex items-center justify-between">
+                      <span>{t(STATUS_LABEL_KEYS[ts.status])}</span>
                       <span>{new Date(ts.value).toLocaleString()}</span>
                     </div>
                   )
