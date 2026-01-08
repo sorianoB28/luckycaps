@@ -24,6 +24,12 @@ type OrderItemRow = {
   size: string | null;
 };
 
+type ShipmentRow = {
+  status: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+};
+
 async function getOrder(id: string) {
   const rows = (await sql`
     SELECT
@@ -56,7 +62,14 @@ async function getOrder(id: string) {
     WHERE order_id = ${id}::uuid
   `) as OrderItemRow[];
 
-  return { order, items };
+  const shipmentRows = (await sql`
+    SELECT status, tracking_number, tracking_url
+    FROM public.shipments
+    WHERE order_id = ${id}::uuid
+    LIMIT 1
+  `) as ShipmentRow[];
+
+  return { order, items, shipment: shipmentRows[0] ?? null };
 }
 
 export default async function OrderPage({
@@ -69,7 +82,7 @@ export default async function OrderPage({
   const data = await getOrder(params.id);
   if (!data) return notFound();
 
-  const { order, items } = data;
+  const { order, items, shipment } = data;
   const contact = order.contact as { email?: string; phone?: string | null; notes?: string | null } | null;
   const shipping = order.shipping_address as {
     firstName?: string;
@@ -98,6 +111,7 @@ export default async function OrderPage({
         shipping_cents: shippingCents,
         tax_cents: 0,
         total_cents: totalCents,
+        shipment,
       }}
       items={items}
       successNotice={successNotice}

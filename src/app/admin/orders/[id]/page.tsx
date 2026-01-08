@@ -9,7 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/providers/LanguageProvider";
-import { getAdminOrder, updateAdminOrder, type AdminOrderDetail, type AdminOrderItem } from "@/lib/api";
+import {
+  buyAdminOrderShippingLabel,
+  createAdminOrderShippingDraft,
+  getAdminOrder,
+  getAdminOrderShipping,
+  updateAdminOrder,
+  type AdminOrderDetail,
+  type AdminOrderItem,
+  type AdminParcelTemplate,
+  type AdminShipment,
+  type AdminShipmentParcel,
+  type AdminShipmentRate,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const STATUSES: AdminOrderDetail["status"][] = [
@@ -32,8 +44,20 @@ const STATUS_LABEL_KEYS: Record<AdminOrderDetail["status"], string> = {
   refunded: "common.refunded",
 };
 
+const LABEL_FORMATS = ["PDF_4x6", "ZPLII"] as const;
+type LabelFormat = (typeof LABEL_FORMATS)[number];
+
 const readString = (value: unknown) =>
   typeof value === "string" ? value : value == null ? "" : String(value);
+
+type ParcelDraft = {
+  length: string;
+  width: string;
+  height: string;
+  weight: string;
+  distance_unit: string;
+  mass_unit: string;
+};
 
 export default function AdminOrderDetailPage() {
   const t = useT();
@@ -55,6 +79,24 @@ export default function AdminOrderDetailPage() {
   const [tracking, setTracking] = useState("");
   const [notes, setNotes] = useState("");
   const canInteract = Boolean(orderId && order);
+
+  const [shipment, setShipment] = useState<AdminShipment | null>(null);
+  const [shippingRates, setShippingRates] = useState<AdminShipmentRate[]>([]);
+  const [parcelTemplates, setParcelTemplates] = useState<AdminParcelTemplate[]>([]);
+  const [parcelTemplateId, setParcelTemplateId] = useState<string | null>(null);
+  const [parcel, setParcel] = useState<ParcelDraft>({
+    length: "",
+    width: "",
+    height: "",
+    weight: "",
+    distance_unit: "in",
+    mass_unit: "lb",
+  });
+  const [labelFormat, setLabelFormat] = useState<LabelFormat>("PDF_4x6");
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingBusy, setShippingBusy] = useState(false);
+  const [shippingError, setShippingError] = useState<string | null>(null);
+  const [shippingNotice, setShippingNotice] = useState<string | null>(null);
 
   const load = async () => {
     if (!orderId) {
@@ -79,9 +121,90 @@ export default function AdminOrderDetailPage() {
     }
   };
 
+  const applyParcel = (next: AdminShipmentParcel) => {
+    setParcel({
+      length: next.length ? String(next.length) : "",
+      width: next.width ? String(next.width) : "",
+      height: next.height ? String(next.height) : "",
+      weight: next.weight ? String(next.weight) : "",
+      distance_unit: next.distance_unit || "in",
+      mass_unit: next.mass_unit || "lb",
+    });
+  };
+
+  const parseParcelDraft = (draft: ParcelDraft): AdminShipmentParcel | null => {
+    const length = Number(draft.length);
+    const width = Number(draft.width);
+    const height = Number(draft.height);
+    const weight = Number(draft.weight);
+    if (![length, width, height, weight].every((value) => Number.isFinite(value) && value > 0)) {
+      return null;
+    }
+    if (!draft.distance_unit || !draft.mass_unit) return null;
+    return {
+      length,
+      width,
+      height,
+      weight,
+      distance_unit: draft.distance_unit,
+      mass_unit: draft.mass_unit,
+    };
+  };
+
+  const loadShipping = async () => {
+    if (!orderId) return;
+    setShippingLoading(true);
+    setShippingError(null);
+    setShippingNotice(null);
+    try {
+      const res = await getAdminOrderShipping(orderId);
+      setShipment(res.shipment ?? null);
+      const nextRates = res.rates?.length
+        ? res.rates
+        : (res.shipment?.rates as AdminShipmentRate[] | undefined) ?? [];
+      setShippingRates(nextRates);
+      const nextTemplates = res.parcel_templates ?? [];
+      setParcelTemplates(nextTemplates);
+
+      const defaults = res.defaults ?? {};
+      const shipmentFormat = res.shipment?.label_format;
+      if (shipmentFormat === "PDF_4x6" || shipmentFormat === "ZPLII") {
+        setLabelFormat(shipmentFormat);
+      } else {
+        const defaultLabel = defaults?.label_format;
+        if (defaultLabel === "PDF_4x6" || defaultLabel === "ZPLII") {
+          setLabelFormat(defaultLabel);
+        }
+      }
+
+      if (res.shipment?.parcel) {
+        applyParcel(res.shipment.parcel);
+      } else if (defaults?.default_parcel_template_id) {
+        const match = nextTemplates.find(
+          (template) => template.id === defaults.default_parcel_template_id
+        );
+        if (match) {
+          setParcelTemplateId(match.id);
+          applyParcel(match);
+        }
+      } else if (nextTemplates.length) {
+        setParcelTemplateId(nextTemplates[0].id);
+        applyParcel(nextTemplates[0]);
+      }
+    } catch (err) {
+      setShippingError((err as Error).message || t("admin.unableToLoadOrder"));
+    } finally {
+      setShippingLoading(false);
+    }
+  };
+
   useEffect(() => {
     load();
   }, [orderId, t]);
+
+  useEffect(() => {
+    loadShipping();
+  }, [orderId]);
 
   const handleSave = async (next: { status?: AdminOrderDetail["status"]; tracking_number?: string | null; admin_notes?: string | null }) => {
     if (!order || !orderId) return;
@@ -108,6 +231,87 @@ export default function AdminOrderDetailPage() {
       tracking_number: tracking.trim() || null,
       admin_notes: notes.trim() || null,
     });
+
+  const handleTemplateChange = (value: string) => {
+    setParcelTemplateId(value || null);
+    const match = parcelTemplates.find((template) => template.id === value);
+    if (match) {
+      applyParcel(match);
+    }
+  };
+
+  const handleGetRates = async () => {
+    if (!orderId) return;
+    const parsedParcel = parseParcelDraft(parcel);
+    if (!parsedParcel) {
+      setShippingError(t("admin.shippingInvalidParcel"));
+      return;
+    }
+    setShippingBusy(true);
+    setShippingError(null);
+    setShippingNotice(null);
+    try {
+      const res = await createAdminOrderShippingDraft(orderId, {
+        parcel: parsedParcel,
+        parcel_template_id: parcelTemplateId,
+      });
+      setShipment(res.shipment ?? null);
+      setShippingRates(res.rates ?? []);
+      setShippingNotice(t("admin.shippingRatesReady"));
+    } catch (err) {
+      setShippingError((err as Error).message || t("admin.unableToLoadOrder"));
+    } finally {
+      setShippingBusy(false);
+    }
+  };
+
+  const handleBuyLabel = async (rateId: string) => {
+    if (!orderId) return;
+    setShippingBusy(true);
+    setShippingError(null);
+    setShippingNotice(null);
+    try {
+      const res = await buyAdminOrderShippingLabel(orderId, {
+        rate_id: rateId,
+        label_format: labelFormat,
+      });
+      setShipment(res.shipment ?? null);
+      const nextRates = (res.shipment?.rates as AdminShipmentRate[] | undefined) ?? shippingRates;
+      setShippingRates(nextRates);
+      setShippingNotice(t("admin.shippingLabelPurchased"));
+    } catch (err) {
+      setShippingError((err as Error).message || t("admin.unableToLoadOrder"));
+    } finally {
+      setShippingBusy(false);
+    }
+  };
+
+  const handleRandomizeParcel = () => {
+    const randomBetween = (min: number, max: number) =>
+      Math.round((Math.random() * (max - min) + min) * 100) / 100;
+
+    const distanceUnit = parcel.distance_unit || "in";
+    const massUnit = parcel.mass_unit || "oz";
+
+    const lengthRange = distanceUnit === "cm" ? [10, 40] : [6, 14];
+    const widthRange = distanceUnit === "cm" ? [10, 35] : [6, 12];
+    const heightRange = distanceUnit === "cm" ? [4, 20] : [2, 8];
+
+    let weightRange: [number, number] = [4, 16];
+    if (massUnit === "lb") weightRange = [0.5, 3];
+    if (massUnit === "g") weightRange = [200, 1200];
+    if (massUnit === "kg") weightRange = [0.2, 2];
+
+    setParcel((prev) => ({
+      ...prev,
+      length: String(randomBetween(lengthRange[0], lengthRange[1])),
+      width: String(randomBetween(widthRange[0], widthRange[1])),
+      height: String(randomBetween(heightRange[0], heightRange[1])),
+      weight: String(randomBetween(weightRange[0], weightRange[1])),
+      distance_unit: distanceUnit,
+      mass_unit: massUnit,
+    }));
+  };
 
   const handleQuickAction = (action: StatusAction) => {
     if (
@@ -147,6 +351,31 @@ export default function AdminOrderDetailPage() {
     ],
     [order]
   );
+
+  const canManageShipping =
+    order?.status === "paid" || order?.status === "shipped" || order?.status === "delivered";
+
+  const distanceUnits = useMemo(() => {
+    const units = new Set<string>(["in", "cm"]);
+    parcelTemplates.forEach((template) => {
+      if (template.distance_unit) units.add(template.distance_unit);
+    });
+    if (parcel.distance_unit) units.add(parcel.distance_unit);
+    return Array.from(units);
+  }, [parcel.distance_unit, parcelTemplates]);
+
+  const massUnits = useMemo(() => {
+    const units = new Set<string>(["lb", "oz", "g", "kg"]);
+    parcelTemplates.forEach((template) => {
+      if (template.mass_unit) units.add(template.mass_unit);
+    });
+    if (parcel.mass_unit) units.add(parcel.mass_unit);
+    return Array.from(units);
+  }, [parcel.mass_unit, parcelTemplates]);
+
+  const sortedRates = useMemo(() => {
+    return [...shippingRates].sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0));
+  }, [shippingRates]);
 
   if (loading) {
     return (
@@ -239,7 +468,7 @@ export default function AdminOrderDetailPage() {
             </div>
           </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
               <h3 className="font-semibold">{t("admin.shippingTitle")}</h3>
               <p className="text-sm text-white/70">
@@ -281,6 +510,266 @@ export default function AdminOrderDetailPage() {
                 </p>
               ) : null}
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-semibold">{t("admin.shippingLabelTitle")}</h3>
+              {shipment?.status ? (
+                <span className="text-xs uppercase tracking-[0.2em] text-white/50">
+                  {t("common.status")}: {shipment.status}
+                </span>
+              ) : null}
+            </div>
+
+            {!canManageShipping ? (
+              <p className="text-sm text-white/60">{t("admin.shippingPaidOnly")}</p>
+            ) : null}
+
+            {shippingLoading ? (
+              <p className="text-sm text-white/60">{t("common.loading")}</p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+                    {t("admin.shippingPackageTemplate")}
+                  </label>
+                  <select
+                    value={parcelTemplateId ?? ""}
+                    onChange={(e) => handleTemplateChange(e.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                  >
+                    <option value="">{t("admin.shippingCustomTemplate")}</option>
+                    {parcelTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+                      {t("admin.shippingLength")}
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={parcel.length}
+                      onChange={(e) => setParcel((prev) => ({ ...prev, length: e.target.value }))}
+                      className="bg-black/40 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+                      {t("admin.shippingWidth")}
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={parcel.width}
+                      onChange={(e) => setParcel((prev) => ({ ...prev, width: e.target.value }))}
+                      className="bg-black/40 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+                      {t("admin.shippingHeight")}
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={parcel.height}
+                      onChange={(e) => setParcel((prev) => ({ ...prev, height: e.target.value }))}
+                      className="bg-black/40 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+                      {t("admin.shippingWeight")}
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={parcel.weight}
+                      onChange={(e) => setParcel((prev) => ({ ...prev, weight: e.target.value }))}
+                      className="bg-black/40 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+                      {t("admin.shippingDistanceUnit")}
+                    </label>
+                    <select
+                      value={parcel.distance_unit}
+                      onChange={(e) =>
+                        setParcel((prev) => ({ ...prev, distance_unit: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                    >
+                      {distanceUnits.map((unit) => (
+                        <option key={unit} value={unit}>
+                          {unit}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+                      {t("admin.shippingMassUnit")}
+                    </label>
+                    <select
+                      value={parcel.mass_unit}
+                      onChange={(e) =>
+                        setParcel((prev) => ({ ...prev, mass_unit: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                    >
+                      {massUnits.map((unit) => (
+                        <option key={unit} value={unit}>
+                          {unit}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs uppercase tracking-[0.2em] text-white/50">
+                    {t("admin.shippingLabelFormat")}
+                  </label>
+                  <select
+                    value={labelFormat}
+                    onChange={(e) => setLabelFormat(e.target.value as LabelFormat)}
+                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+                  >
+                    {LABEL_FORMATS.map((format) => (
+                      <option key={format} value={format}>
+                        {format}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={handleGetRates}
+                    disabled={shippingBusy || !canManageShipping}
+                    className="bg-white/10"
+                  >
+                    {shippingBusy ? t("common.loading") : t("admin.shippingGetRates")}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={handleRandomizeParcel}
+                    disabled={!canManageShipping}
+                    className="bg-white/10"
+                  >
+                    {t("admin.shippingRandomize")}
+                  </Button>
+                </div>
+
+                {shippingNotice ? (
+                  <p className="text-sm text-lucky-green">{shippingNotice}</p>
+                ) : null}
+                {shippingError ? (
+                  <p className="text-sm text-red-400">{shippingError}</p>
+                ) : null}
+
+                {shipment?.status === "purchased" && shipment.label_url ? (
+                  <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2">
+                    <p className="text-sm text-lucky-green">{t("admin.shippingLabelReady")}</p>
+                    <Button variant="secondary" className="bg-white/10" asChild>
+                      <a href={shipment.label_url} target="_blank" rel="noreferrer">
+                        {t("admin.shippingDownloadLabel", {
+                          format: shipment.label_format || labelFormat,
+                        })}
+                      </a>
+                    </Button>
+                    {shipment.tracking_number ? (
+                      <p className="text-sm text-white/70">
+                        {t("admin.shippingTrackingNumber")}: {shipment.tracking_number}
+                      </p>
+                    ) : null}
+                    {shipment.tracking_url ? (
+                      <a
+                        href={shipment.tracking_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm text-lucky-green hover:text-lucky-green/80"
+                      >
+                        {t("common.view")}
+                      </a>
+                    ) : null}
+                    {order.status !== "shipped" ? (
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleQuickAction("shipped")}
+                        disabled={saving || !canInteract}
+                        className="bg-white/10"
+                      >
+                        {t("admin.shippingMarkShipped")}
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold">{t("admin.shippingRatesTitle")}</p>
+                  {sortedRates.length ? (
+                    <div className="space-y-2">
+                      {sortedRates.map((rate) => {
+                        const amount = Number(rate.amount);
+                        const displayAmount = Number.isFinite(amount) ? amount.toFixed(2) : "--";
+                        return (
+                          <div
+                            key={rate.id}
+                            className="rounded-xl border border-white/10 bg-black/30 p-3"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div className="space-y-1">
+                                <p className="text-sm font-semibold text-white">
+                                  {rate.provider} · {rate.service}
+                                </p>
+                                {rate.estimated_days != null ? (
+                                  <p className="text-xs text-white/60">
+                                    {rate.estimated_days} days
+                                  </p>
+                                ) : rate.duration_terms ? (
+                                  <p className="text-xs text-white/60">
+                                    {rate.duration_terms}
+                                  </p>
+                                ) : null}
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-semibold text-white">
+                                  ${displayAmount} {rate.currency}
+                                </p>
+                                <Button
+                                  variant="secondary"
+                                  onClick={() => handleBuyLabel(rate.id)}
+                                  disabled={shippingBusy || !canManageShipping}
+                                  className="mt-2 bg-white/10"
+                                >
+                                  {t("admin.shippingBuyLabel")}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-white/60">{t("admin.shippingNoRates")}</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">

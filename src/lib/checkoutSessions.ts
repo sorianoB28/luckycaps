@@ -354,6 +354,17 @@ export async function finalizeCheckoutByStripeSession(params: {
   }
 
   const orderId = rows?.[0]?.order_id ?? rows?.[0]?.created_order_id ?? null;
+  if (orderId) {
+    try {
+      await sql`
+        INSERT INTO public.shipments (order_id, provider, status, rates)
+        VALUES (${orderId}::uuid, 'shippo', 'draft', '[]'::jsonb)
+        ON CONFLICT (order_id) DO NOTHING
+      `;
+    } catch (err) {
+      console.error("Unable to create shipment draft", err);
+    }
+  }
   return { orderId };
 }
 

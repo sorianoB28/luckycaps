@@ -24,6 +24,11 @@ type Order = {
     zip?: string;
     country?: string;
   } | null;
+  shipment?: {
+    status?: string | null;
+    tracking_number?: string | null;
+    tracking_url?: string | null;
+  } | null;
 };
 
 type OrderItem = {
@@ -46,6 +51,7 @@ export default function OrderPageClient({
   const t = useT();
   const shipping = order.shipping_address;
   const contact = order.contact;
+  const shipment = order.shipment;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 md:px-8">
@@ -110,6 +116,23 @@ export default function OrderPageClient({
             <p className="mt-2 text-sm text-white/60">
               {t("order.deliveryValue", { delivery: order.delivery_option ?? t("order.na") })}
             </p>
+            {shipment?.status === "purchased" && shipment.tracking_number ? (
+              <div className="mt-3 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/70">
+                <p>
+                  {t("common.tracking")}: {shipment.tracking_number}
+                </p>
+                {shipment.tracking_url ? (
+                  <a
+                    href={shipment.tracking_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-lucky-green hover:text-lucky-green/80"
+                  >
+                    {t("common.view")}
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">

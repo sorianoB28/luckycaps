@@ -208,6 +208,21 @@ export async function PATCH(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    if (body.status === "paid") {
+      try {
+        await sql(
+          `
+            INSERT INTO public.shipments (order_id, provider, status, rates)
+            VALUES ($1::uuid, 'shippo', 'draft', '[]'::jsonb)
+            ON CONFLICT (order_id) DO NOTHING
+          `,
+          [params.id]
+        );
+      } catch (err) {
+        console.error("Unable to create shipment draft", err);
+      }
+    }
+
     const orderRows = await sql(
       `
       SELECT

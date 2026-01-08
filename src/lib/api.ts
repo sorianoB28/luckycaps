@@ -214,6 +214,67 @@ export type AdminOrderItem = {
   quantity: number;
 };
 
+export type AdminParcelTemplate = {
+  id: string;
+  name: string;
+  length: number;
+  width: number;
+  height: number;
+  distance_unit: string;
+  weight: number;
+  mass_unit: string;
+};
+
+export type AdminShipmentRate = {
+  id: string;
+  amount: number;
+  currency: string;
+  provider: string;
+  service: string;
+  service_token?: string | null;
+  estimated_days?: number | null;
+  duration_terms?: string | null;
+};
+
+export type AdminShipmentParcel = {
+  length: number;
+  width: number;
+  height: number;
+  distance_unit: string;
+  weight: number;
+  mass_unit: string;
+};
+
+export type AdminShipment = {
+  id?: string;
+  order_id?: string;
+  status?: string;
+  parcel?: AdminShipmentParcel | null;
+  rates?: AdminShipmentRate[];
+  label_url?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  label_format?: string | null;
+  provider_rate_id?: string | null;
+  provider_shipment_id?: string | null;
+  postage_amount?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type AdminShippingDefaults = {
+  label_format?: string | null;
+  default_parcel_template_id?: string | null;
+};
+
+export type AdminShippingResponse = {
+  shipment: AdminShipment | null;
+  rates: AdminShipmentRate[];
+  parcel_templates: AdminParcelTemplate[];
+  defaults?: AdminShippingDefaults | null;
+  template_notice?: string | null;
+};
+
 export type AdminPromoCode = {
   id: string;
   code: string;
@@ -458,6 +519,38 @@ export async function updateAdminOrder(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getAdminOrderShipping(id: string) {
+  return adminFetchJson<AdminShippingResponse>(`/api/admin/orders/${id}/shipping`, {
+    cache: "no-store",
+  });
+}
+
+export async function createAdminOrderShippingDraft(
+  id: string,
+  payload: { parcel: AdminShipmentParcel; parcel_template_id?: string | null }
+) {
+  return adminFetchJson<{ shipment: AdminShipment | null; rates: AdminShipmentRate[] }>(
+    `/api/admin/orders/${id}/shipping/draft`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function buyAdminOrderShippingLabel(
+  id: string,
+  payload: { rate_id: string; label_format?: string }
+) {
+  return adminFetchJson<{ shipment: AdminShipment | null }>(
+    `/api/admin/orders/${id}/shipping/buy`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
 }
 
 export async function getAdminPromoCodes() {
