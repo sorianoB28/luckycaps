@@ -116,11 +116,13 @@ export default function OrderPageClient({
             <p className="mt-2 text-sm text-white/60">
               {t("order.deliveryValue", { delivery: order.delivery_option ?? t("order.na") })}
             </p>
-            {shipment?.status === "purchased" && shipment.tracking_number ? (
+            {shipment?.tracking_number || shipment?.tracking_url ? (
               <div className="mt-3 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/70">
-                <p>
-                  {t("common.tracking")}: {shipment.tracking_number}
-                </p>
+                {shipment.tracking_number ? (
+                  <p>
+                    {t("common.tracking")}: {shipment.tracking_number}
+                  </p>
+                ) : null}
                 {shipment.tracking_url ? (
                   <a
                     href={shipment.tracking_url}

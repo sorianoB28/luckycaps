@@ -221,8 +221,12 @@ export type AdminParcelTemplate = {
   width: number;
   height: number;
   distance_unit: string;
-  weight: number;
+  weight?: number | null;
   mass_unit: string;
+  min_items?: number | null;
+  max_items?: number | null;
+  tags?: string[] | null;
+  label_format_default?: string | null;
 };
 
 export type AdminShipmentRate = {
@@ -250,14 +254,22 @@ export type AdminShipment = {
   order_id?: string;
   status?: string;
   parcel?: AdminShipmentParcel | null;
+  parcel_template_id?: string | null;
   rates?: AdminShipmentRate[];
+  selected_rate?: AdminShipmentRate | Record<string, unknown> | null;
   label_url?: string | null;
+  label_asset_url?: string | null;
+  label_asset_provider?: string | null;
+  label_asset_public_id?: string | null;
+  label_purchased_at?: string | null;
   tracking_number?: string | null;
   tracking_url?: string | null;
   label_format?: string | null;
   provider_rate_id?: string | null;
   provider_shipment_id?: string | null;
+  shippo_transaction_id?: string | null;
   postage_amount?: number | null;
+  postage_currency?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -447,6 +459,43 @@ async function adminFetchJson<T>(path: string, init?: RequestInit) {
   return res.json() as Promise<T>;
 }
 
+async function adminFetchJsonWithErrors<T>(path: string, init?: RequestInit) {
+  const url = resolveUrl(path);
+  const headers = new Headers(init?.headers ?? {});
+  if (init?.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const res = await fetch(url, { ...init, headers, credentials: "include" });
+
+  let data: { error?: string; errors?: Record<string, string> } | null = null;
+  try {
+    data = (await res.json()) as { error?: string; errors?: Record<string, string> };
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    let message = `Request to ${url} failed with status ${res.status}`;
+    if (data?.error) message = data.error;
+    if (data?.errors) {
+      const first = Object.values(data.errors)[0];
+      if (first) message = first;
+    }
+    const err = new Error(message) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+
+  if (data?.error) {
+    const err = new Error(data.error) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+
+  return data as T;
+}
+
 export async function getAdminProducts() {
   return adminFetchJson<AdminProduct[]>("/api/admin/products", { cache: "no-store" });
 }
@@ -505,7 +554,11 @@ export async function getAdminOrders(params?: {
 }
 
 export async function getAdminOrder(id: string) {
-  return adminFetchJson<{ order: AdminOrderDetail; items: AdminOrderItem[] }>(
+  return adminFetchJson<{
+    order: AdminOrderDetail;
+    items: AdminOrderItem[];
+    shipment?: AdminShipment | null;
+  }>(
     `/api/admin/orders/${id}`,
     { cache: "no-store" }
   );
@@ -522,7 +575,7 @@ export async function updateAdminOrder(
 }
 
 export async function getAdminOrderShipping(id: string) {
-  return adminFetchJson<AdminShippingResponse>(`/api/admin/orders/${id}/shipping`, {
+  return adminFetchJsonWithErrors<AdminShippingResponse>(`/api/admin/orders/${id}/shipping`, {
     cache: "no-store",
   });
 }
@@ -531,7 +584,7 @@ export async function createAdminOrderShippingDraft(
   id: string,
   payload: { parcel: AdminShipmentParcel; parcel_template_id?: string | null }
 ) {
-  return adminFetchJson<{ shipment: AdminShipment | null; rates: AdminShipmentRate[] }>(
+  return adminFetchJsonWithErrors<{ shipment: AdminShipment | null; rates: AdminShipmentRate[] }>(
     `/api/admin/orders/${id}/shipping/draft`,
     {
       method: "POST",
@@ -544,13 +597,27 @@ export async function buyAdminOrderShippingLabel(
   id: string,
   payload: { rate_id: string; label_format?: string }
 ) {
-  return adminFetchJson<{ shipment: AdminShipment | null }>(
+  return adminFetchJsonWithErrors<{
+    shipment: AdminShipment | null;
+    label_error?: string;
+    label_error_code?: string;
+  }>(
     `/api/admin/orders/${id}/shipping/buy`,
     {
       method: "POST",
       body: JSON.stringify(payload),
     }
   );
+}
+
+export async function archiveAdminOrderLabel(orderId: string) {
+  return adminFetchJsonWithErrors<{
+    shipment: AdminShipment | null;
+    label_url: string;
+    archived?: boolean;
+  }>(`/api/admin/orders/${orderId}/shipping/label`, {
+    method: "POST",
+  });
 }
 
 export async function getAdminPromoCodes() {

@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/providers/LanguageProvider";
 import {
   buyAdminOrderShippingLabel,
+  archiveAdminOrderLabel,
   createAdminOrderShippingDraft,
   getAdminOrder,
   getAdminOrderShipping,
@@ -21,6 +22,7 @@ import {
   type AdminShipment,
   type AdminShipmentParcel,
   type AdminShipmentRate,
+  type AdminShippingDefaults,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +51,46 @@ type LabelFormat = (typeof LABEL_FORMATS)[number];
 
 const readString = (value: unknown) =>
   typeof value === "string" ? value : value == null ? "" : String(value);
+
+const normalizeTemplateTags = (value: unknown) => {
+  if (Array.isArray(value)) {
+    return value.map((tag) => String(tag).toLowerCase()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.map((tag) => String(tag).toLowerCase()).filter(Boolean);
+      }
+    } catch {
+      return value
+        .split(",")
+        .map((tag) => tag.trim().toLowerCase())
+        .filter(Boolean);
+    }
+  }
+  return [];
+};
+
+const toInches = (value: number, unit: string) =>
+  unit === "cm" ? value / 2.54 : value;
+
+const formatPostage = (
+  amount?: number | null,
+  currency?: string | null
+) => {
+  if (amount == null) return null;
+  const numeric = Number(amount);
+  if (!Number.isFinite(numeric)) return null;
+  const code = currency ? currency.toUpperCase() : "USD";
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(
+      numeric
+    );
+  } catch {
+    return `$${numeric.toFixed(2)} ${code}`;
+  }
+};
 
 type ParcelDraft = {
   length: string;
@@ -97,6 +139,11 @@ export default function AdminOrderDetailPage() {
   const [shippingBusy, setShippingBusy] = useState(false);
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [shippingNotice, setShippingNotice] = useState<string | null>(null);
+  const [templateNotice, setTemplateNotice] = useState<string | null>(null);
+  const [labelArchiving, setLabelArchiving] = useState(false);
+  const [labelArchiveError, setLabelArchiveError] = useState<string | null>(null);
+  const [manualTemplateSelection, setManualTemplateSelection] = useState(false);
+  const [shippingDefaults, setShippingDefaults] = useState<AdminShippingDefaults | null>(null);
 
   const load = async () => {
     if (!orderId) {
@@ -114,6 +161,9 @@ export default function AdminOrderDetailPage() {
       setStatus(res.order.status);
       setTracking(res.order.tracking_number ?? "");
       setNotes(res.order.admin_notes ?? "");
+      if (res.shipment) {
+        setShipment(res.shipment);
+      }
     } catch (err) {
       setError((err as Error).message || t("admin.unableToLoadOrder"));
     } finally {
@@ -130,6 +180,27 @@ export default function AdminOrderDetailPage() {
       distance_unit: next.distance_unit || "in",
       mass_unit: next.mass_unit || "lb",
     });
+  };
+
+  const applyTemplate = (template: AdminParcelTemplate) => {
+    setParcel((prev) => ({
+      length: template.length != null ? String(template.length) : prev.length,
+      width: template.width != null ? String(template.width) : prev.width,
+      height: template.height != null ? String(template.height) : prev.height,
+      weight:
+        template.weight != null && Number(template.weight) > 0
+          ? String(template.weight)
+          : prev.weight,
+      distance_unit: template.distance_unit || prev.distance_unit || "in",
+      mass_unit: template.mass_unit || prev.mass_unit || "lb",
+    }));
+
+    if (template.label_format_default) {
+      const nextFormat = template.label_format_default as LabelFormat;
+      if (LABEL_FORMATS.includes(nextFormat)) {
+        setLabelFormat(nextFormat);
+      }
+    }
   };
 
   const parseParcelDraft = (draft: ParcelDraft): AdminShipmentParcel | null => {
@@ -156,6 +227,7 @@ export default function AdminOrderDetailPage() {
     setShippingLoading(true);
     setShippingError(null);
     setShippingNotice(null);
+    setTemplateNotice(null);
     try {
       const res = await getAdminOrderShipping(orderId);
       setShipment(res.shipment ?? null);
@@ -163,8 +235,10 @@ export default function AdminOrderDetailPage() {
         ? res.rates
         : (res.shipment?.rates as AdminShipmentRate[] | undefined) ?? [];
       setShippingRates(nextRates);
+      setTemplateNotice(res.template_notice ?? null);
       const nextTemplates = res.parcel_templates ?? [];
       setParcelTemplates(nextTemplates);
+      setShippingDefaults(res.defaults ?? null);
 
       const defaults = res.defaults ?? {};
       const shipmentFormat = res.shipment?.label_format;
@@ -179,17 +253,16 @@ export default function AdminOrderDetailPage() {
 
       if (res.shipment?.parcel) {
         applyParcel(res.shipment.parcel);
-      } else if (defaults?.default_parcel_template_id) {
+      }
+      if (res.shipment?.parcel_template_id) {
         const match = nextTemplates.find(
-          (template) => template.id === defaults.default_parcel_template_id
+          (template) => template.id === res.shipment?.parcel_template_id
         );
         if (match) {
           setParcelTemplateId(match.id);
-          applyParcel(match);
+          setManualTemplateSelection(true);
+          applyTemplate(match);
         }
-      } else if (nextTemplates.length) {
-        setParcelTemplateId(nextTemplates[0].id);
-        applyParcel(nextTemplates[0]);
       }
     } catch (err) {
       setShippingError((err as Error).message || t("admin.unableToLoadOrder"));
@@ -205,6 +278,78 @@ export default function AdminOrderDetailPage() {
   useEffect(() => {
     loadShipping();
   }, [orderId]);
+
+  const itemCount = useMemo(
+    () => items.reduce((sum, item) => sum + (item.quantity || 0), 0),
+    [items]
+  );
+
+  const orderKeywords = useMemo(() => {
+    const parts = items.flatMap((item) => [
+      item.product_slug,
+      item.name,
+      item.variant,
+      item.size,
+    ]);
+    return parts.filter(Boolean).join(" ").toLowerCase();
+  }, [items]);
+
+  const suggestedTemplate = useMemo(() => {
+    if (!parcelTemplates.length) return null;
+    const defaultId = shippingDefaults?.default_parcel_template_id ?? null;
+    const candidates =
+      parcelTemplates.filter((template) => {
+        const min = template.min_items ?? null;
+        const max = template.max_items ?? null;
+        if (min != null && itemCount < min) return false;
+        if (max != null && itemCount > max) return false;
+        return true;
+      }) || [];
+
+    const pool = candidates.length ? candidates : parcelTemplates;
+    const scored = pool
+      .map((template) => {
+        const tags = normalizeTemplateTags(template.tags);
+        const tagMatches = tags.filter((tag) => orderKeywords.includes(tag)).length;
+        const lengthIn = toInches(Number(template.length) || 0, template.distance_unit || "in");
+        const widthIn = toInches(Number(template.width) || 0, template.distance_unit || "in");
+        const heightIn = toInches(Number(template.height) || 0, template.distance_unit || "in");
+        const volume = lengthIn * widthIn * heightIn;
+        return { template, tagMatches, volume };
+      })
+      .sort((a, b) => {
+        if (a.tagMatches !== b.tagMatches) return b.tagMatches - a.tagMatches;
+        return a.volume - b.volume;
+      });
+
+    const match = scored[0]?.template ?? null;
+    if (match) return match;
+    if (defaultId) {
+      return parcelTemplates.find((template) => template.id === defaultId) ?? null;
+    }
+    return null;
+  }, [parcelTemplates, itemCount, orderKeywords, shippingDefaults?.default_parcel_template_id]);
+
+  useEffect(() => {
+    if (!parcelTemplates.length) return;
+    if (manualTemplateSelection) return;
+    if (shipment?.parcel_template_id) return;
+    if (!suggestedTemplate) return;
+
+    setParcelTemplateId(suggestedTemplate.id);
+    applyTemplate(suggestedTemplate);
+  }, [
+    parcelTemplates,
+    manualTemplateSelection,
+    shipment?.parcel_template_id,
+    suggestedTemplate,
+  ]);
+
+  useEffect(() => {
+    if (shipment?.label_asset_url) {
+      setLabelArchiveError(null);
+    }
+  }, [shipment?.label_asset_url]);
 
   const handleSave = async (next: { status?: AdminOrderDetail["status"]; tracking_number?: string | null; admin_notes?: string | null }) => {
     if (!order || !orderId) return;
@@ -234,9 +379,10 @@ export default function AdminOrderDetailPage() {
 
   const handleTemplateChange = (value: string) => {
     setParcelTemplateId(value || null);
+    setManualTemplateSelection(true);
     const match = parcelTemplates.find((template) => template.id === value);
     if (match) {
-      applyParcel(match);
+      applyTemplate(match);
     }
   };
 
@@ -270,6 +416,7 @@ export default function AdminOrderDetailPage() {
     setShippingBusy(true);
     setShippingError(null);
     setShippingNotice(null);
+    setLabelArchiveError(null);
     try {
       const res = await buyAdminOrderShippingLabel(orderId, {
         rate_id: rateId,
@@ -279,10 +426,36 @@ export default function AdminOrderDetailPage() {
       const nextRates = (res.shipment?.rates as AdminShipmentRate[] | undefined) ?? shippingRates;
       setShippingRates(nextRates);
       setShippingNotice(t("admin.shippingLabelPurchased"));
+      if (res.label_error) {
+        setLabelArchiveError(res.label_error);
+      }
     } catch (err) {
       setShippingError((err as Error).message || t("admin.unableToLoadOrder"));
     } finally {
       setShippingBusy(false);
+    }
+  };
+
+  const handleDownloadLabel = async () => {
+    if (!orderId) return;
+    window.open(`/api/admin/orders/${orderId}/shipping/label`, "_blank", "noopener");
+  };
+
+  const handleRetryArchive = async () => {
+    if (!orderId) return;
+    setLabelArchiving(true);
+    setLabelArchiveError(null);
+    setShippingNotice(null);
+    try {
+      const res = await archiveAdminOrderLabel(orderId);
+      if (res.shipment) {
+        setShipment(res.shipment);
+      }
+      setShippingNotice("Label archived.");
+    } catch (err) {
+      setLabelArchiveError((err as Error).message || "Unable to archive label");
+    } finally {
+      setLabelArchiving(false);
     }
   };
 
@@ -372,6 +545,28 @@ export default function AdminOrderDetailPage() {
     if (parcel.mass_unit) units.add(parcel.mass_unit);
     return Array.from(units);
   }, [parcel.mass_unit, parcelTemplates]);
+
+  const parcelWarnings = useMemo(() => {
+    const length = Number(parcel.length);
+    const width = Number(parcel.width);
+    const height = Number(parcel.height);
+    if (![length, width, height].every((value) => Number.isFinite(value) && value > 0)) {
+      return [];
+    }
+    const unit = parcel.distance_unit || "in";
+    const lengthIn = toInches(length, unit);
+    const widthIn = toInches(width, unit);
+    const heightIn = toInches(height, unit);
+    const volume = lengthIn * widthIn * heightIn;
+    const warnings: string[] = [];
+    if (volume > 1728) {
+      warnings.push("Volume exceeds 1,728 in^3 (USPS DIM threshold).");
+    }
+    if (lengthIn >= 22) {
+      warnings.push("Length >= 22 in may trigger oversize fees.");
+    }
+    return warnings;
+  }, [parcel.length, parcel.width, parcel.height, parcel.distance_unit]);
 
   const sortedRates = useMemo(() => {
     return [...shippingRates].sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0));
@@ -546,6 +741,14 @@ export default function AdminOrderDetailPage() {
                       </option>
                     ))}
                   </select>
+                  {suggestedTemplate && !manualTemplateSelection ? (
+                    <p className="text-xs text-white/60">
+                      Suggested: {suggestedTemplate.name} for {itemCount} items.
+                    </p>
+                  ) : null}
+                  {templateNotice ? (
+                    <p className="text-xs text-yellow-200">{templateNotice}</p>
+                  ) : null}
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
@@ -638,6 +841,11 @@ export default function AdminOrderDetailPage() {
                     </select>
                   </div>
                 </div>
+                {parcelWarnings.length ? (
+                  <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-100">
+                    {parcelWarnings.join(" ")}
+                  </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <label className="text-xs uppercase tracking-[0.2em] text-white/50">
@@ -680,20 +888,47 @@ export default function AdminOrderDetailPage() {
                 {shippingError ? (
                   <p className="text-sm text-red-400">{shippingError}</p>
                 ) : null}
+                {labelArchiveError ? (
+                  <p className="text-sm text-red-400">{labelArchiveError}</p>
+                ) : null}
 
-                {shipment?.status === "purchased" && shipment.label_url ? (
+                {shipment?.status === "purchased" ? (
                   <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2">
                     <p className="text-sm text-lucky-green">{t("admin.shippingLabelReady")}</p>
-                    <Button variant="secondary" className="bg-white/10" asChild>
-                      <a href={shipment.label_url} target="_blank" rel="noreferrer">
-                        {t("admin.shippingDownloadLabel", {
-                          format: shipment.label_format || labelFormat,
-                        })}
-                      </a>
+                    <Button
+                      variant="secondary"
+                      className="bg-white/10"
+                      onClick={handleDownloadLabel}
+                      disabled={shippingBusy}
+                    >
+                      {t("admin.shippingDownloadLabel", {
+                        format: shipment.label_format || labelFormat,
+                      })}
                     </Button>
+                    {!shipment.label_asset_url ? (
+                      <div className="text-xs text-white/60">
+                        {labelArchiving
+                          ? "Archiving label..."
+                          : "Label purchased but not archived yet."}
+                        <Button
+                          variant="secondary"
+                          onClick={handleRetryArchive}
+                          disabled={labelArchiving}
+                          className="ml-2 bg-white/10"
+                        >
+                          {labelArchiving ? "Archiving..." : "Retry archive"}
+                        </Button>
+                      </div>
+                    ) : null}
                     {shipment.tracking_number ? (
                       <p className="text-sm text-white/70">
                         {t("admin.shippingTrackingNumber")}: {shipment.tracking_number}
+                      </p>
+                    ) : null}
+                    {formatPostage(shipment.postage_amount, shipment.postage_currency) ? (
+                      <p className="text-sm text-white/70">
+                        Postage:{" "}
+                        {formatPostage(shipment.postage_amount, shipment.postage_currency)}
                       </p>
                     ) : null}
                     {shipment.tracking_url ? (

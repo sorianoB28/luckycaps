@@ -155,17 +155,20 @@ export async function POST(
     }
 
     let parcel = normalizeParcel(body.parcel ?? null);
+    let selectedTemplateId: string | null = body.parcel_template_id
+      ? String(body.parcel_template_id)
+      : null;
 
     if (!parcel && body.parcel_template_id) {
       const templateRows = (await sql(
         `
           SELECT
-            length_in AS length,
-            width_in AS width,
-            height_in AS height,
-            weight_oz AS weight,
-            'in' AS distance_unit,
-            'oz' AS mass_unit
+            length,
+            width,
+            height,
+            weight,
+            distance_unit,
+            mass_unit
           FROM public.parcel_templates
           WHERE id = $1::uuid
           LIMIT 1
@@ -173,6 +176,9 @@ export async function POST(
         [body.parcel_template_id]
       )) as Array<Record<string, unknown>>;
       parcel = normalizeParcel(templateRows[0] ?? null);
+      if (!parcel) {
+        selectedTemplateId = null;
+      }
     }
 
     if (!parcel) {
@@ -182,12 +188,12 @@ export async function POST(
         const templateRows = (await sql(
           `
             SELECT
-              length_in AS length,
-              width_in AS width,
-              height_in AS height,
-              weight_oz AS weight,
-              'in' AS distance_unit,
-              'oz' AS mass_unit
+              length,
+              width,
+              height,
+              weight,
+              distance_unit,
+              mass_unit
             FROM public.parcel_templates
             WHERE id = $1::uuid
             LIMIT 1
@@ -195,6 +201,9 @@ export async function POST(
           [defaultTemplateId]
         )) as Array<Record<string, unknown>>;
         parcel = normalizeParcel(templateRows[0] ?? null);
+        if (parcel) {
+          selectedTemplateId = defaultTemplateId;
+        }
       }
     }
 
@@ -218,20 +227,28 @@ export async function POST(
           provider,
           status,
           provider_shipment_id,
+          parcel_template_id,
           parcel,
           rates
         )
-        VALUES ($1::uuid, 'shippo', 'rated', $2, $3::jsonb, $4::jsonb)
+        VALUES ($1::uuid, 'shippo', 'rated', $2, $3::uuid, $4::jsonb, $5::jsonb)
         ON CONFLICT (order_id)
         DO UPDATE
         SET
           status = 'rated',
           provider_shipment_id = EXCLUDED.provider_shipment_id,
+          parcel_template_id = EXCLUDED.parcel_template_id,
           parcel = EXCLUDED.parcel,
           rates = EXCLUDED.rates
         RETURNING *
       `,
-      [params.id, shipmentDraft.provider_shipment_id, parcelJson, ratesJson]
+      [
+        params.id,
+        shipmentDraft.provider_shipment_id,
+        selectedTemplateId,
+        parcelJson,
+        ratesJson,
+      ]
     )) as Array<Record<string, unknown>>;
 
     const shipment = updatedRows[0] ?? null;
@@ -248,7 +265,7 @@ export async function POST(
     console.error("Admin shipping draft failed", err);
     return NextResponse.json(
       { error: (err as Error).message || "Unable to create shipment draft" },
-      { status: 500 }
+      { status: 200 }
     );
   }
 }

@@ -34,10 +34,12 @@ export type ShippoRate = {
 };
 
 export type ShippoPurchase = {
+  transaction_id: string;
   label_url: string;
   tracking_number: string;
   tracking_url: string | null;
   postage_amount: number | null;
+  postage_currency: string | null;
 };
 
 function resolveShippoToken() {
@@ -60,6 +62,28 @@ async function shippoFetch<T>(path: string, body: Record<string, unknown>) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
+  });
+
+  const json = (await res.json()) as T & { detail?: string; messages?: Array<{ text?: string }> };
+  if (!res.ok) {
+    const message = json?.detail || json?.messages?.[0]?.text || `Shippo error (${res.status})`;
+    throw new Error(message);
+  }
+  return json;
+}
+
+async function shippoFetchGet<T>(path: string) {
+  const token = resolveShippoToken();
+  if (!token) {
+    throw new Error("Missing Shippo API token");
+  }
+
+  const res = await fetch(`https://api.goshippo.com/${path}`, {
+    method: "GET",
+    headers: {
+      Authorization: `ShippoToken ${token}`,
+      "Content-Type": "application/json",
+    },
   });
 
   const json = (await res.json()) as T & { detail?: string; messages?: Array<{ text?: string }> };
@@ -122,11 +146,33 @@ export async function buyLabel(params: { rate_id: string; label_format: string }
   }
 
   const amount = Number(response?.rate?.amount);
+  const currency =
+    response?.rate?.currency != null ? String(response.rate.currency) : null;
 
   return {
+    transaction_id: String(response?.object_id || ""),
     label_url: String(response?.label_url || ""),
     tracking_number: String(response?.tracking_number || ""),
     tracking_url: response?.tracking_url_provider ? String(response.tracking_url_provider) : null,
     postage_amount: Number.isFinite(amount) ? amount : null,
+    postage_currency: currency,
   } satisfies ShippoPurchase;
+}
+
+export async function fetchTransactionLabelUrl(transactionId: string) {
+  if (!transactionId) {
+    throw new Error("Missing Shippo transaction id");
+  }
+
+  const response = await shippoFetchGet<any>(`transactions/${transactionId}`);
+  if (response?.status && response.status !== "SUCCESS") {
+    throw new Error("Shippo transaction is not successful");
+  }
+
+  const labelUrl = String(response?.label_url || "");
+  if (!labelUrl) {
+    throw new Error("Shippo label URL missing");
+  }
+
+  return labelUrl;
 }

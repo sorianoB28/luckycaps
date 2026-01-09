@@ -7,7 +7,12 @@ import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useT } from "@/components/providers/LanguageProvider";
-import { getAdminOrder, type AdminOrderDetail, type AdminOrderItem } from "@/lib/api";
+import {
+  getAdminOrder,
+  type AdminOrderDetail,
+  type AdminOrderItem,
+  type AdminShipment,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const STATUSES: AdminOrderDetail["status"][] = [
@@ -41,6 +46,7 @@ export default function AdminOrderViewPage() {
   }, [params.id]);
   const [order, setOrder] = useState<AdminOrderDetail | null>(null);
   const [items, setItems] = useState<AdminOrderItem[]>([]);
+  const [shipment, setShipment] = useState<AdminShipment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +63,7 @@ export default function AdminOrderViewPage() {
         const res = await getAdminOrder(orderId);
         setOrder(res.order);
         setItems(res.items);
+        setShipment(res.shipment ?? null);
       } catch (err) {
         setError((err as Error).message || t("admin.unableToLoadOrder"));
       } finally {
@@ -92,6 +99,15 @@ export default function AdminOrderViewPage() {
     ],
     [order]
   );
+
+  const hasLabel = Boolean(
+    shipment?.label_asset_url || shipment?.shippo_transaction_id || shipment?.label_url
+  );
+
+  const handleDownloadLabel = () => {
+    if (!orderId) return;
+    window.open(`/api/admin/orders/${orderId}/shipping/label`, "_blank", "noopener");
+  };
 
   if (loading) {
     return (
@@ -269,6 +285,43 @@ export default function AdminOrderViewPage() {
                   )
               )}
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white space-y-3">
+            <h3 className="font-semibold">{t("admin.shippingLabelTitle")}</h3>
+            {shipment ? (
+              hasLabel ? (
+                <>
+                  <p className="text-sm text-lucky-green">
+                    {t("admin.shippingLabelReady")}
+                  </p>
+                  <Button variant="secondary" className="bg-white/10" onClick={handleDownloadLabel}>
+                    {t("admin.shippingDownloadLabel", {
+                      format: shipment.label_format || "PDF_4x6",
+                    })}
+                  </Button>
+                  {shipment.tracking_number ? (
+                    <p className="text-sm text-white/70">
+                      {t("admin.shippingTrackingNumber")}: {shipment.tracking_number}
+                    </p>
+                  ) : null}
+                  {shipment.tracking_url ? (
+                    <a
+                      href={shipment.tracking_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-lucky-green hover:text-lucky-green/80"
+                    >
+                      {t("common.view")}
+                    </a>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-sm text-white/60">No shipping label purchased yet.</p>
+              )
+            ) : (
+              <p className="text-sm text-white/60">No shipment created yet.</p>
+            )}
           </div>
         </div>
       </div>

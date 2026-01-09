@@ -14,6 +14,18 @@ const statusTimestampColumn: Partial<Record<OrderStatus, string>> = {
   refunded: "refunded_at",
 };
 
+const parseJson = <T,>(value: unknown, fallback: T) => {
+  if (value == null) return fallback;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
+  }
+  return value as T;
+};
+
 const orderSelectFieldsText = `
   o.id,
   o.email,
@@ -111,6 +123,23 @@ export async function GET(
       )) as unknown as StatsRow[];
     }
 
+    const shipmentRows = (await sql(
+      `
+        SELECT *
+        FROM public.shipments
+        WHERE order_id = $1::uuid
+        LIMIT 1
+      `,
+      [params.id]
+    )) as Array<Record<string, unknown>>;
+
+    const shipment = shipmentRows[0] ?? null;
+    if (shipment) {
+      shipment.parcel = parseJson(shipment.parcel, null);
+      shipment.rates = parseJson(shipment.rates, []);
+      shipment.selected_rate = parseJson(shipment.selected_rate, null);
+    }
+
     return NextResponse.json({
       order: {
         ...order,
@@ -118,6 +147,7 @@ export async function GET(
         order_count: stats?.[0]?.order_count ?? 1,
       },
       items,
+      shipment,
     });
   } catch (err) {
     console.error("Admin order fetch failed", err);
