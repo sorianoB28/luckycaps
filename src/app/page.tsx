@@ -5,6 +5,8 @@ import { getCategoriesFromProducts, type CategoryInfo } from "@/lib/categories";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 import { Product } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 const NEW_DROPS_LIMIT = 6;
 
 const mapApiProductToUiProduct = (item: ApiProduct): Product => {
