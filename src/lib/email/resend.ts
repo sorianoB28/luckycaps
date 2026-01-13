@@ -1070,7 +1070,7 @@ const sendResendEmail = async (params: {
   }
 
   if (!res.ok) {
-    const message = data?.message || data?.error || `Resend request failed (${res.status})`;
+    const message = (data && (data.message || data.error)) || `Resend request failed (${res.status})`;
     throw new Error(message);
   }
 
