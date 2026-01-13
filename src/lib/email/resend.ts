@@ -1062,15 +1062,17 @@ const sendResendEmail = async (params: {
     }),
   });
 
-  let data: { id?: string; message?: string; error?: string } | null = null;
+  type ResendResponse = { id?: string; message?: string; error?: string };
+  let data: ResendResponse | null = null;
   try {
-    data = (await res.json()) as typeof data;
+    data = (await res.json()) as ResendResponse;
   } catch {
     data = null;
   }
 
   if (!res.ok) {
-    const message = (data && (data.message || data.error)) || `Resend request failed (${res.status})`;
+    const message =
+      data?.message || data?.error || `Resend request failed (${res.status})`;
     throw new Error(message);
   }
 
