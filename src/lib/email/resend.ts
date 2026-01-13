@@ -38,10 +38,14 @@ type OrderEmailData = {
   shipment: ShipmentRow | null;
 };
 
-type SendEmailResult = {
+export type SendEmailResult = {
   ok: boolean;
   skipped?: boolean;
   error?: string;
+  providerMessageId?: string | null;
+  toEmail?: string;
+  from?: string;
+  replyTo?: string;
 };
 
 type EmailLocale = "en" | "es";
@@ -158,7 +162,7 @@ const parseJson = <T,>(value: unknown, fallback: T) => {
   return value as T;
 };
 
-const resolveLocale = (locale?: string | null): EmailLocale => {
+export const normalizeLocale = (locale?: string | null): EmailLocale => {
   const normalized = locale?.toLowerCase() ?? "";
   return normalized.startsWith("es") ? "es" : "en";
 };
@@ -953,7 +957,7 @@ const insertEmailEvent = async (params: {
   orderId: string;
   eventType: EmailEventType;
   toEmail: string;
-  locale?: string | null;
+  locale: EmailLocale;
 }) => {
   const rows = (await sql`
     INSERT INTO public.email_events (
@@ -968,7 +972,7 @@ const insertEmailEvent = async (params: {
       ${params.orderId}::uuid,
       ${params.eventType},
       ${params.toEmail},
-      ${params.locale ?? null},
+      ${params.locale},
       ${EMAIL_PROVIDER},
       'queued'
     )
@@ -1086,8 +1090,11 @@ const sendTransactionalEmail = async (params: {
   orderId: string;
   eventType: EmailEventType;
   locale?: string | null;
+  forceSend?: boolean;
 }): Promise<SendEmailResult> => {
+  const isProduction = process.env.NODE_ENV === "production";
   let eventId: string | null = null;
+  let toEmailValue = "";
   try {
     const data = await readOrderEmailData(params.orderId);
     if (!data) {
@@ -1096,22 +1103,32 @@ const sendTransactionalEmail = async (params: {
 
     const contact = parseJson<{ email?: string }>(data.order.contact, {});
     const toEmail = String(data.order.email || contact?.email || "").trim();
+    toEmailValue = toEmail;
     if (!toEmail) {
       return { ok: false, error: "Order email missing" };
+    }
+
+    const locale = normalizeLocale(params.locale);
+
+    if (params.forceSend && !isProduction) {
+      await sql`
+        DELETE FROM public.email_events
+        WHERE order_id = ${params.orderId}::uuid
+          AND event_type = ${params.eventType}
+      `;
     }
 
     eventId = await insertEmailEvent({
       orderId: params.orderId,
       eventType: params.eventType,
       toEmail,
-      locale: params.locale ?? null,
+      locale,
     });
 
     if (!eventId) {
-      return { ok: true, skipped: true };
+      return { ok: true, skipped: true, toEmail };
     }
 
-    const locale = resolveLocale(params.locale);
     const config = resolveEmailConfig();
     const content = buildEmailContent({
       data,
@@ -1120,6 +1137,14 @@ const sendTransactionalEmail = async (params: {
       siteUrl: config.siteUrl,
       toEmail,
     });
+
+    if (!isProduction) {
+      console.log("Transactional email send attempt", {
+        event_type: params.eventType,
+        orderId: params.orderId,
+        localeUsed: locale,
+      });
+    }
 
     const result = await sendResendEmail({
       apiKey: config.apiKey,
@@ -1142,7 +1167,13 @@ const sendTransactionalEmail = async (params: {
       sentColumn,
     });
 
-    return { ok: true };
+    return {
+      ok: true,
+      providerMessageId: result.id ?? null,
+      toEmail,
+      from: config.from,
+      replyTo: config.replyTo,
+    };
   } catch (err) {
     const message = errorMessage(err);
     if (eventId) {
@@ -1165,29 +1196,33 @@ const sendTransactionalEmail = async (params: {
       order_id: params.orderId,
       error: message,
     });
-    return { ok: false, error: message };
+    return { ok: false, error: message, toEmail: toEmailValue || undefined };
   }
 };
 
 export async function sendOrderConfirmationEmail(params: {
   orderId: string;
   locale?: string | null;
+  forceSend?: boolean;
 }) {
   return sendTransactionalEmail({
     orderId: params.orderId,
     eventType: "order_confirmation",
     locale: params.locale ?? null,
+    forceSend: params.forceSend,
   });
 }
 
 export async function sendShippingConfirmationEmail(params: {
   orderId: string;
   locale?: string | null;
+  forceSend?: boolean;
 }) {
   return sendTransactionalEmail({
     orderId: params.orderId,
     eventType: "shipping_confirmation",
     locale: params.locale ?? null,
+    forceSend: params.forceSend,
   });
 }
 
@@ -1201,7 +1236,7 @@ export async function buildEmailPreview(params: {
   const data = await readOrderEmailData(params.orderId);
   if (!data) return null;
 
-  const locale = resolveLocale(params.locale);
+  const locale = normalizeLocale(params.locale);
   const siteUrl =
     params.siteUrl?.trim() ||
     process.env.SITE_URL?.trim() ||

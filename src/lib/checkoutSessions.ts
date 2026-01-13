@@ -1,7 +1,7 @@
 import "server-only";
 
 import sql from "@/lib/db";
-import { sendOrderConfirmationEmail } from "@/lib/email/resend";
+import { sendOrderConfirmationEmail, type SendEmailResult } from "@/lib/email/resend";
 
 let ensured = false;
 
@@ -161,12 +161,18 @@ export async function attachStripeSessionToCheckout(params: {
 export async function finalizeCheckoutByStripeSession(params: {
   stripeCheckoutSessionId: string;
   stripePaymentIntentId: string | null;
-}) {
+}): Promise<{
+  orderId: string | null;
+  emailAttempted: boolean;
+  emailResult: SendEmailResult | null;
+}> {
   await ensureCheckoutSessionsTable();
   const { stripeCheckoutSessionId, stripePaymentIntentId } = params;
   if (!stripeCheckoutSessionId) throw new Error("Missing stripe session id");
 
   let rows: Array<{ order_id: string | null; created_order_id: string | null }> = [];
+  let emailAttempted = false;
+  let emailResult: SendEmailResult | null = null;
   try {
     rows = (await sql`
       WITH cs AS (
@@ -344,12 +350,12 @@ export async function finalizeCheckoutByStripeSession(params: {
       await sql`
         UPDATE public.checkout_sessions
         SET
-          stripe_payment_intent_id = COALESCE(stripe_payment_intent_id, ${stripePaymentIntentId}),
-          completed_at = COALESCE(completed_at, now()),
-          order_id = ${existingOrderId}::uuid
-        WHERE stripe_checkout_session_id = ${stripeCheckoutSessionId}
+        stripe_payment_intent_id = COALESCE(stripe_payment_intent_id, ${stripePaymentIntentId}),
+        completed_at = COALESCE(completed_at, now()),
+        order_id = ${existingOrderId}::uuid
+      WHERE stripe_checkout_session_id = ${stripeCheckoutSessionId}
       `;
-      return { orderId: existingOrderId };
+      return { orderId: existingOrderId, emailAttempted, emailResult };
     }
     throw err;
   }
@@ -366,12 +372,16 @@ export async function finalizeCheckoutByStripeSession(params: {
       console.error("Unable to create shipment draft", err);
     }
     try {
-      await sendOrderConfirmationEmail({ orderId });
+      emailAttempted = true;
+      emailResult = await sendOrderConfirmationEmail({ orderId });
     } catch (err) {
+      emailAttempted = true;
+      const message = err instanceof Error ? err.message : "Unknown error";
+      emailResult = { ok: false, error: message };
       console.error("Order confirmation email failed", err);
     }
   }
-  return { orderId };
+  return { orderId, emailAttempted, emailResult };
 }
 
 export async function recordCheckoutTotalMismatch(params: {

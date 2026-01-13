@@ -9,10 +9,27 @@ import {
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const isDev = process.env.NODE_ENV !== "production";
 const stripe =
   stripeSecret && stripeSecret.trim()
     ? new Stripe(stripeSecret, { apiVersion: "2024-04-10" })
     : null;
+
+const logDev = (message: string, meta?: Record<string, unknown>) => {
+  if (!isDev) return;
+  if (meta) {
+    console.info(message, meta);
+  } else {
+    console.info(message);
+  }
+};
+
+const envSnapshot = () => ({
+  hasStripeSecret: !!stripeSecret,
+  hasWebhookSecret: !!webhookSecret,
+  hasResendApiKey: !!process.env.RESEND_API_KEY,
+  resendKeyPrefix: process.env.RESEND_API_KEY?.slice(0, 6) ?? null,
+});
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +54,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
+  logDev("Stripe webhook received", {
+    type: event.type,
+    ...envSnapshot(),
+  });
+
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
@@ -55,9 +77,14 @@ export async function POST(request: Request) {
         });
       }
 
-      const { orderId } = await finalizeCheckoutByStripeSession({
+      const { orderId, emailAttempted, emailResult } = await finalizeCheckoutByStripeSession({
         stripeCheckoutSessionId: session.id,
         stripePaymentIntentId: paymentIntentId,
+      });
+
+      logDev("Stripe webhook order resolved", {
+        stripeCheckoutSessionId: session.id,
+        orderId,
       });
 
       const amountTotal =
@@ -81,6 +108,31 @@ export async function POST(request: Request) {
           stripeCheckoutSessionId: session.id,
         });
         return NextResponse.json({ error: "Unable to finalize checkout" }, { status: 500 });
+      }
+
+      if (emailAttempted) {
+        logDev("Stripe webhook email send attempted", {
+          orderId,
+          stripeCheckoutSessionId: session.id,
+          ...envSnapshot(),
+        });
+        if (emailResult) {
+          if (emailResult.ok) {
+            logDev("Stripe webhook email send succeeded", {
+              orderId,
+              providerMessageId: emailResult.providerMessageId ?? null,
+              to: emailResult.toEmail ?? null,
+              from: emailResult.from ?? null,
+              replyTo: emailResult.replyTo ?? null,
+              skipped: emailResult.skipped ?? false,
+            });
+          } else {
+            logDev("Stripe webhook email send failed", {
+              orderId,
+              error: emailResult.error ?? "unknown error",
+            });
+          }
+        }
       }
     }
   } catch (err) {
