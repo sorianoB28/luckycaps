@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
+import { sendOrderConfirmationEmail, sendShippingConfirmationEmail } from "@/lib/email/resend";
 
 const ALLOWED_STATUSES = ["created", "paid", "shipped", "delivered", "cancelled", "refunded"] as const;
 type OrderStatus = (typeof ALLOWED_STATUSES)[number];
@@ -48,7 +49,10 @@ const orderSelectFieldsText = `
   o.shipped_at,
   o.delivered_at,
   o.cancelled_at,
-  o.refunded_at
+  o.refunded_at,
+  o.order_confirmation_sent_at,
+  o.shipping_confirmation_sent_at,
+  o.last_email_error
 `;
 
 export async function GET(
@@ -267,6 +271,22 @@ export async function PATCH(
 
     const order = orderRows[0];
     if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    if (body.status === "paid") {
+      try {
+        await sendOrderConfirmationEmail({ orderId: params.id });
+      } catch (err) {
+        console.error("Order confirmation email failed", err);
+      }
+    }
+
+    if (body.status === "shipped") {
+      try {
+        await sendShippingConfirmationEmail({ orderId: params.id });
+      } catch (err) {
+        console.error("Shipping confirmation email failed", err);
+      }
+    }
 
     return NextResponse.json({ order });
   } catch (err) {

@@ -100,6 +100,14 @@ export default function AdminOrderViewPage() {
     [order]
   );
 
+  const emailTimestamps = useMemo(
+    () => [
+      { label: "Order confirmation sent", value: order?.order_confirmation_sent_at },
+      { label: "Shipping confirmation sent", value: order?.shipping_confirmation_sent_at },
+    ],
+    [order]
+  );
+
   const hasLabel = Boolean(
     shipment?.label_asset_url || shipment?.shippo_transaction_id || shipment?.label_url
   );
@@ -285,6 +293,24 @@ export default function AdminOrderViewPage() {
                   )
               )}
             </div>
+            {emailTimestamps.some((row) => row.value) || order.last_email_error ? (
+              <div className="space-y-2 border-t border-white/10 pt-3 text-sm text-white/70">
+                {emailTimestamps.map(
+                  (row) =>
+                    row.value && (
+                      <div key={row.label} className="flex items-center justify-between">
+                        <span>{row.label}</span>
+                        <span>{new Date(row.value).toLocaleString()}</span>
+                      </div>
+                    )
+                )}
+                {order.last_email_error ? (
+                  <div className="text-sm text-red-200">
+                    Email error: {order.last_email_error}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white space-y-3">

@@ -1,6 +1,7 @@
 import "server-only";
 
 import sql from "@/lib/db";
+import { sendOrderConfirmationEmail } from "@/lib/email/resend";
 
 let ensured = false;
 
@@ -363,6 +364,11 @@ export async function finalizeCheckoutByStripeSession(params: {
       `;
     } catch (err) {
       console.error("Unable to create shipment draft", err);
+    }
+    try {
+      await sendOrderConfirmationEmail({ orderId });
+    } catch (err) {
+      console.error("Order confirmation email failed", err);
     }
   }
   return { orderId };

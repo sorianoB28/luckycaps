@@ -202,6 +202,9 @@ export type AdminOrderDetail = AdminOrder & {
   promo_code?: string | null;
   first_order_at?: string | null;
   order_count?: number;
+  order_confirmation_sent_at?: string | null;
+  shipping_confirmation_sent_at?: string | null;
+  last_email_error?: string | null;
 };
 
 export type AdminOrderItem = {

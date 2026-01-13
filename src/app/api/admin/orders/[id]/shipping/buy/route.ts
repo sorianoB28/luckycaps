@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
 import { uploadLabelToCloudinary } from "@/lib/shipping/labelStorage";
 import { buyLabel, fetchTransactionLabelUrl } from "@/lib/shipping/shippo";
+import { sendShippingConfirmationEmail } from "@/lib/email/resend";
 
 const isUuid = (value: string) =>
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
@@ -271,6 +272,12 @@ export async function POST(
     if (labelError) {
       payload.label_error = labelError;
       if (labelErrorCode) payload.label_error_code = labelErrorCode;
+    }
+
+    try {
+      await sendShippingConfirmationEmail({ orderId: params.id });
+    } catch (err) {
+      console.error("Shipping confirmation email failed", err);
     }
 
     return NextResponse.json(payload);
