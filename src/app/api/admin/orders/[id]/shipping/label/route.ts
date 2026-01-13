@@ -17,6 +17,19 @@ type LabelCandidate = {
   source: "asset" | "shippo" | "legacy";
 };
 
+type LabelResolved =
+  | {
+      ok: true;
+      buffer: Buffer;
+      candidate: LabelCandidate;
+      transactionId: string;
+    }
+  | {
+      ok: false;
+      status: number;
+      error: { code: string; message: string };
+    };
+
 const readString = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
 async function fetchShipment(orderId: string) {
@@ -78,16 +91,18 @@ async function buildLabelCandidates(shipment: ShipmentRow) {
   return { candidates, transactionId, shippoError };
 }
 
-async function resolveLabelBuffer(shipment: ShipmentRow) {
+async function resolveLabelBuffer(shipment: ShipmentRow): Promise<LabelResolved> {
   const { candidates, transactionId, shippoError } = await buildLabelCandidates(shipment);
   if (!candidates.length) {
     if (shippoError) {
       return {
+        ok: false,
         error: { code: shippoError.code, message: shippoError.message },
         status: 502,
       };
     }
     return {
+      ok: false,
       error: {
         code: "label_not_found",
         message: "Missing Shippo transaction id or label URL.",
@@ -101,7 +116,7 @@ async function resolveLabelBuffer(shipment: ShipmentRow) {
   for (const candidate of candidates) {
     try {
       const buffer = await downloadLabelBuffer(candidate.url);
-      return { buffer, candidate, transactionId };
+      return { ok: true, buffer, candidate, transactionId };
     } catch (err) {
       const message = (err as Error).message || "Label download failed";
       attempts.push({ source: candidate.source, message });
@@ -117,6 +132,7 @@ async function resolveLabelBuffer(shipment: ShipmentRow) {
   });
 
   return {
+    ok: false,
     error: {
       code: shippoError?.code || "label_download_failed",
       message:
@@ -206,7 +222,7 @@ export async function GET(
     }
 
     const resolved = await resolveLabelBuffer(shipment);
-    if ("error" in resolved) {
+    if (!resolved.ok) {
       return NextResponse.json(
         { error: resolved.error.message, code: resolved.error.code },
         { status: resolved.status }
@@ -259,7 +275,7 @@ export async function POST(
     }
 
     const resolved = await resolveLabelBuffer(shipment);
-    if ("error" in resolved) {
+    if (!resolved.ok) {
       return NextResponse.json(
         { error: resolved.error.message, code: resolved.error.code },
         { status: resolved.status }
