@@ -95,7 +95,14 @@ export async function POST(
       );
     }
 
-    const rates = parseJson(shipment.rates, []) as Array<{ id?: string }>;
+    type RateLike = {
+      id?: string;
+      currency?: string | null;
+      currency_code?: string | null;
+      currency_local?: string | null;
+    };
+
+    const rates = parseJson(shipment.rates, []) as RateLike[];
     const match = rates.find((rate) => String(rate.id) === rateId);
     if (!match) {
       return NextResponse.json({ error: "Rate not found" }, { status: 400 });
@@ -112,8 +119,12 @@ export async function POST(
 
     const purchase = await buyLabel({ rate_id: rateId, label_format: labelFormat });
     const selectedRateJson = JSON.stringify(match);
-    const postageCurrency =
-      purchase.postage_currency || (typeof match.currency === "string" ? match.currency : null);
+    const rateCurrency =
+      (typeof match.currency === "string" && match.currency) ||
+      (typeof match.currency_code === "string" && match.currency_code) ||
+      (typeof match.currency_local === "string" && match.currency_local) ||
+      null;
+    const postageCurrency = purchase.postage_currency || rateCurrency;
     let labelAssetUrl: string | null = null;
     let labelAssetPublicId: string | null = null;
     let labelError: string | null = null;
