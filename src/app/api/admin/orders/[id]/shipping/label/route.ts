@@ -239,7 +239,7 @@ export async function GET(
     headers.set("Content-Length", String(buffer.length));
     headers.set("Cache-Control", "no-store");
 
-    const body = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    const body = new Uint8Array(buffer);
     return new Response(body, { status: 200, headers });
   } catch (err) {
     console.error("Admin order label download failed", err);
