@@ -1354,7 +1354,7 @@ function getNestedValue(obj: unknown, key: string): unknown {
   }, obj);
 }
 
-function interpolate(template: string, vars: Vars): string {
+function interpolate(template: string, vars?: Vars): string {
   if (!vars) return template;
   return template.replace(/\{(\w+)\}/g, (_, name: string) => {
     const value = vars[name];
@@ -1365,7 +1365,7 @@ function interpolate(template: string, vars: Vars): string {
 
 export function createTranslator(language: Language) {
   const dict = dictionaries[language] ?? dictionaries.EN;
-  return (key: string, vars: Vars) => {
+  return (key: string, vars?: Vars) => {
     const raw = getNestedValue(dict, key);
     if (typeof raw !== "string") return key;
     return interpolate(raw, vars);
