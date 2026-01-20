@@ -26,7 +26,7 @@ import { signOut, useSession } from "next-auth/react";
 const navLinks = [
   { href: "/", key: "home" as const },
   { href: "/shop", key: "shop" as const },
-  { href: "/about", key: "story" as const },
+  { href: "/story", key: "story" as const },
 ];
 
 export default function Header() {

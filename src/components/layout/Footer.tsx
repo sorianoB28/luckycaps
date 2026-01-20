@@ -3,9 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUp, ArrowUpRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
-import { useT } from "@/components/providers/LanguageProvider";
+import { useLanguage } from "@/components/providers/LanguageProvider";
 
 const shopLinks = [
   { href: "/shop?category=Snapbacks", labelKey: "footer.shopLinks.snapbacks" },
@@ -17,7 +17,7 @@ const shopLinks = [
 ] as const;
 
 const companyLinks = [
-  { href: "/about", labelKey: "footer.companyLinks.story" },
+  { href: "/story", labelKey: "footer.companyLinks.story" },
   { href: "/contact", labelKey: "footer.companyLinks.contact" },
 ] as const;
 
@@ -26,12 +26,21 @@ const legalLinks = [
   { href: "/terms", labelKey: "footer.legalLinks.terms" },
 ] as const;
 
+const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
 export default function Footer() {
-  const t = useT();
+  const { t, language } = useLanguage();
   const [showTop, setShowTop] = useState(false);
-  const [joinSuccess, setJoinSuccess] = useState(false);
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const factPills = [
+    t("footer.facts.emblems"),
+    t("footer.facts.smallBatch"),
+    t("footer.facts.local"),
+  ];
 
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 320);
@@ -43,6 +52,48 @@ export default function Footer() {
     "text-base font-bold uppercase tracking-[0.28em] text-white/90 flex items-center gap-2 mb-3";
   const accentDot =
     "inline-block h-2 w-2 rounded-full bg-lucky-green shadow-[0_0_12px_rgba(0,255,0,0.5)]";
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      setError(t("footer.emailError"));
+      return;
+    }
+    if (!consent) {
+      setError(t("footer.consentError"));
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/marketing/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: trimmedEmail,
+          locale: language === "ES" ? "es" : "en",
+          source: "site_footer",
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!res.ok || !data?.ok) {
+        setError(data?.error || t("footer.subscribeError"));
+        return;
+      }
+      setSuccess(t("footer.subscribed"));
+      setEmail("");
+      setConsent(false);
+    } catch (err) {
+      console.error("subscribe error", err);
+      setError(t("footer.subscribeError"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <footer className="relative mt-16 bg-gradient-to-b from-[#0a0f0a] via-lucky-dark to-black text-white">
@@ -70,24 +121,8 @@ export default function Footer() {
             <p className="text-white/70">
               {t("footer.blurb")}
             </p>
-            <div className="flex items-center gap-2 text-xs text-white/70">
-              <span className="inline-flex items-center gap-1">
-                <span className="inline-flex h-3 w-3 items-center justify-center">
-                  <span className="absolute inline-flex h-3 w-3 animate-ping rounded-full bg-lucky-green/40 motion-reduce:animate-none" />
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-lucky-green" />
-                </span>
-                {t("footer.rating")}
-              </span>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-white/60">
-              <span className="relative flex h-3 w-3 items-center justify-center">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lucky-green/30 motion-reduce:animate-none"></span>
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-lucky-green"></span>
-              </span>
-              <span>{t("footer.dropAlert")}</span>
-            </div>
             <div className="flex flex-wrap gap-3 text-xs text-white/70">
-              {[t("product.secureCheckout"), t("product.fastShipping"), t("product.returns")].map((item) => (
+              {factPills.map((item) => (
                 <span
                   key={item}
                   className="rounded-full border border-white/10 bg-black/30 px-3 py-1 transition hover:border-lucky-green/60 hover:text-white hover:shadow-[0_0_16px_rgba(0,255,0,0.12)]"
@@ -122,7 +157,7 @@ export default function Footer() {
               <span className={accentDot} />
               <span>{t("footer.stayInLoop")}</span>
             </div>
-            <div className="space-y-3 text-sm text-white/70">
+            <form onSubmit={handleSubmit} className="space-y-3 text-sm text-white/70">
               <p className="text-white/60">{t("footer.noSpam")}</p>
               <div className="flex gap-2">
                 <input
@@ -133,31 +168,31 @@ export default function Footer() {
                   className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-lucky-green"
                 />
                 <button
-                  onClick={() => {
-                    if (!email || !consent) return;
-                    setJoinSuccess(true);
-                    setEmail("");
-                    setConsent(false);
-                    setTimeout(() => setJoinSuccess(false), 3000);
-                  }}
+                  type="submit"
+                  disabled={isSubmitting}
                   className="rounded-lg bg-lucky-green px-4 text-sm font-semibold text-lucky-darker transition hover:bg-lucky-green/90 focus:outline-none focus:ring-2 focus:ring-lucky-green"
                 >
-                  {t("footer.join")}
+                  {isSubmitting ? t("common.submitting") : t("footer.join")}
                 </button>
               </div>
-              <label className="mb-2 flex items-center gap-2 text-xs text-white/60">
-                <input
-                  type="checkbox"
-                  className="accent-lucky-green"
-                  checked={consent}
-                  onChange={(e) => setConsent(e.target.checked)}
-                />{" "}
-                {t("footer.consent")}
-              </label>
-              {joinSuccess ? (
-                <p className="text-xs text-lucky-green">{t("footer.subscribed")}</p>
-              ) : null}
-            </div>
+              <div className="space-y-1">
+                <label className="mb-2 flex items-center gap-2 text-xs text-white/60">
+                  <input
+                    type="checkbox"
+                    className="accent-lucky-green"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                  />{" "}
+                  {t("footer.consent")}
+                </label>
+                {error ? <p className="text-xs text-red-400">{error}</p> : null}
+                {success ? (
+                  <p className="text-xs text-lucky-green" aria-live="polite">
+                    {success}
+                  </p>
+                ) : null}
+              </div>
+            </form>
             <div className="mt-5 grid gap-4 text-sm text-white/80 md:grid-cols-2">
               <div>
                 <div className={headerClass}>

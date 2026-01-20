@@ -9,6 +9,13 @@ export const dynamic = "force-dynamic";
 
 const NEW_DROPS_LIMIT = 6;
 
+const isRecentDrop = (item: ApiProduct) => {
+  const createdAt = item.created_at ? new Date(item.created_at) : null;
+  return createdAt != null
+    ? Date.now() - createdAt.getTime() <= 1000 * 60 * 60 * 24 * 30
+    : false;
+};
+
 const mapApiProductToUiProduct = (item: ApiProduct): Product => {
   const image = item.image_url ? buildCloudinaryCardUrl(item.image_url) : "";
   
@@ -37,7 +44,7 @@ const mapApiProductToUiProduct = (item: ApiProduct): Product => {
     tags: item.tags ?? [],
     description: item.description ?? "",
     features: item.features ?? [],
-    isNewDrop: item.is_new_drop,
+    isNewDrop: item.is_new_drop || isRecentDrop(item),
     isSale: item.is_sale,
     variants: [],
     sizes,
@@ -56,7 +63,7 @@ export default async function HomePage() {
     const products = await getProducts();
     categories = getCategoriesFromProducts(products);
     newDrops = products
-      .filter((product) => product.is_new_drop)
+      .filter((product) => product.is_new_drop || isRecentDrop(product))
       .sort(sortByCreatedDesc)
       .slice(0, NEW_DROPS_LIMIT)
       .map(mapApiProductToUiProduct);

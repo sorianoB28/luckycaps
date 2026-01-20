@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, Star } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Layers, MapPin, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,8 @@ import { Product } from "@/types";
 
 const heroBackground =
   "https://res.cloudinary.com/dgg7cxdoj/image/upload/v1767463691/heroimage_toguj8.png";
+const founderImage =
+  "https://res.cloudinary.com/dgg7cxdoj/image/upload/v1768941092/jesus_to3eks.jpg";
 
 interface HomePageClientProps {
   newDrops: Product[];
@@ -25,6 +27,17 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
   const t = useT();
   const prefersReducedMotion = useReducedMotion();
   const hasNewDrops = newDrops.length > 0;
+  const differentiators = [
+    { icon: BadgeCheck, title: t("home.diff.one.title"), copy: t("home.diff.one.copy") },
+    { icon: Layers, title: t("home.diff.two.title"), copy: t("home.diff.two.copy") },
+    { icon: MapPin, title: t("home.diff.three.title"), copy: t("home.diff.three.copy") },
+  ];
+  const marqueeItems = [
+    t("home.marquee.emblems"),
+    t("home.marquee.badgeStyle"),
+    t("home.marquee.smallBatch"),
+    t("home.marquee.desMoines"),
+  ];
 
   return (
     <div>
@@ -34,41 +47,38 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
             src={heroBackground}
             alt={t("home.heroImageAlt")}
             fill
-            className="object-cover object-[50%_25%]"
+            className="object-cover object-[50%_30%]"
             priority
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.78)_0%,rgba(0,0,0,0.55)_55%,rgba(0,0,0,0.35)_100%)]" />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(ellipse at top, rgba(0,0,0,0.35), transparent 55%), radial-gradient(ellipse at bottom, rgba(0,0,0,0.35), transparent 55%)",
-            }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.00) 55%)",
-            }}
-          />
+          <div className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/70 to-black/40" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_20%,rgba(0,255,140,0.12),transparent_42%),radial-gradient(ellipse_at_70%_80%,rgba(0,255,140,0.1),transparent_50%)]" />
         </div>
-        <div className="relative mx-auto flex max-w-7xl flex-col gap-10 px-4 py-20 md:px-8 lg:flex-row lg:items-center">
-          <div className="flex-1 space-y-6">
+        <div className="relative mx-auto max-w-7xl px-4 py-24 md:px-8">
+          <div className="max-w-3xl space-y-8">
             <motion.div
-              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 16 }}
               animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              <h1 className="font-display text-5xl tracking-wide md:text-7xl">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-[11px] uppercase tracking-[0.32em] text-white/60">
+                <Sparkles className="h-4 w-4 text-lucky-green" />
+                {t("home.heroBadge")}
+              </span>
+            </motion.div>
+            <motion.div
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
+              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.05 }}
+            >
+              <h1 className="font-display text-5xl leading-[1.05] tracking-wide md:text-7xl">
                 {t("home.heroHeadline")}
               </h1>
             </motion.div>
             <motion.p
-              className="max-w-xl text-lg text-white/70"
+              className="max-w-2xl text-lg text-white/70 md:text-xl"
               initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
               animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.12 }}
             >
               {t("home.heroSub")}
             </motion.p>
@@ -76,37 +86,28 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
               className="flex flex-wrap gap-4"
               initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
               animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.18 }}
             >
               <Button size="lg" asChild>
                 <Link href="/shop">{t("home.heroCtaPrimary")}</Link>
               </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="border-white/25 bg-white/5 text-white hover:border-lucky-green hover:bg-lucky-green/10"
+              >
+                <Link href="/story">{t("home.heroCtaSecondary")}</Link>
+              </Button>
             </motion.div>
             <motion.div
-              className="flex items-center gap-6 text-sm text-white/60"
-              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 12 }}
-              animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.25 }}
-            >
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-lucky-green" />
-                {t("home.heroStatsOne")}
-              </div>
-              <div>{t("home.heroStatsTwo")}</div>
-            </motion.div>
-            <motion.div
-              className="mt-2 overflow-hidden rounded-full border border-white/10 bg-black/40"
+              className="overflow-hidden rounded-full border border-white/10 bg-black/40"
               initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
               animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.35 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.26 }}
             >
-              <div className="flex animate-marquee items-center space-x-6 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white/60">
-                {[
-                  t("home.marquee.drop01"),
-                  t("home.marquee.limitedRun"),
-                  t("home.marquee.restock"),
-                  t("home.marquee.premiumEmbroidery"),
-                ].map((item, idx, arr) => (
+              <div className="flex animate-marquee items-center space-x-6 px-5 py-2 text-xs uppercase tracking-[0.32em] text-white/70">
+                {marqueeItems.map((item, idx, arr) => (
                   <span key={`${item}-${idx}`} className="flex items-center whitespace-nowrap gap-3">
                     <span>{item}</span>
                     {idx < arr.length - 1 ? <span className="text-white/30">•</span> : null}
@@ -119,6 +120,32 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="section-heading">{t("home.diff.kicker")}</p>
+            <h2 className="mt-3 font-display text-4xl">{t("home.diff.title")}</h2>
+            <p className="mt-3 max-w-2xl text-white/70">{t("home.diff.copy")}</p>
+          </div>
+        </div>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {differentiators.map((item) => (
+            <motion.div
+              key={item.title}
+              className="group rounded-2xl border border-white/10 bg-white/5 p-6 shadow-lg"
+              whileHover={prefersReducedMotion ? undefined : { y: -6 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-lucky-green/30 bg-lucky-green/10 text-lucky-green">
+                <item.icon className="h-5 w-5" />
+              </div>
+              <h3 className="mt-4 font-display text-2xl">{item.title}</h3>
+              <p className="mt-2 text-white/70">{item.copy}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-16 md:px-8">
         <motion.div
           className="flex items-center justify-between"
           initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
@@ -233,6 +260,52 @@ export default function HomePageClient({ newDrops, categories }: HomePageClientP
               {item}
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
+        <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <motion.div
+            className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-lg"
+            initial={prefersReducedMotion ? undefined : { opacity: 0, y: 16 }}
+            whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <p className="section-heading">{t("home.founder.kicker")}</p>
+            <h3 className="font-display text-3xl">{t("home.founder.title")}</h3>
+            <p className="text-white/70">{t("home.founder.copy")}</p>
+            <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.26em] text-white/60">
+              {[t("home.marquee.emblems"), t("home.marquee.desMoines"), t("home.marquee.smallBatch")].map((pill) => (
+                <span
+                  key={pill}
+                  className="rounded-full border border-white/10 bg-black/30 px-3 py-1"
+                >
+                  {pill}
+                </span>
+              ))}
+            </div>
+            <Button asChild size="lg" className="mt-2">
+              <Link href="/story">{t("home.founder.cta")}</Link>
+            </Button>
+          </motion.div>
+          <motion.div
+            className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-white/10 bg-black/30"
+            initial={prefersReducedMotion ? undefined : { opacity: 0, y: 12 }}
+            whileInView={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.5, ease: "easeOut", delay: 0.08 }}
+          >
+            <Image
+              src={founderImage}
+              alt={t("home.founder.imageAlt")}
+              fill
+              className="object-cover"
+              sizes="(min-width: 1024px) 600px, 100vw"
+              priority={false}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
+          </motion.div>
         </div>
       </section>
 

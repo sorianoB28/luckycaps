@@ -51,7 +51,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
               <Link href="/shop" className="hover:text-white">
                 {t("common.backToShop")}
               </Link>
-              <Link href="/about" className="hover:text-white">
+              <Link href="/story" className="hover:text-white">
                 {t("nav.story")}
               </Link>
             </div>
