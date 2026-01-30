@@ -13,6 +13,9 @@ type OrderRow = {
   promo_code: string | null;
   subtotal_cents: number;
   discount_cents: number;
+  shipping_cents: number | null;
+  tax_cents: number | null;
+  total_cents: number | null;
   created_at: string;
 };
 
@@ -42,6 +45,9 @@ async function getOrder(id: string) {
       promo_code,
       subtotal_cents,
       COALESCE(discount_cents, 0)::int AS discount_cents,
+      COALESCE(shipping_cents, 0)::int AS shipping_cents,
+      COALESCE(tax_cents, 0)::int AS tax_cents,
+      COALESCE(total_cents, 0)::int AS total_cents,
       created_at
     FROM public.orders
     WHERE id = ${id}::uuid
@@ -99,8 +105,13 @@ export default async function OrderPage({
     (typeof searchParams?.success === "string" && searchParams?.success === "1") ||
     (Array.isArray(searchParams?.success) && searchParams?.success.includes("1"));
 
-  const shippingCents = order.delivery_option === "express" ? 1200 : 0;
-  const totalCents = Math.max(0, order.subtotal_cents + shippingCents - order.discount_cents);
+  const shippingCents = order.shipping_cents ?? 0;
+  const taxCents = order.tax_cents ?? 0;
+  const computedTotal = Math.max(
+    0,
+    order.subtotal_cents - order.discount_cents + shippingCents + taxCents
+  );
+  const totalCents = order.total_cents ?? computedTotal;
 
   return (
     <OrderPageClient
@@ -109,7 +120,7 @@ export default async function OrderPage({
         contact,
         shipping_address: shipping,
         shipping_cents: shippingCents,
-        tax_cents: 0,
+        tax_cents: taxCents,
         total_cents: totalCents,
         shipment,
       }}

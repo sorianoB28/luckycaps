@@ -43,9 +43,8 @@ const isUuid = (value: string) =>
     value
   );
 
-const shippingCentsForDelivery = (deliveryOption: string) => {
-  if (deliveryOption === "express") return 1200;
-  return 0; // standard/default
+const shippingCentsForDelivery = (_deliveryOption: string) => {
+  return 600; // flat rate for now
 };
 
 export async function computeCheckoutQuote(params: {

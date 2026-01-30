@@ -14,6 +14,9 @@ type OrderEmailRow = {
   promo_code: string | null;
   subtotal_cents: number | null;
   discount_cents: number | null;
+  shipping_cents: number | null;
+  tax_cents: number | null;
+  total_cents: number | null;
   currency: string | null;
   created_at: string;
 };
@@ -352,9 +355,16 @@ const computeOrderTotals = (order: OrderEmailRow) => {
   const currencyCode = (order.currency || "usd").toUpperCase();
   const subtotalCents = Number.isFinite(order.subtotal_cents) ? order.subtotal_cents ?? 0 : 0;
   const discountCents = Number.isFinite(order.discount_cents) ? order.discount_cents ?? 0 : 0;
-  const shippingCents = order.delivery_option === "express" ? 1200 : 0;
-  const taxCents = 0;
-  const totalCents = Math.max(0, subtotalCents + shippingCents + taxCents - discountCents);
+  const shippingCents =
+    Number.isFinite(order.shipping_cents) && order.shipping_cents != null
+      ? order.shipping_cents
+      : 600;
+  const taxCents =
+    Number.isFinite(order.tax_cents) && order.tax_cents != null ? order.tax_cents : 0;
+  const totalCents =
+    Number.isFinite(order.total_cents) && order.total_cents != null
+      ? order.total_cents
+      : Math.max(0, subtotalCents + shippingCents + taxCents - discountCents);
   return {
     currencyCode,
     subtotalCents,
@@ -868,6 +878,9 @@ const readOrderEmailData = async (orderId: string): Promise<OrderEmailData | nul
       promo_code,
       subtotal_cents,
       COALESCE(discount_cents, 0)::int AS discount_cents,
+      COALESCE(shipping_cents, 0)::int AS shipping_cents,
+      COALESCE(tax_cents, 0)::int AS tax_cents,
+      COALESCE(total_cents, 0)::int AS total_cents,
       currency,
       created_at
     FROM public.orders

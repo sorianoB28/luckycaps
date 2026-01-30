@@ -217,6 +217,13 @@ const en: Dictionary = {
     secureCheckoutCopy: "Encrypted payments for peace of mind.",
     easyReturns: "Easy returns",
     easyReturnsCopy: "30-day hassle-free returns.",
+    trust: {
+      title: "Built for trust",
+      secureCheckout: "Secure checkout powered by Stripe",
+      trackedShipping: "Tracked shipping on every order",
+      support: "Support: {email}",
+      returns: "Returns policy available at checkout",
+    },
     decreaseQuantityAria: "Decrease quantity",
     increaseQuantityAria: "Increase quantity",
     addToCart: "Add to Cart",
@@ -284,8 +291,7 @@ const en: Dictionary = {
     country: "Country",
     deliveryMethodTitle: "Delivery method",
     delivery: {
-      standard: { name: "Standard", description: "Ground service", eta: "3-6 business days" },
-      express: { name: "Express", description: "Priority air", eta: "1-2 business days" },
+      flat: { name: "Flat Rate Shipping", description: "One simple rate on every order", eta: "3-6 business days" },
     },
     free: "Free",
     payment: "Payment",
@@ -316,6 +322,13 @@ const en: Dictionary = {
       notAvailable: "Promo code not available.",
       invalid: "Unable to apply promo code.",
     },
+    trust: {
+      title: "Checkout with confidence",
+      stripe: "Secure checkout powered by Stripe",
+      shipping: "Tracked shipping on every order",
+      support: "Support: support@luckycapsshop.com",
+      returns: "Returns policy available at checkout",
+    },
   },
   order: {
     kicker: "Order",
@@ -336,7 +349,7 @@ const en: Dictionary = {
     signInSubtitle: "Access your Lucky Caps account.",
     signUpSubtitle: "Save your drops, track orders, and stay ahead of releases.",
     forgotSubtitle:
-      "Weâ€™ll email you a reset link if an account exists for this email.",
+      "We'll email you a reset link if an account exists for this email.",
     emailLabel: "Email",
     passwordLabel: "Password",
     firstNameLabel: "First name",
@@ -349,6 +362,8 @@ const en: Dictionary = {
     forgotPasswordLink: "Forgot password-",
     continueAsGuest: "Continue as guest",
     googleSoon: "Sign in with Google (coming soon)",
+    signingIn: "Signing in...",
+    signedIn: "Signed in! Redirecting...",
     noAccount: "Don't have an account-",
     createOne: "Create one",
     alreadyAccount: "Already have an account-",
@@ -371,7 +386,11 @@ const en: Dictionary = {
       passwordsMustMatch: "Passwords must match.",
       mustAgreeTerms: "You must agree to the Terms & Privacy.",
       invalidCredentials: "Invalid email or password.",
+      signInFailed: "We couldn't sign you in. Please try again.",
       unableToCreateAccount: "Unable to create account.",
+    },
+    success: {
+      signedIn: "You're in. Redirecting...",
     },
   },
   account: {
@@ -444,18 +463,210 @@ const en: Dictionary = {
   },
   contact: {
     title: "Contact",
-    copy:
-      "Need help- Drop us a line at support@luckycaps.com. This demo site does not send real email, but we'll wire it up when production support is live.",
+    copy: "Need help- Drop us a line at support@luckycapsshop.com.",
+  },
+  legal: {
+    lastUpdated: "Last updated {date}",
+    toc: "On this page",
+    disclaimer:
+      "This page shares how Lucky Caps works today. It is not legal advice. Please review with your counsel.",
+    policyTbd: "Policy TBD",
+    todo: "TODO: confirm details with the team before launch.",
+    contact: "Contact us at {email}",
   },
   privacy: {
     title: "Privacy Policy",
-    copy:
-      "This is a demo policy for Lucky Caps. We respect your privacy and will update this page when a full policy is available. No real data is collected in this demo.",
+    description:
+      "How Lucky Caps collects, uses, and shares information to run the store, ship orders, and send updates.",
+    sections: {
+      overview: {
+        title: "Overview",
+        body1:
+          "This policy explains how {businessName} (\"we\", \"us\") handles personal information when you browse, create an account, or buy from luckycapsshop.com.",
+        body2:
+          "We use Stripe for payments, Shippo for labels and tracking, Resend for transactional emails, Neon Postgres for our database, and NextAuth for account sessions.",
+      },
+      infoWeCollect: {
+        title: "Information we collect",
+        items: {
+          account: "Account details if you sign in (email and name you provide via NextAuth).",
+          checkout:
+            "Order and checkout details- items, shipping address, email, phone (if provided), and chosen delivery options.",
+          payment: "Payment confirmations from Stripe (we do not store full card numbers).",
+          device:
+            "Device and log data such as IP address, browser type, and interaction timestamps for security and fraud prevention.",
+          media: "Photos you upload for custom work or reviews (stored via Cloudinary).",
+        },
+      },
+      howWeUse: {
+        title: "How we use information",
+        bullets: {
+          fulfill: "Fulfill and deliver orders, including creating shipping labels with Shippo.",
+          communicate:
+            "Send order confirmations, shipping updates, and account-related notices via Resend from {replyToEmail}.",
+          support: "Provide customer support and respond to questions sent to {supportEmail}.",
+          auth: "Authenticate accounts and keep sessions active via NextAuth.",
+          improve: "Maintain and improve site performance, prevent fraud/abuse, and protect the service.",
+          marketing: "Send marketing emails only if you opt in to \"Stay in the loop\"; you can unsubscribe anytime.",
+        },
+      },
+      marketing: {
+        title: "Marketing choices",
+        body1:
+          "Marketing email signups are optional and separate from transactional emails. Unsubscribe links are included in each marketing email.",
+        body2: "You may also email {supportEmail} to be removed. Transactional emails for orders will still arrive as needed.",
+      },
+      cookies: {
+        title: "Cookies & analytics",
+        body1: "We use essential cookies for things like keeping your session, cart, and language preference.",
+        body2: "Analytics/ads tools are not fully configured yet. TODO- confirm and list any analytics provider before launch.",
+        body3: "You can manage cookies through your browser settings; disabling some cookies may affect checkout or login.",
+      },
+      sharing: {
+        title: "How we share information",
+        intro: "We share data only with service providers needed to run Lucky Caps-",
+        items: {
+          stripe: "Stripe for payment processing and fraud prevention.",
+          shippo: "Shippo for shipping rates, labels, and tracking.",
+          resend: "Resend for sending emails.",
+          database: "Neon Postgres (via Netlify) to store orders, accounts, and product data.",
+          cloudinary: "Cloudinary to host product and user-uploaded images.",
+          hosting: "Netlify/Next.js infrastructure to host the storefront.",
+        },
+        closing:
+          "We do not sell personal information. If we need to share data for legal compliance or to protect the service, we will do so as permitted by law.",
+      },
+      retention: {
+        title: "Data retention",
+        body1:
+          "We keep order and account records for as long as necessary to operate the store, comply with law, resolve disputes, and maintain tax/financial records.",
+        body2:
+          "If you request deletion, we will remove or de-identify data we are not required to keep. Some records may remain in backups for a limited period.",
+      },
+      security: {
+        title: "Security",
+        body1:
+          "We use reasonable technical and organizational measures (access controls, encrypted transport, role-based admin tools) to protect data stored in Neon Postgres and our providers.",
+        body2:
+          "No method of transmission or storage is 100% secure. If we learn of a security issue that affects you, we will reach out using your contact details.",
+      },
+      children: {
+        title: "Children's privacy",
+        body: "Lucky Caps is not directed to children under 13. If you believe a child provided personal information, contact us at {supportEmail} and we will delete it where required.",
+      },
+      rights: {
+        title: "Your rights & choices",
+        body1: "You can request access, correction, or deletion of your information by contacting {supportEmail}.",
+        body2:
+          "If you are in a region with specific privacy rights (e.g., EU/UK/California), let us know in your request so we can apply the appropriate process. TODO- add region-specific language once targeting is confirmed.",
+      },
+      updates: {
+        title: "Updates to this policy",
+        body:
+          "We may update this policy and will change the \"Last updated\" date when we do. If changes are significant, we will provide a brief notice on the site.",
+      },
+      contact: {
+        title: "Contact us",
+        body: "Questions about privacy- Email {supportEmail}.",
+      },
+    },
   },
   terms: {
     title: "Terms of Service",
-    copy:
-      "This is a demo terms page for Lucky Caps. Please treat this storefront as a preview. Full terms will be added alongside a production launch.",
+    description: "The rules for using Lucky Caps and purchasing our small-batch caps.",
+    sections: {
+      overview: {
+        title: "Overview / Agreement to terms",
+        body1: "By accessing or purchasing from Lucky Caps, you agree to these Terms and our Privacy Policy.",
+        body2:
+          "If you do not agree, please do not use the site. We may update the Terms periodically- continued use after changes means you accept the updated terms.",
+      },
+      eligibility: {
+        title: "Eligibility",
+        body1:
+          "You must be at least 18 (or the age of majority in your region) or have parental consent to place orders or create an account.",
+        body2:
+          "You agree to provide accurate information. We may refuse or cancel orders at our discretion (for example, suspected fraud or inventory limits).",
+      },
+      orders: {
+        title: "Orders & payment",
+        bullets: {
+          payment: "Payments are processed by Stripe. We do not store full card numbers.",
+          pricing: "Prices and availability can change. Taxes and shipping are shown at checkout.",
+          auth:
+            "By submitting an order, you authorize us (and Stripe) to charge your payment method for the order total, including taxes, shipping, and any discounts applied.",
+          promos:
+            "Promotions or discount codes may be limited by time, usage, or inventory; they cannot be combined unless stated.",
+          confirmation:
+            "Orders are confirmed when we accept and charge the payment. If we cannot fulfill an order, we will cancel and refund you.",
+        },
+      },
+      shipping: {
+        title: "Shipping & delivery",
+        body1:
+          "We ship using Shippo-generated labels. Shipping options and estimated timelines are shown at checkout; actual delivery depends on the carrier.",
+        body2:
+          "Please double-check your shipping address. Risk of loss transfers when the carrier takes possession, but contact us if a package is lost or damaged - we will help coordinate with the carrier where possible.",
+        body3: "Customs, duties, or import fees (if applicable) are the customer's responsibility.",
+      },
+      returns: {
+        title: "Returns & exchanges",
+        eyebrow: "Policy TBD",
+        body1: "We want you to love your cap. A finalized return/exchange policy is coming soon.",
+        body2:
+          "Suggested defaults (to be confirmed)- {returnsWindowDays}-day window from delivery, items must be unworn and in original condition, customer pays return shipping unless the item arrived damaged.",
+        body3:
+          "Until confirmed, please email {returnsEmail} with your order number and we'll handle requests case by case.",
+      },
+      product: {
+        title: "Product details",
+        body1:
+          "Caps feature hand-applied, badge-style emblems. Minor variations or adhesive marks can occur because each piece is finished by hand.",
+        body2: "Colors may look different across screens. Spot clean only- avoid high heat on the emblem.",
+      },
+      accounts: {
+        title: "User accounts",
+        body1:
+          "If you create an account with NextAuth, keep your credentials secure and notify us of any unauthorized use.",
+        body2:
+          "You are responsible for all activity under your account. We may suspend or terminate accounts that violate these Terms or abuse the service.",
+      },
+      ip: {
+        title: "Intellectual property",
+        body1:
+          "Lucky Caps, our logos, product imagery, and site content are owned by {businessName}. You may not use them without permission.",
+      },
+      prohibited: {
+        title: "Prohibited use",
+        bullets: {
+          unlawful: "Using the site for unlawful, fraudulent, or harmful purposes.",
+          interfere: "Interfering with or disrupting the site, including introducing malware or scraping without consent.",
+          misuse: "Reselling, misrepresenting, or reverse-engineering the service or designs.",
+          impersonation: "Impersonating others or providing false information.",
+        },
+      },
+      disclaimers: {
+        title: "Disclaimers & limitation of liability",
+        body1:
+          "The site and products are provided \"as is\" to the fullest extent permitted by law. We disclaim implied warranties of merchantability, fitness for a particular purpose, and non-infringement.",
+        body2:
+          "To the extent allowed by law, our total liability for any claim is limited to the amount you paid for the applicable order. Some regions do not allow certain limitations, so these may not apply to you.",
+      },
+      law: {
+        title: "Governing law",
+        body1:
+          "These Terms are governed by the laws of {governingLaw}. Please replace this placeholder with your state/country before launch.",
+      },
+      updates: {
+        title: "Updates to these terms",
+        body1:
+          "We may update these Terms from time to time. We will post the new date at the top. Continued use after updates means you accept the revised Terms.",
+      },
+      contact: {
+        title: "Contact",
+        body1: "Questions about these Terms- Email {supportEmail}.",
+      },
+    },
   },
   reviews: {
     title: "Customer Reviews",
@@ -503,6 +714,7 @@ const en: Dictionary = {
       required: "Rating, title, and body are required.",
       requiredWithEmail: "Rating, title, body, and email are required.",
       guidelines: "Please agree to the community guidelines.",
+      onlyPurchasers: "Only customers who purchased this item can leave a review.",
     },
     unableToLoadReviews: "Unable to load reviews.",
     thanks: "Thanks for your review!",
@@ -623,36 +835,40 @@ const en: Dictionary = {
     name: "Name",
     slug: "Slug",
     autoSlug: "Auto",
-    slugHelp: "Must be unique; auto-generates from the name.",
+    slugHelp: "Must be unique; generated from the name.",
     description: "Description",
     descriptionPlaceholder: "Short product description",
     category: "Category",
-    categoryPlaceholder: "Snapbacks, Beanies...",
+    categoryPlaceholder: "Caps, beanies...",
     stock: "Stock",
     pricing: "Pricing",
-    basePrice: "Base Price",
-    onSale: "On Sale",
+    basePrice: "Base price",
+    onSale: "On sale",
     salePricePlaceholder: "Sale price",
     originalPricePlaceholder: "Original price",
     saleHint:
-      "When on sale, the red price is the sale price and the muted value is the crossed-out original.",
+      "When on sale, the red value is the sale price and the faint value is the original.",
     markNewDrop: "Mark as New Drop",
-    sizesAvailable: "Sizes Available",
-    sizesHelp: "Choose which sizes this product supports. Leave empty to hide sizing options.",
+    sizesAvailable: "Available sizes",
+    sizesHelp: "Choose available sizes. Leave empty to hide options.",
     images: "Images",
     addImageByUrl: "Add image by URL",
     photoUrlPlaceholder: "https://...",
     uploadForPreview: "Upload for preview",
-    uploadHelp: "Select images to auto-upload to Cloudinary. You can also paste hosted URLs.",
+    uploadHelp: "Select images to upload to Cloudinary. You can also paste URLs.",
     uploadFailed: "Upload failed",
     uploadFailedStatus: "Upload failed (status {status})",
     sessionExpired: "Your admin session expired. Please sign in again.",
     checkEnv:
-      "Check admin login and CLOUDINARY_* env vars.",
-    waitUploads: "Please wait for uploads to finish.",
-    invalidImages: "Images must be uploaded to Cloudinary or use http(s) URLs.",
+      "Verify admin login and CLOUDINARY_* variables.",
+    waitUploads: "Wait for uploads to finish.",
+    invalidImages: "Images must be on Cloudinary or use http(s) URLs.",
     previewAlt: "Preview {index}",
     noImages: "No images yet. Add a URL or upload to Cloudinary.",
+    imagePrimary: "Primary image",
+    makePrimary: "Make primary",
+    moveUp: "Move up",
+    moveDown: "Move down",
   },
   adminPromoCodes: {
     noneYet: "No promo codes yet.",
@@ -702,7 +918,7 @@ const es: Dictionary = {
     add: "Agregar",
     remove: "Quitar",
     uploaded: "Subido",
-    failed: "FallÃ³",
+    failed: "Falló",
     delete: "Eliminar",
     submit: "Enviar",
     view: "Ver",
@@ -710,7 +926,7 @@ const es: Dictionary = {
     search: "Buscar",
     status: "Estado",
     actions: "Acciones",
-    code: "CÃ³digo",
+    code: "Código",
     value: "Valor",
     enable: "Habilitar",
     disable: "Deshabilitar",
@@ -724,7 +940,7 @@ const es: Dictionary = {
     customer: "Cliente",
     type: "Tipo",
     order: "Pedido",
-    items: "ArtÃ­culos",
+    items: "Artículos",
     subtotal: "Subtotal",
     discount: "Descuento",
     total: "Total",
@@ -732,17 +948,17 @@ const es: Dictionary = {
     tracking: "Seguimiento",
     upload: "Subir",
     uploading: "Subiendo...",
-    loadMore: "Cargar mÃ¡s",
+    loadMore: "Cargar más",
   },
   header: {
     logoAlt: "Logo de Lucky Caps",
-    accountMenu: "MenÃº de cuenta",
+    accountMenu: "Menú de cuenta",
     openCart: "Abrir carrito",
-    openMenu: "Abrir menÃº",
-    closeMenu: "Cerrar menÃº",
-    menuTitle: "MenÃº",
-    switchToEnglish: "Cambiar a inglÃ©s",
-    switchToSpanish: "Cambiar a espaÃ±ol",
+    openMenu: "Abrir menú",
+    closeMenu: "Cerrar menú",
+    menuTitle: "Menú",
+    switchToEnglish: "Cambiar a inglés",
+    switchToSpanish: "Cambiar a español",
   },
   footer: {
     tagline: "Lucky Supply",
@@ -847,22 +1063,22 @@ const es: Dictionary = {
   shop: {
     title: "Tienda",
     heading: "Drops premium",
-    kicker: "Comprar colecciÃ³n",
-    description: "Filtra por categorÃ­a, precio y estado para encontrar tu prÃ³xima gorra.",
-    itemsCount: "{count} artÃ­culos",
+    kicker: "Comprar colección",
+    description: "Filtra por categoría, precio y estado para encontrar tu próxima gorra.",
+    itemsCount: "{count} artículos",
     reset: "Restablecer",
     refine: "Refinar",
     filters: "Filtros",
     sort: "Ordenar",
-    categories: "CategorÃ­as",
-    noCategories: "No hay categorÃ­as disponibles.",
+    categories: "Categorías",
+    noCategories: "No hay categorías disponibles.",
     priceRange: "Rango de precio",
     highlights: "Destacados",
     newDropsFilter: "Nuevos drops",
     onSale: "En oferta",
     showing: "Mostrando {shown} de {total} productos",
     featured: "Destacado",
-    newest: "MÃ¡s nuevo",
+    newest: "Más nuevo",
     priceLowHigh: "Precio: menor a mayor",
     priceHighLow: "Precio: mayor a menor",
     upTo: "Hasta",
@@ -870,61 +1086,68 @@ const es: Dictionary = {
     newDrop: "Nuevo lanzamiento",
     sale: "Oferta",
     loadingProducts: "Cargando productos...",
-    emptyTitle: "NingÃºn producto coincide con tus filtros.",
+    emptyTitle: "Ningún producto coincide con tus filtros.",
     emptyCopy: "Ajusta los filtros o restablece para ver todo.",
     clearFilters: "Limpiar filtros",
   },
   product: {
     variant: "Variante",
     size: "Talla",
-    features: "CaracterÃ­sticas",
-    fastShipping: "EnvÃ­o rÃ¡pido",
-    fastShippingCopy: "Despacho en 2 dÃ­as hÃ¡biles.",
-    returns: "Devoluciones 30 dÃ­as",
+    features: "Características",
+    fastShipping: "Envío rápido",
+    fastShippingCopy: "Despacho en 2 días hábiles.",
+    returns: "Devoluciones 30 días",
     secureCheckout: "Pago seguro",
     secureCheckoutCopy: "Pagos cifrados para tu tranquilidad.",
-    easyReturns: "Devoluciones fÃ¡ciles",
-    easyReturnsCopy: "Devoluciones sin complicaciones por 30 dÃ­as.",
+    easyReturns: "Devoluciones fáciles",
+    easyReturnsCopy: "Devoluciones sin complicaciones por 30 días.",
+    trust: {
+      title: "Hecho para tu confianza",
+      secureCheckout: "Pago seguro con Stripe",
+      trackedShipping: "Envíos con seguimiento en cada pedido",
+      support: "Soporte: {email}",
+      returns: "Política de devoluciones disponible en checkout",
+    },
     decreaseQuantityAria: "Disminuir cantidad",
     increaseQuantityAria: "Aumentar cantidad",
-    addToCart: "AÃ±adir al carrito",
-    addToWishlistAria: "AÃ±adir a favoritos",
+    addToCart: "Añadir al carrito",
+    addToWishlistAria: "Añadir a favoritos",
     productNotFound: "Producto no encontrado.",
     unableToLoadProduct: "No se pudo cargar el producto.",
     tryOtherProducts: "Prueba a ver otros productos.",
-    reportReviewAria: "Reportar reseÃ±a",
+    reportReviewAria: "Reportar reseña",
     galleryImageAria: "Ver imagen {index} de {name}",
   },
   cart: {
     title: "Tu carrito",
-    empty: "Tu carrito estÃ¡ vacÃ­o.",
-    emptyCopy: "Explora la tienda y aÃ±ade tu primer drop.",
-    emptyPageTitle: "Tu carrito estÃ¡ vacÃ­o",
+    empty: "Tu carrito está vacío.",
+    emptyCopy: "Explora la tienda y añade tu primer drop.",
+    emptyPageTitle: "Tu carrito está vacío",
     emptyPageCopy: "Inicia un drop y agrega gorras Lucky Caps a tu carrito.",
-    browseCollection: "Ver colecciÃ³n",
+    browseCollection: "Ver colección",
     noImage: "Sin imagen",
-    variantFallback: "EstÃ¡ndar",
-    sizeFallback: "Talla Ãºnica",
+    variantFallback: "Estándar",
+    sizeFallback: "Talla única",
     viewCart: "Ver carrito",
     checkout: "Pagar",
     orderSummary: "Resumen del pedido",
-    shipping: "EnvÃ­o",
+    shipping: "Envío",
     tax: "Impuestos",
     calculatedAtCheckout: "Se calcula en el checkout",
     continueShopping: "Seguir comprando",
-    removeItemAria: "Quitar artÃ­culo",
+    removeItemAria: "Quitar artículo",
   },
   checkout: {
     title: "Pagar",
     goToAdmin: "Ir a Admin",
     heading: "Completa tu pedido",
-    notice: "Flujo seguro - pagos no habilitados todavÃ­a.",
+    notice: "Flujo seguro - pagos no habilitados todavía.",
     loadingCheckout: "Cargando checkout...",
     unableToPlaceOrder: "No se pudo realizar el pedido.",
-    requiredFieldsError: "Completa los campos obligatorios y agrega artÃ­culos al carrito.",
+    requiredFieldsError: "Completa los campos obligatorios y agrega artículos al carrito.",
     missingCheckoutUrl: "Falta la URL de checkout.",
-    shippingAddressTitle: "DirecciÃ³n de envÃ­o",
-    emptyTitle: "Tu carrito estÃ¡ vacÃ­o.",
+    shippingAddressTitle: "Dirección de envío",
+    emptyTitle: "Tu carrito está vacío.",
     emptyCopy: "Agrega productos antes de pagar.",
     canceled: "Checkout cancelado. Puedes intentar de nuevo o actualizar tus datos abajo.",
     redirectingTitle: "Redirigiendo al pago",
@@ -938,22 +1161,21 @@ const es: Dictionary = {
     viewOrder: "Ver pedido",
     customer: "Cliente",
     email: "Correo",
-    phone: "TelÃ©fono",
-    phoneOptional: "TelÃ©fono (opcional)",
-    shipping: "EnvÃ­o",
+    phone: "Teléfono",
+    phoneOptional: "Teléfono (opcional)",
+    shipping: "Envío",
     contactTitle: "Contacto",
     firstName: "Nombre",
     lastName: "Apellido",
-    address1: "DirecciÃ³n (lÃ­nea 1)",
-    address2: "DirecciÃ³n (lÃ­nea 2, opcional)",
+    address1: "Dirección (línea 1)",
+    address2: "Dirección (línea 2, opcional)",
     city: "Ciudad",
     state: "Estado",
-    zip: "CÃ³digo postal",
-    country: "PaÃ­s",
-    deliveryMethodTitle: "MÃ©todo de entrega",
+    zip: "Código postal",
+    country: "Pais",
+    deliveryMethodTitle: "Metodo de entrega",
     delivery: {
-      standard: { name: "EstÃ¡ndar", description: "Servicio terrestre", eta: "3-6 dÃ­as hÃ¡biles" },
-      express: { name: "ExprÃ©s", description: "AÃ©reo prioritario", eta: "1-2 dÃ­as hÃ¡biles" },
+      flat: { name: "Envio tarifa unica", description: "Una sola tarifa para todos los pedidos", eta: "Llega en 3-6 dias habiles" },
     },
     free: "Gratis",
     payment: "Pago",
@@ -961,28 +1183,35 @@ const es: Dictionary = {
     orderNotes: "Notas del pedido",
     orderNotesPlaceholder: "Notas del pedido / instrucciones de bordado",
     orderSummary: "Resumen del pedido",
-    promoCode: "CÃ³digo promocional",
-    promoSoon: "CÃ³digos prÃ³ximamente.",
-    coupon: "CÃ³digo de descuento",
+    promoCode: "Código promocional",
+    promoSoon: "Códigos próximamente.",
+    coupon: "Código de descuento",
     apply: "Aplicar",
     couponPlaceholder: "",
     placeOrder: "Proceder al pago",
     placingOrder: "Realizando pedido...",
-    redirectNotice: "SerÃ¡s redirigido a Stripe para pagar de forma segura.",
+    redirectNotice: "Serás redirigido a Stripe para pagar de forma segura.",
     promoApplied: "Promo aplicada",
     promoApply: "Aplicar",
     promoRemove: "Quitar",
-    promoError: "Error de cÃ³digo promocional",
+    promoError: "Error de código promocional",
     promoErrors: {
-      missing: "Ingresa un cÃ³digo promocional.",
-      notFound: "El cÃ³digo promocional no es vÃ¡lido.",
-      inactive: "El cÃ³digo promocional estÃ¡ inactivo.",
-      notStarted: "El cÃ³digo promocional aÃºn no estÃ¡ activo.",
-      expired: "El cÃ³digo promocional expirÃ³.",
+      missing: "Ingresa un código promocional.",
+      notFound: "El código promocional no es válido.",
+      inactive: "El código promocional está inactivo.",
+      notStarted: "El código promocional aún no está activo.",
+      expired: "El código promocional expiró.",
       minSubtotal: "Requiere un subtotal de ${min}.",
-      maxRedemptions: "El cÃ³digo alcanzÃ³ su lÃ­mite de usos.",
-      notAvailable: "El cÃ³digo no estÃ¡ disponible.",
-      invalid: "No se pudo aplicar el cÃ³digo.",
+      maxRedemptions: "El código alcanzó su límite de usos.",
+      notAvailable: "El código no está disponible.",
+      invalid: "No se pudo aplicar el código.",
+    },
+    trust: {
+      title: "Compra con confianza",
+      stripe: "Pago seguro con Stripe",
+      shipping: "Envíos con seguimiento en cada pedido",
+      support: "Soporte: support@luckycapsshop.com",
+      returns: "Política de devoluciones disponible en checkout",
     },
   },
   order: {
@@ -997,52 +1226,58 @@ const es: Dictionary = {
     totalsTitle: "Totales",
   },
   auth: {
-    signIn: "Iniciar sesiÃ³n",
+    signIn: "Iniciar sesión",
     signUp: "Crear cuenta",
-    signOut: "Cerrar sesiÃ³n",
-    forgotPassword: "Restablecer contraseÃ±a",
+    signOut: "Cerrar sesión",
+    forgotPassword: "Restablecer contraseña",
     signInSubtitle: "Accede a tu cuenta de Lucky Caps.",
     signUpSubtitle:
-      "Guarda tus drops, rastrea pedidos y adelÃ¡ntate a los lanzamientos.",
+      "Guarda tus drops, rastrea pedidos y adelántate a los lanzamientos.",
     forgotSubtitle:
       "Te enviaremos un enlace si existe una cuenta para este correo.",
     emailLabel: "Correo",
-    passwordLabel: "ContraseÃ±a",
+    passwordLabel: "Contraseña",
     firstNameLabel: "Nombre",
     lastNameLabel: "Apellido",
-    password: "ContraseÃ±a",
-    confirmPassword: "Confirmar contraseÃ±a",
-    confirmPasswordLabel: "Confirmar contraseÃ±a",
+    password: "Contraseña",
+    confirmPassword: "Confirmar contraseña",
+    confirmPasswordLabel: "Confirmar contraseña",
     emailPlaceholder: "tu@ejemplo.com",
     rememberMe: "Recordarme",
-    forgotPasswordLink: "Â¿Olvidaste tu contraseÃ±a-",
+    forgotPasswordLink: "¿Olvidaste tu contraseña-",
     continueAsGuest: "Continuar como invitado",
-    googleSoon: "Iniciar con Google (prÃ³ximamente)",
-    noAccount: "Â¿No tienes cuenta-",
+    googleSoon: "Iniciar con Google (próximamente)",
+    signingIn: "Iniciando sesión...",
+    signedIn: "Sesión iniciada. Redirigiendo...",
+    noAccount: "¿No tienes cuenta-",
     createOne: "Crea una",
-    alreadyAccount: "Â¿Ya tienes cuenta-",
-    minPasswordHint: "MÃ­nimo 8 caracteres.",
-    termsAgree: "Acepto los TÃ©rminos y Privacidad",
-    marketingOptIn: "EnvÃ­enme drops y promos",
+    alreadyAccount: "¿Ya tienes cuenta-",
+    minPasswordHint: "Mínimo 8 caracteres.",
+    termsAgree: "Acepto los Términos y Privacidad",
+    marketingOptIn: "Envíenme drops y promos",
     unsubscribeCopy: "Puedes darte de baja cuando quieras.",
     reset: {
       emailSent: "Correo enviado",
-      sentCopy: "Si existe una cuenta para {email}, recibirÃ¡s un enlace en breve.",
-      returnToSignIn: "Volver a iniciar sesiÃ³n",
+      sentCopy: "Si existe una cuenta para {email}, recibirás un enlace en breve.",
+      returnToSignIn: "Volver a iniciar sesión",
       sendLink: "Enviar enlace",
-      remembered: "Â¿Recordaste tu contraseÃ±a-",
+      remembered: "¿Recordaste tu contraseña-",
     },
     errors: {
-      invalidEmail: "Ingresa un correo vÃ¡lido.",
+      invalidEmail: "Ingresa un correo valido.",
       nameRequired: "El nombre es obligatorio.",
-      passwordRequired: "La contraseÃ±a es obligatoria.",
-      passwordTooShort: "La contraseÃ±a debe tener al menos 8 caracteres.",
-      passwordsMustMatch: "Las contraseÃ±as deben coincidir.",
-      mustAgreeTerms: "Debes aceptar los TÃ©rminos y Privacidad.",
-      invalidCredentials: "Correo o contraseÃ±a invÃ¡lidos.",
+      passwordRequired: "La contrasena es obligatoria.",
+      passwordTooShort: "La contrasena debe tener al menos 8 caracteres.",
+      passwordsMustMatch: "Las contrasenas deben coincidir.",
+      mustAgreeTerms: "Debes aceptar los Terminos y Privacidad.",
+      invalidCredentials: "Correo o contrasena invalidos.",
+      signInFailed: "No pudimos iniciar sesion. Intenta de nuevo.",
       unableToCreateAccount: "No se pudo crear la cuenta.",
     },
-  },
+    success: {
+      signedIn: "Listo. Redirigiendo...",
+    },
+},
   account: {
     title: "Tu hub Lucky",
     heading: "Cuenta",
@@ -1058,21 +1293,21 @@ const es: Dictionary = {
     name: "Nombre",
     email: "Correo",
     loadingOrders: "Cargando pedidos...",
-    noOrders: "AÃºn no hay pedidos",
-    noOrdersCopy: "Inicia un drop para ver tu historial aquÃ­.",
-    shopCollection: "Comprar colecciÃ³n",
+    noOrders: "Aún no hay pedidos",
+    noOrdersCopy: "Inicia un drop para ver tu historial aquí.",
+    shopCollection: "Comprar colección",
     noAddresses: "No hay direcciones guardadas",
     orderNumber: "Pedido #{id}",
     statusValue: "Estado: {status}",
     totalValue: "Total ${total}",
     qty: "Cant. {qty}",
-    noAddressesCopy: "Agrega una direcciÃ³n para acelerar el pago.",
-    addAddressSoon: "Agregar direcciÃ³n (prÃ³ximamente)",
-    newPassword: "Nueva contraseÃ±a",
-    confirmPasswordLabel: "Confirmar contraseÃ±a",
-    updatePasswordSoon: "Actualizar contraseÃ±a (prÃ³ximamente)",
-    signOutTitle: "Cerrar sesiÃ³n",
-    signOutCopy: "Cierra sesiÃ³n y vuelve al inicio.",
+    noAddressesCopy: "Agrega una dirección para acelerar el pago.",
+    addAddressSoon: "Agregar dirección (próximamente)",
+    newPassword: "Nueva contraseña",
+    confirmPasswordLabel: "Confirmar contraseña",
+    updatePasswordSoon: "Actualizar contraseña (próximamente)",
+    signOutTitle: "Cerrar sesión",
+    signOutCopy: "Cierra sesión y vuelve al inicio.",
     unableToLoadOrders: "No se pudieron cargar los pedidos.",
   },
   about: {
@@ -1113,71 +1348,268 @@ const es: Dictionary = {
   },
   contact: {
     title: "Contacto",
-    copy:
-      "Â¿Necesitas ayuda- EscrÃ­benos a support@luckycaps.com. Este sitio demo no envÃ­a correo real, pero lo conectaremos cuando soporte de producciÃ³n estÃ© listo.",
+    copy: "Necesitas ayuda- Escribenos a support@luckycapsshop.com.",
+  },
+  legal: {
+    lastUpdated: "Ultima actualizacion {date}",
+    toc: "En esta pagina",
+    disclaimer:
+      "Este contenido es informativo y no es asesoria legal. Por favor revisalo con tu abogado.",
+    policyTbd: "Politica pendiente",
+    todo: "TODO: confirmar con el equipo antes del lanzamiento.",
+    contact: "Escribenos a {email}",
   },
   privacy: {
-    title: "PolÃ­tica de privacidad",
-    copy:
-      "Esta es una polÃ­tica demo para Lucky Caps. Respetamos tu privacidad y actualizaremos esta pÃ¡gina cuando exista una polÃ­tica completa. No se recopilan datos reales en esta demo.",
+    title: "Politica de privacidad",
+    description:
+      "Como Lucky Caps recopila, usa y comparte datos para operar la tienda, enviar pedidos y comunicarte.",
+    sections: {
+      overview: {
+        title: "Resumen",
+        body1:
+          "Esta politica explica como {businessName} (\"nosotros\") maneja la informacion cuando navegas, creas una cuenta o compras en luckycapsshop.com.",
+        body2:
+          "Usamos Stripe para pagos, Shippo para guias y seguimiento, Resend para correos transaccionales, Neon Postgres para la base de datos y NextAuth para sesiones de cuenta.",
+      },
+      infoWeCollect: {
+        title: "Informacion que recopilamos",
+        items: {
+          account: "Datos de cuenta si inicias sesion (correo y nombre que ingresas via NextAuth).",
+          checkout:
+            "Datos de pedido y checkout- articulos, direccion de envio, correo, telefono (si lo compartes) y opciones de entrega.",
+          payment: "Confirmaciones de pago desde Stripe (no guardamos los numeros completos de tarjeta).",
+          device:
+            "Datos de dispositivo y registro como IP, tipo de navegador y tiempos de interaccion para seguridad y prevencion de fraude.",
+          media: "Fotos que subes para trabajos personalizados o reseñas (almacenadas en Cloudinary).",
+        },
+      },
+      howWeUse: {
+        title: "Como usamos la informacion",
+        bullets: {
+          fulfill: "Preparar y enviar pedidos, incluyendo crear etiquetas con Shippo.",
+          communicate:
+            "Enviar confirmaciones, actualizaciones de envio y avisos de cuenta via Resend desde {replyToEmail}.",
+          support: "Dar soporte y responder preguntas enviadas a {supportEmail}.",
+          auth: "Autenticar cuentas y mantener sesiones activas con NextAuth.",
+          improve: "Mantener y mejorar el sitio, prevenir fraude/abuso y proteger el servicio.",
+          marketing: "Enviar correos de marketing solo si aceptas \"Enterate de las novedades\"; puedes darte de baja cuando quieras.",
+        },
+      },
+      marketing: {
+        title: "Opciones de marketing",
+        body1:
+          "El registro a correos de marketing es opcional y separado de los correos transaccionales. Cada correo de marketing incluye enlace para darte de baja.",
+        body2:
+          "Tambien puedes escribir a {supportEmail} para salir de la lista. Los correos transaccionales de pedidos siguen llegando cuando son necesarios.",
+      },
+      cookies: {
+        title: "Cookies y analitica",
+        body1: "Usamos cookies esenciales para mantener tu sesion, carrito y preferencia de idioma.",
+        body2:
+          "Las herramientas de analitica/ads aun no estan definidas. TODO- confirmar y listar cualquier proveedor antes del lanzamiento.",
+        body3:
+          "Puedes gestionar cookies en la configuracion de tu navegador; desactivar algunas puede afectar el login o el checkout.",
+      },
+      sharing: {
+        title: "Como compartimos informacion",
+        intro: "Compartimos datos solo con proveedores necesarios para operar Lucky Caps:",
+        items: {
+          stripe: "Stripe para procesar pagos y prevenir fraude.",
+          shippo: "Shippo para tarifas, etiquetas y seguimiento.",
+          resend: "Resend para enviar correos.",
+          database: "Neon Postgres (via Netlify) para guardar pedidos, cuentas y productos.",
+          cloudinary: "Cloudinary para hospedar imagenes de productos y de usuarios.",
+          hosting: "Infraestructura Netlify/Next.js para alojar la tienda.",
+        },
+        closing:
+          "No vendemos informacion personal. Si necesitamos compartir datos por obligacion legal o para proteger el servicio, lo haremos conforme a la ley.",
+      },
+      retention: {
+        title: "Conservacion de datos",
+        body1:
+          "Mantenemos registros de pedidos y cuentas mientras sea necesario para operar la tienda, cumplir la ley, resolver disputas y conservar registros fiscales/financieros.",
+        body2:
+          "Si solicitas eliminacion, borraremos o anonimizaremos lo que no debamos conservar. Algunos datos pueden permanecer en respaldos por un tiempo limitado.",
+      },
+      security: {
+        title: "Seguridad",
+        body1:
+          "Usamos medidas razonables (controles de acceso, cifrado en transito, roles de admin) para proteger los datos en Neon Postgres y en nuestros proveedores.",
+        body2:
+          "Ningun metodo de transmision o almacenamiento es 100% seguro. Si ocurre un problema que te afecte, te contactaremos con los datos que nos diste.",
+      },
+      children: {
+        title: "Privacidad de menores",
+        body:
+          "Lucky Caps no esta dirigida a menores de 13. Si crees que un menor compartio informacion, escribe a {supportEmail} y la borraremos donde aplique.",
+      },
+      rights: {
+        title: "Tus derechos y opciones",
+        body1: "Puedes pedir acceso, correccion o eliminacion de tu informacion escribiendo a {supportEmail}.",
+        body2:
+          "Si estas en una region con derechos especificos (por ejemplo UE/Reino Unido/California), mencionarlo nos ayuda a seguir el proceso correcto. TODO- agregar lenguaje especifico cuando se confirme el alcance.",
+      },
+      updates: {
+        title: "Actualizaciones de esta politica",
+        body:
+          "Podemos actualizar esta politica y cambiaremos la fecha de \"Ultima actualizacion\" cuando suceda. Si el cambio es importante, avisaremos brevemente en el sitio.",
+      },
+      contact: {
+        title: "Contactanos",
+        body: "Preguntas sobre privacidad- Escribe a {supportEmail}.",
+      },
+    },
   },
   terms: {
-    title: "TÃ©rminos del servicio",
-    copy:
-      "Esta es una pÃ¡gina demo de tÃ©rminos para Lucky Caps. Trata esta tienda como una vista previa. Los tÃ©rminos completos se agregarÃ¡n junto con un lanzamiento de producciÃ³n.",
+    title: "Terminos del servicio",
+    description: "Las reglas para usar Lucky Caps y comprar nuestras gorras de edicion limitada.",
+    sections: {
+      overview: {
+        title: "Resumen / Aceptacion de terminos",
+        body1: "Al usar o comprar en Lucky Caps aceptas estos Terminos y la Politica de privacidad.",
+        body2:
+          "Si no estas de acuerdo, no uses el sitio. Podemos actualizar los Terminos; si sigues usando el sitio despues del cambio, aceptas la version actualizada.",
+      },
+      eligibility: {
+        title: "Elegibilidad",
+        body1:
+          "Debes tener al menos 18 anos (o ser mayor de edad en tu region) o contar con consentimiento de un tutor para comprar o crear cuenta.",
+        body2:
+          "Debes proporcionar informacion correcta. Podemos rechazar o cancelar pedidos a discrecion (por ejemplo por sospecha de fraude o falta de inventario).",
+      },
+      orders: {
+        title: "Pedidos y pago",
+        bullets: {
+          payment: "Los pagos se procesan con Stripe. No almacenamos los numeros completos de tarjeta.",
+          pricing: "Los precios y disponibilidad pueden cambiar. Impuestos y envio se muestran en el checkout.",
+          auth:
+            "Al enviar un pedido autorizas que cobremos el total (impuestos, envio y descuentos aplicados) con tu metodo de pago a traves de Stripe.",
+          promos:
+            "Promos o cupones pueden tener limite de tiempo, uso o inventario; no se combinan salvo que se indique.",
+          confirmation:
+            "El pedido queda confirmado cuando lo aceptamos y se procesa el cobro. Si no podemos cumplirlo, lo cancelaremos y te reembolsaremos.",
+        },
+      },
+      shipping: {
+        title: "Envio y entrega",
+        body1:
+          "Enviamos con etiquetas generadas por Shippo. Las opciones y tiempos estimados se muestran en el checkout; la entrega real depende del transportista.",
+        body2:
+          "Revisa tu direccion de envio. El riesgo pasa al transportista al aceptar el paquete, pero si se pierde o daña, avisanos y ayudaremos a coordinar con la paqueteria cuando sea posible.",
+        body3: "Cualquier impuesto o arancel de importacion (si aplica) es responsabilidad del cliente.",
+      },
+      returns: {
+        title: "Devoluciones y cambios",
+        eyebrow: "Politica pendiente",
+        body1: "Queremos que te guste tu gorra. La politica final de devoluciones/cambios estara pronto.",
+        body2:
+          "Sugerencia a confirmar- ventana de {returnsWindowDays} dias desde la entrega, articulos sin usar y en buen estado, el cliente paga el envio de regreso salvo que llegue dañado.",
+        body3:
+          "Mientras tanto, escribe a {returnsEmail} con tu numero de pedido y veremos cada caso de forma individual.",
+      },
+      product: {
+        title: "Detalles de producto",
+        body1:
+          "Las gorras llevan emblemas tipo insignia aplicados a mano. Puede haber leves variaciones o marcas porque cada pieza se termina manualmente.",
+        body2: "Los colores pueden variar segun la pantalla. Limpia con paño humedo; evita calor alto sobre el emblema.",
+      },
+      accounts: {
+        title: "Cuentas de usuario",
+        body1:
+          "Si creas una cuenta con NextAuth, manten seguras tus credenciales y avisanos ante uso no autorizado.",
+        body2:
+          "Eres responsable de toda actividad en tu cuenta. Podemos suspender o cerrar cuentas que violen estos Terminos o abusen del servicio.",
+      },
+      ip: {
+        title: "Propiedad intelectual",
+        body1:
+          "Lucky Caps, nuestros logos, imagenes de productos y contenido del sitio pertenecen a {businessName}. No puedes usarlos sin permiso.",
+      },
+      prohibited: {
+        title: "Usos prohibidos",
+        bullets: {
+          unlawful: "Usar el sitio para fines ilegales, fraudulentos o dañinos.",
+          interfere: "Interferir o interrumpir el sitio, incluyendo malware o scraping sin permiso.",
+          misuse: "Revender, suplantar o hacer ingenieria inversa del servicio o diseños.",
+          impersonation: "Hacerse pasar por otros o dar informacion falsa.",
+        },
+      },
+      disclaimers: {
+        title: "Avisos y limitacion de responsabilidad",
+        body1:
+          "El sitio y los productos se ofrecen \"tal cual\" en la medida que permita la ley. Rechazamos garantias implicitas de comerciabilidad, adecuacion e inafectacion.",
+        body2:
+          "Cuando la ley lo permita, nuestra responsabilidad total por cualquier reclamo se limita al monto que pagaste por ese pedido. Algunas regiones no permiten estas limitaciones.",
+      },
+      law: {
+        title: "Ley aplicable",
+        body1:
+          "Estos Terminos se rigen por las leyes de {governingLaw}. Reemplaza este marcador con tu estado/pais antes del lanzamiento.",
+      },
+      updates: {
+        title: "Actualizaciones de estos terminos",
+        body1:
+          "Podemos actualizar estos Terminos. Publicaremos la nueva fecha arriba. Si sigues usando el sitio despues, aceptas la version actualizada.",
+      },
+      contact: {
+        title: "Contacto",
+        body1: "Preguntas sobre estos Terminos- Escribe a {supportEmail}.",
+      },
+    },
   },
   reviews: {
-    title: "ReseÃ±as de clientes",
-    count: "({shown} / {total} reseÃ±as)",
-    totalCount: "({count} reseÃ±as)",
+    title: "Reseñas de clientes",
+    count: "({shown} / {total} reseñas)",
+    totalCount: "({count} reseñas)",
     sortLabel: "Ordenar:",
     sortOptions: {
-      recent: "MÃ¡s recientes",
-      high: "Mejor puntuaciÃ³n",
-      low: "Peor puntuaciÃ³n",
-      helpful: "MÃ¡s Ãºtiles",
+      recent: "Más recientes",
+      high: "Mejor puntuación",
+      low: "Peor puntuación",
+      helpful: "Más útiles",
     },
     filter: "Filtrar",
-    filterByRating: "Filtrar por puntuaciÃ³n",
+    filterByRating: "Filtrar por puntuación",
     starsLabel: "{count} estrella{suffix}",
-    writeReview: "Escribir reseÃ±a",
-    loadingReviews: "Cargando reseÃ±as...",
-    ratingBreakdown: "Desglose de puntuaciÃ³n",
-    noneYetTitle: "AÃºn no hay reseÃ±as",
-    noneYetCopy: "SÃ© el primero en opinar.",
-    noneMatchTitle: "No hay reseÃ±as que coincidan con tus filtros",
-    noneMatchCopy: "Prueba ajustar los filtros o limpiarlos para ver todas las reseÃ±as.",
-    showAll: "Ver todas las reseÃ±as",
-    modalTitle: "Escribir reseÃ±a",
+    writeReview: "Escribir reseña",
+    loadingReviews: "Cargando reseñas...",
+    ratingBreakdown: "Desglose de puntuación",
+    noneYetTitle: "Aún no hay reseñas",
+    noneYetCopy: "Sé el primero en opinar.",
+    noneMatchTitle: "No hay reseñas que coincidan con tus filtros",
+    noneMatchCopy: "Prueba ajustar los filtros o limpiarlos para ver todas las reseñas.",
+    showAll: "Ver todas las reseñas",
+    modalTitle: "Escribir reseña",
     forProduct: "para {product}",
-    ratingLabel: "PuntuaciÃ³n",
-    titleLabel: "TÃ­tulo",
+    ratingLabel: "Puntuación",
+    titleLabel: "Título",
     titlePlaceholder: "Calidad premium",
     photoUrlLabel: "URL de foto (opcional)",
     photoUrlPlaceholder: "https://...",
-    reviewLabel: "ReseÃ±a",
-    reviewPlaceholder: "Cuenta el ajuste, la sensaciÃ³n y la calidad.",
+    reviewLabel: "Reseña",
+    reviewPlaceholder: "Cuenta el ajuste, la sensación y la calidad.",
     variantLabel: "Variante (opcional)",
     variantPlaceholder: "Snapback / Fitted / Trucker",
     sizeLabel: "Talla (opcional)",
     sizePlaceholder: "Ajustable / 7 1/4...",
     variantPlaceholderShort: "Snapback / Trucker",
     guidelinesAgree: "Acepto las normas de la comunidad",
-    submit: "Enviar reseÃ±a",
+    submit: "Enviar reseña",
     shareExperience: "Comparte tu experiencia.",
     yourNameLabel: "Tu nombre (opcional)",
     namePlaceholder: "Alex Doe",
     rateStarsAria: "Calificar con {stars} estrella{suffix}",
     errors: {
-      required: "La puntuaciÃ³n, el tÃ­tulo y la reseÃ±a son obligatorios.",
-      requiredWithEmail: "La puntuaciÃ³n, el tÃ­tulo, la reseÃ±a y el correo son obligatorios.",
+      required: "La puntuación, el título y la reseña son obligatorios.",
+      requiredWithEmail: "La puntuación, el título, la reseña y el correo son obligatorios.",
       guidelines: "Acepta las normas de la comunidad.",
+      onlyPurchasers: "Solo clientes que compraron este artículo pueden dejar una reseña.",
     },
-    unableToLoadReviews: "No se pudieron cargar las reseÃ±as.",
-    thanks: "Â¡Gracias por tu reseÃ±a!",
-    unableToSubmitReview: "No se pudo enviar la reseÃ±a.",
-    anonymous: "AnÃ³nimo",
-    helpful: "Ãštil",
+    unableToLoadReviews: "No se pudieron cargar las reseñas.",
+    thanks: "¡Gracias por tu reseña!",
+    unableToSubmitReview: "No se pudo enviar la reseña.",
+    anonymous: "Anónimo",
+    helpful: "Útil",
     verifiedPurchase: "Compra verificada",
     variantValue: "Variante: {value}",
     sizeValue: "Talla: {value}",
@@ -1191,9 +1623,9 @@ const es: Dictionary = {
     redirecting: "Redirigiendo...",
     products: "Productos",
     orders: "Pedidos",
-    promoCodes: "CÃ³digos promo",
-    logOut: "Cerrar sesiÃ³n",
-    unauthorized: "No autorizado. Inicia sesiÃ³n como admin.",
+    promoCodes: "Códigos promo",
+    logOut: "Cerrar sesión",
+    unauthorized: "No autorizado. Inicia sesión como admin.",
     unauthorizedCheckAccess: "No autorizado. Verifica el acceso de admin.",
     unableToLoadProducts: "No se pudieron cargar los productos.",
     unableToDuplicate: "No se pudo duplicar.",
@@ -1201,7 +1633,7 @@ const es: Dictionary = {
     unableToCreateProduct: "No se pudo crear el producto.",
     unableToLoadOrders: "No se pudieron cargar los pedidos.",
     loadingOrder: "Cargando pedido...",
-    invalidOrderId: "ID de pedido invÃ¡lido.",
+    invalidOrderId: "ID de pedido inválido.",
     unableToLoadOrder: "No se pudo cargar el pedido.",
     unableToLoadProduct: "No se pudo cargar el producto.",
     unableToUpdateProduct: "No se pudo actualizar el producto.",
@@ -1210,7 +1642,7 @@ const es: Dictionary = {
     loadingProducts: "Cargando productos...",
     noProducts: "No se encontraron productos.",
     product: "Producto",
-    category: "CategorÃ­a",
+    category: "Categoría",
     price: "Precio",
     stock: "Stock",
     flags: "Indicadores",
@@ -1218,13 +1650,13 @@ const es: Dictionary = {
     edit: "Editar",
     editProduct: "Editar producto",
     duplicate: "Duplicar",
-    addProduct: "AÃ±adir producto",
+    addProduct: "Añadir producto",
     backToProducts: "Volver a productos",
     allStatuses: "Todos los estados",
-    newestFirst: "MÃ¡s nuevos primero",
-    oldestFirst: "MÃ¡s antiguos primero",
-    noOrdersYet: "AÃºn no hay pedidos",
-    ordersEmptyCopy: "Los pedidos aparecerÃ¡n aquÃ­ cuando los clientes paguen.",
+    newestFirst: "Más nuevos primero",
+    oldestFirst: "Más antiguos primero",
+    noOrdersYet: "Aún no hay pedidos",
+    ordersEmptyCopy: "Los pedidos aparecerán aquí cuando los clientes paguen.",
     goToProducts: "Ir a productos",
     loadingOrders: "Cargando pedidos...",
     searchOrdersPlaceholder: "Buscar por ID de pedido o correo",
@@ -1235,14 +1667,14 @@ const es: Dictionary = {
     orderNotFound: "Pedido no encontrado",
     savedChanges: "Cambios guardados",
     unableToSaveChanges: "No se pudieron guardar los cambios",
-    itemsTitle: "ArtÃ­culos",
-    shippingTitle: "EnvÃ­o",
+    itemsTitle: "Artículos",
+    shippingTitle: "Envío",
     customerTitle: "Cliente",
     contactTitle: "Contacto",
     totalsTitle: "Totales",
     trackingNotesTitle: "Seguimiento y notas",
-    shippingLabelTitle: "Etiquetas de envio",
-    shippingPaidOnly: "Las etiquetas estan disponibles despues del pago.",
+    shippingLabelTitle: "Etiquetas de envío",
+    shippingPaidOnly: "Las etiquetas están disponibles después del pago.",
     shippingPackageTemplate: "Plantilla de paquete",
     shippingCustomTemplate: "Paquete personalizado",
     shippingLength: "Largo",
@@ -1254,24 +1686,24 @@ const es: Dictionary = {
     shippingLabelFormat: "Formato de etiqueta",
     shippingGetRates: "Obtener tarifas",
     shippingRatesTitle: "Tarifas",
-    shippingNoRates: "Sin tarifas todavia.",
+    shippingNoRates: "Sin tarifas todavía.",
     shippingBuyLabel: "Comprar etiqueta",
     shippingLabelReady: "Etiqueta lista",
     shippingDownloadLabel: "Descargar etiqueta {format}",
-    shippingTrackingNumber: "Numero de seguimiento",
+    shippingTrackingNumber: "Número de seguimiento",
     shippingMarkShipped: "Marcar como enviado",
     shippingRatesReady: "Tarifas cargadas",
     shippingLabelPurchased: "Etiqueta comprada",
-    shippingInvalidParcel: "Ingresa detalles validos del paquete.",
+    shippingInvalidParcel: "Ingresa detalles válidos del paquete.",
     shippingRandomize: "Aleatorio",
     manageTitle: "Administrar",
     statusLabel: "Estado",
-    trackingNumberLabel: "NÃºmero de seguimiento",
+    trackingNumberLabel: "Número de seguimiento",
     enterTrackingPlaceholder: "Ingresar seguimiento",
-    trackingHelp: "Agrega el nÃºmero de seguimiento cuando se envÃ­e (opcional).",
+    trackingHelp: "Agrega el número de seguimiento cuando se envíe (opcional).",
     adminNotesLabel: "Notas internas",
     internalNotesPlaceholder: "Notas internas",
-    markOrderConfirm: "Â¿Marcar pedido como {status}-",
+    markOrderConfirm: "¿Marcar pedido como {status}?",
     markPaid: "Marcar como pagado",
     markShipped: "Marcar como enviado",
     markDelivered: "Marcar como entregado",
@@ -1279,12 +1711,12 @@ const es: Dictionary = {
     markRefunded: "Marcar como reembolsado",
     unknownCustomer: "Cliente desconocido",
     noNotes: "Sin notas",
-    deleteProductConfirm: "Â¿Eliminar este producto-",
-    deleteConfirm: "Â¿Eliminar {name}- Esto no se puede deshacer.",
+    deleteProductConfirm: "¿Eliminar este producto?",
+    deleteConfirm: "¿Eliminar {name}? Esto no se puede deshacer.",
     loadingProduct: "Cargando producto...",
     saveChanges: "Guardar cambios",
     productNotFound: "Producto no encontrado.",
-    productNotFoundCopy: "Es posible que se haya eliminado. Vuelve al panel para ver el catÃ¡logo actual.",
+    productNotFoundCopy: "Es posible que se haya eliminado. Vuelve al panel para ver el catálogo actual.",
     backToAdmin: "Volver a Admin",
   },
   adminProductForm: {
@@ -1292,10 +1724,10 @@ const es: Dictionary = {
     name: "Nombre",
     slug: "Slug",
     autoSlug: "Auto",
-    slugHelp: "Debe ser Ãºnico; se genera desde el nombre.",
-    description: "DescripciÃ³n",
-    descriptionPlaceholder: "DescripciÃ³n corta del producto",
-    category: "CategorÃ­a",
+    slugHelp: "Debe ser único; se genera desde el nombre.",
+    description: "Descripción",
+    descriptionPlaceholder: "Descripción corta del producto",
+    category: "Categoría",
     categoryPlaceholder: "Gorras, beanies...",
     stock: "Stock",
     pricing: "Precios",
@@ -1307,24 +1739,28 @@ const es: Dictionary = {
       "En oferta, el precio rojo es el de oferta y el valor tenue es el original tachado.",
     markNewDrop: "Marcar como Nuevo Drop",
     sizesAvailable: "Tallas disponibles",
-    sizesHelp: "Elige las tallas disponibles. DÃ©jalo vacÃ­o para ocultar opciones.",
-    images: "ImÃ¡genes",
-    addImageByUrl: "AÃ±adir imagen por URL",
+    sizesHelp: "Elige las tallas disponibles. Déjalo vacío para ocultar opciones.",
+    images: "Imágenes",
+    addImageByUrl: "Añadir imagen por URL",
     photoUrlPlaceholder: "https://...",
     uploadForPreview: "Subir para vista previa",
-    uploadHelp: "Selecciona imÃ¡genes para subir a Cloudinary. TambiÃ©n puedes pegar URLs.",
-    uploadFailed: "FallÃ³ la subida",
-    uploadFailedStatus: "FallÃ³ la subida (estado {status})",
-    sessionExpired: "Tu sesiÃ³n de admin expirÃ³. Inicia sesiÃ³n de nuevo.",
+    uploadHelp: "Selecciona imágenes para subir a Cloudinary. También puedes pegar URLs.",
+    uploadFailed: "Falló la subida",
+    uploadFailedStatus: "Falló la subida (estado {status})",
+    sessionExpired: "Tu sesión de admin expiró. Inicia sesión de nuevo.",
     checkEnv:
       "Verifica el login de admin y las variables CLOUDINARY_*.",
     waitUploads: "Espera a que terminen las subidas.",
-    invalidImages: "Las imÃ¡genes deben estar en Cloudinary o usar URLs http(s).",
+    invalidImages: "Las imágenes deben estar en Cloudinary o usar URLs http(s).",
     previewAlt: "Vista previa {index}",
-    noImages: "AÃºn no hay imÃ¡genes. Agrega una URL o sube a Cloudinary.",
+    noImages: "Aún no hay imágenes. Agrega una URL o sube a Cloudinary.",
+    imagePrimary: "Imagen principal",
+    makePrimary: "Hacer principal",
+    moveUp: "Subir",
+    moveDown: "Bajar",
   },
   adminPromoCodes: {
-    noneYet: "AÃºn no hay cÃ³digos promo.",
+    noneYet: "Aún no hay códigos promo.",
     statusActive: "Activo",
     statusInactive: "Inactivo",
     discountTypeLabel: "Tipo de descuento",
@@ -1333,8 +1769,8 @@ const es: Dictionary = {
     percentOff: "Porcentaje",
     amountOff: "Monto",
     currency: "Moneda",
-    minSubtotal: "Subtotal mÃ­nimo",
-    maxRedemptions: "MÃ¡x. usos",
+    minSubtotal: "Subtotal mínimo",
+    maxRedemptions: "Máx. usos",
     redeemed: "Canjeado",
     window: "Vigencia",
     startsAt: "Empieza",
@@ -1346,6 +1782,37 @@ export const dictionaries: Record<Language, Dictionary> = {
   EN: en,
   ES: es,
 };
+
+function walkDictionary(
+  node: Dictionary,
+  path: string[] = [],
+  visit?: (path: string, value: string) => void,
+) {
+  Object.entries(node).forEach(([key, value]) => {
+    const nextPath = [...path, key];
+    if (typeof value === "string") {
+      visit?.(nextPath.join("."), value);
+    } else if (value && typeof value === "object") {
+      walkDictionary(value as Dictionary, nextPath, visit);
+    }
+  });
+}
+
+if (process.env.NODE_ENV !== "production") {
+  const mojibakePattern = /[ÃÂ�]/;
+  const mojibakeHits: string[] = [];
+  walkDictionary(dictionaries.EN, [], (path, value) => {
+    if (mojibakePattern.test(value)) mojibakeHits.push(`EN:${path}`);
+  });
+  walkDictionary(dictionaries.ES, [], (path, value) => {
+    if (mojibakePattern.test(value)) mojibakeHits.push(`ES:${path}`);
+  });
+  if (mojibakeHits.length) {
+    throw new Error(
+      `Mojibake detected in translations: ${mojibakeHits.join(", ")}`,
+    );
+  }
+}
 
 function getNestedValue(obj: unknown, key: string): unknown {
   return key.split(".").reduce<unknown>((acc, part) => {
@@ -1366,8 +1833,26 @@ function interpolate(template: string, vars?: Vars): string {
 export function createTranslator(language: Language) {
   const dict = dictionaries[language] ?? dictionaries.EN;
   return (key: string, vars?: Vars) => {
-    const raw = getNestedValue(dict, key);
-    if (typeof raw !== "string") return key;
-    return interpolate(raw, vars);
+    let raw = getNestedValue(dict, key);
+    const missingInLocale = typeof raw !== "string";
+    if (missingInLocale) {
+      raw = getNestedValue(dictionaries.EN, key);
+    }
+    const missingEverywhere = typeof raw !== "string";
+
+    if (missingEverywhere) {
+      if (process.env.NODE_ENV !== "production") {
+        throw new Error(`Missing translation for key: ${key}`);
+      }
+      return key.replace(/\./g, " ");
+    }
+
+    if (missingInLocale && process.env.NODE_ENV !== "production") {
+      // Surface missing locale entries early during development.
+      // eslint-disable-next-line no-console
+      console.warn(`Missing ${language} translation for key "${key}", using EN fallback.`);
+    }
+
+    return interpolate(raw as string, vars);
   };
 }

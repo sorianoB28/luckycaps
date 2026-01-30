@@ -56,6 +56,15 @@ const makeVoterKey = () =>
     ? crypto.randomUUID()
     : `voter_${Math.random().toString(36).slice(2)}`);
 
+function TrustRow({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-xs text-white/70">
+      <ShieldCheck className="h-4 w-4 text-lucky-green" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
 export default function ProductPage({ params }: ProductPageProps) {
   const t = useT();
   const router = useRouter();
@@ -368,6 +377,15 @@ export default function ProductPage({ params }: ProductPageProps) {
               >
                 Reviews
               </button>
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                <p className="text-sm font-semibold text-white/80">{t("product.trust.title")}</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <TrustRow label={t("product.trust.secureCheckout")} />
+                  <TrustRow label={t("product.trust.trackedShipping")} />
+                  <TrustRow label={t("product.trust.support", { email: "support@luckycapsshop.com" })} />
+                  <TrustRow label={t("product.trust.returns")} />
+                </div>
+              </div>
               {data.product.features?.length ? (
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <p className="text-sm font-semibold text-white/80">{t("shop.highlights")}</p>
@@ -604,7 +622,8 @@ function ProductReviews({
       setSummary(refreshed.summary);
       setShowReviewModal(false);
     } catch (err) {
-      setSubmitError((err as Error).message || t("reviews.unableToSubmitReview"));
+      const msg = (err as Error).message || t("reviews.unableToSubmitReview");
+      setSubmitError(msg === "only_purchasers" ? t("reviews.errors.onlyPurchasers") : msg);
     } finally {
       setSubmitting(false);
     }

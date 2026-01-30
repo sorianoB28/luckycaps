@@ -1,16 +1,23 @@
-"use client";
+import type { Metadata } from "next";
 
-import { useT } from "@/components/providers/LanguageProvider";
+import TermsContent from "./TermsContent";
+import { legalConfig } from "@/config/legal";
+
+const siteUrl = (legalConfig.siteUrl || "https://luckycapsshop.com").replace(/\/$/, "");
+
+export const metadata: Metadata = {
+  title: "Terms of Service | Lucky Caps",
+  description: "The rules for using Lucky Caps and purchasing our products.",
+  alternates: {
+    canonical: `${siteUrl}/terms`,
+  },
+  openGraph: {
+    title: "Terms of Service | Lucky Caps",
+    description: "The rules for using Lucky Caps and purchasing our products.",
+    url: `${siteUrl}/terms`,
+  },
+};
 
 export default function TermsPage() {
-  const t = useT();
-
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-12 text-white">
-      <h1 className="font-display text-4xl">{t("terms.title")}</h1>
-      <p className="mt-4 text-white/70">
-        {t("terms.copy")}
-      </p>
-    </div>
-  );
+  return <TermsContent />;
 }

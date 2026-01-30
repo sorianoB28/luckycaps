@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import sql from "@/lib/db";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 type ReviewRow = {
   id: string;
@@ -84,6 +86,8 @@ type CreateReviewPayload = {
 };
 
 export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+
   let payload: CreateReviewPayload;
   try {
     payload = (await request.json()) as CreateReviewPayload;
@@ -147,6 +151,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ errors }, { status: 400 });
   }
 
+  const sessionUserId =
+    session?.user?.id && uuidPattern.test(session.user.id) ? session.user.id : null;
+  const effectiveEmail = (session?.user?.email ?? authorEmail).trim().toLowerCase();
+
   const productRows = (await sql`
     SELECT id
     FROM public.products
@@ -161,6 +169,28 @@ export async function POST(request: Request) {
     );
   }
 
+  const verifiedPurchaseRows = (await sql`
+    SELECT 1
+    FROM public.orders o
+    JOIN public.order_items oi ON oi.order_id = o.id
+    WHERE
+      o.status = 'paid'
+      AND oi.product_id = ${productId}::uuid
+      AND (
+        LOWER(o.email) = ${effectiveEmail.toLowerCase()}
+        OR (${sessionUserId}::uuid IS NOT NULL AND o.user_id = ${sessionUserId}::uuid)
+      )
+    LIMIT 1
+  `) as Array<{ exists: number }>;
+
+  const isVerified = verifiedPurchaseRows.length > 0;
+  if (!isVerified) {
+    return NextResponse.json(
+      { error: "only_purchasers" },
+      { status: 403 }
+    );
+  }
+
   const insertRows = (await sql`
     INSERT INTO public.reviews (
       product_id,
@@ -172,7 +202,8 @@ export async function POST(request: Request) {
       author_name,
       variant,
       size,
-      images
+      images,
+      verified_purchase
     )
     VALUES (
       ${productId}::uuid,
@@ -184,7 +215,8 @@ export async function POST(request: Request) {
       ${authorName},
       ${variant},
       ${size},
-      ${images}
+      ${images},
+      ${isVerified}
     )
     RETURNING id
   `) as unknown as { id: string }[];

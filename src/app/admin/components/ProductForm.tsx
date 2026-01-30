@@ -195,6 +195,18 @@ export function ProductForm({
     onSubmit({ ...form, slug: normalizedSlug });
   };
 
+  const moveImage = (from: number, to: number) => {
+    setForm((prev) => {
+      if (to < 0 || to >= prev.images.length) return prev;
+      const next = [...prev.images];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return { ...prev, images: next };
+    });
+  };
+
+  const makePrimary = (index: number) => moveImage(index, 0);
+
   const hasImages = useMemo(() => form.images.length > 0, [form.images.length]);
   const hasInvalidImages = useMemo(
     () => form.images.some((img) => !isHttpUrl(img.url?.trim())),
@@ -447,11 +459,11 @@ export function ProductForm({
                 <span className="text-xs text-white/70">{t("common.uploading")}</span>
               ) : null}
             </div>
-            {uploadErrors.length ? (
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-100">
-                <p className="font-semibold">{t("adminProductForm.uploadFailed")}</p>
-                <ul className="mt-1 space-y-1 text-xs">
-                  {uploadErrors.map((err, idx) => (
+              {uploadErrors.length ? (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-100">
+                  <p className="font-semibold">{t("adminProductForm.uploadFailed")}</p>
+                  <ul className="mt-1 space-y-1 text-xs">
+                    {uploadErrors.map((err, idx) => (
                     <li key={idx}>{err}</li>
                   ))}
                 </ul>
@@ -502,20 +514,54 @@ export function ProductForm({
                       }}
                     />
                   </div>
-                  <div className="flex items-center justify-between px-3 py-2 text-xs text-white/70">
-                    <span className="truncate">{img.url}</span>
-                    <button
-                      type="button"
-                      className="text-red-400 hover:text-red-300"
-                      onClick={() =>
-    setForm((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== idx),
-    }))
-                      }
-                    >
-                      {t("common.remove")}
-                    </button>
+                  <div className="space-y-2 px-3 py-2 text-xs text-white/70">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate">{img.url}</span>
+                      {idx === 0 ? (
+                        <span className="rounded-full bg-lucky-green/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-lucky-green">
+                          {t("adminProductForm.imagePrimary")}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="rounded-full border border-white/20 px-3 py-1 text-white transition hover:border-white/40"
+                        onClick={() => makePrimary(idx)}
+                        disabled={idx === 0}
+                        title={t("adminProductForm.makePrimary")}
+                      >
+                        {t("adminProductForm.makePrimary")}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-white/20 px-3 py-1 text-white transition hover:border-white/40 disabled:opacity-50"
+                        onClick={() => moveImage(idx, idx - 1)}
+                        disabled={idx === 0}
+                      >
+                        {t("adminProductForm.moveUp")}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full border border-white/20 px-3 py-1 text-white transition hover:border-white/40 disabled:opacity-50"
+                        onClick={() => moveImage(idx, idx + 1)}
+                        disabled={idx === form.images.length - 1}
+                      >
+                        {t("adminProductForm.moveDown")}
+                      </button>
+                      <button
+                        type="button"
+                        className="text-red-400 transition hover:text-red-300"
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            images: prev.images.filter((_, i) => i !== idx),
+                          }))
+                        }
+                      >
+                        {t("common.remove")}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

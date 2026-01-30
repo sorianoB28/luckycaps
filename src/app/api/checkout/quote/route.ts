@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   const items = Array.isArray(body.items) ? body.items : [];
-  const deliveryOption = body.deliveryOption?.toString() ?? "standard";
+  const deliveryOption = body.deliveryOption?.toString() ?? "flat";
   const promoCode = body.promoCode?.toString() ?? null;
   const currency = body.currency?.toString() ?? "usd";
 
@@ -43,4 +43,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true, quote: result.quote }, { status: 200 });
 }
-

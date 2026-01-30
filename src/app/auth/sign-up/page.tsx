@@ -76,8 +76,8 @@ function SignUpContent() {
         email: form.email.toLowerCase(),
         password: form.password,
       });
-      const redirect = searchParams?.get("redirect");
-      router.push(redirect || "/account");
+      const redirect = searchParams?.get("redirect") || searchParams?.get("callbackUrl");
+      router.push(redirect || "/");
     } catch (err) {
       setError((err as Error).message || t("auth.errors.unableToCreateAccount"));
     } finally {

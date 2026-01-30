@@ -113,7 +113,7 @@ export async function POST(request: Request) {
   try {
     const quoteResult = await computeCheckoutQuote({
       items: itemInputs,
-      deliveryOption: body.deliveryOption,
+      deliveryOption: body.deliveryOption || "flat",
       promoCode: body.promoCode,
       currency: "usd",
     });
@@ -248,12 +248,25 @@ export async function POST(request: Request) {
           currency: "usd",
           unit_amount: quote.shipping_cents,
           product_data: {
-            name: quote.delivery_option === "express" ? "Express shipping" : "Shipping",
+            name: "Flat Rate Shipping",
             metadata: { delivery_option: quote.delivery_option, item_type: "shipping" },
           },
         },
       });
     }
+
+    const lineItemsTotal = lineItems.reduce(
+      (sum, item) => sum + (item.price_data?.unit_amount ?? 0) * (item.quantity ?? 1),
+      0
+    );
+    console.log("checkout totals", {
+      checkoutId,
+      subtotal_cents: quote.subtotal_cents,
+      discount_cents: quote.discount_cents,
+      shipping_cents: quote.shipping_cents,
+      total_cents: quote.total_cents,
+      line_items_total: lineItemsTotal,
+    });
 
     const stripeSession = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -261,6 +274,7 @@ export async function POST(request: Request) {
         checkout_id: checkoutId,
         user_id: sessionUserId ?? "",
         expected_total_cents: String(quote.total_cents),
+        shipping_cents: String(quote.shipping_cents),
       },
       discounts: appliedPromo ? [{ coupon: appliedPromo.stripe_coupon_id }] : undefined,
       line_items: lineItems,

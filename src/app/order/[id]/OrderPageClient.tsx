@@ -50,6 +50,10 @@ export default function OrderPageClient({
 }) {
   const t = useT();
   const shipping = order.shipping_address;
+  const deliveryLabel =
+    order.delivery_option === "flat"
+      ? t("checkout.delivery.flat.name")
+      : order.delivery_option ?? t("order.na");
   const contact = order.contact;
   const shipment = order.shipment;
 
@@ -114,7 +118,7 @@ export default function OrderPageClient({
             </p>
             <p className="text-sm text-white/70">{shipping?.country}</p>
             <p className="mt-2 text-sm text-white/60">
-              {t("order.deliveryValue", { delivery: order.delivery_option ?? t("order.na") })}
+              {t("order.deliveryValue", { delivery: deliveryLabel })}
             </p>
             {shipment?.tracking_number || shipment?.tracking_url ? (
               <div className="mt-3 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white/70">

@@ -1,16 +1,23 @@
-"use client";
+import type { Metadata } from "next";
 
-import { useT } from "@/components/providers/LanguageProvider";
+import PrivacyContent from "./PrivacyContent";
+import { legalConfig } from "@/config/legal";
+
+const siteUrl = (legalConfig.siteUrl || "https://luckycapsshop.com").replace(/\/$/, "");
+
+export const metadata: Metadata = {
+  title: "Privacy Policy | Lucky Caps",
+  description: "How Lucky Caps collects and uses information to run the store, ship orders, and communicate with you.",
+  alternates: {
+    canonical: `${siteUrl}/privacy`,
+  },
+  openGraph: {
+    title: "Privacy Policy | Lucky Caps",
+    description: "How Lucky Caps collects and uses information to run the store, ship orders, and communicate with you.",
+    url: `${siteUrl}/privacy`,
+  },
+};
 
 export default function PrivacyPage() {
-  const t = useT();
-
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-12 text-white">
-      <h1 className="font-display text-4xl">{t("privacy.title")}</h1>
-      <p className="mt-4 text-white/70">
-        {t("privacy.copy")}
-      </p>
-    </div>
-  );
+  return <PrivacyContent />;
 }

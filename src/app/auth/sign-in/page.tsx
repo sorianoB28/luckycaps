@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { AuthNotice } from "@/components/auth/AuthNotice";
 import { useT } from "@/components/providers/LanguageProvider";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -23,19 +24,27 @@ function SignInContent() {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    status: "success" | "error" | "loading";
+    message: string;
+  } | null>(null);
+
+  const target =
+    searchParams?.get("redirect") ||
+    searchParams?.get("callbackUrl") ||
+    "/";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!emailRegex.test(email)) {
-      setError(t("auth.errors.invalidEmail"));
+      setFeedback({ status: "error", message: t("auth.errors.invalidEmail") });
       return;
     }
     if (!password) {
-      setError(t("auth.errors.passwordRequired"));
+      setFeedback({ status: "error", message: t("auth.errors.passwordRequired") });
       return;
     }
-    setError(null);
+    setFeedback({ status: "loading", message: t("auth.signingIn") });
     setLoading(true);
     const result = await signIn("credentials", {
       redirect: false,
@@ -44,20 +53,26 @@ function SignInContent() {
     });
     setLoading(false);
     if (result?.error) {
-      setError(
+      const generic = t("auth.errors.signInFailed");
+      const message =
         result.error === "CredentialsSignin"
           ? t("auth.errors.invalidCredentials")
-          : result.error
-      );
+          : generic;
+      setFeedback({ status: "error", message });
       return;
     }
-    const redirect = searchParams?.get("redirect");
-    router.push(redirect || "/account");
+    setFeedback({ status: "success", message: t("auth.success.signedIn") });
+    setTimeout(() => {
+      router.push(target || "/");
+    }, 450);
   };
 
   return (
     <AuthShell title={t("auth.signIn")} subtitle={t("auth.signInSubtitle")}>
       <form className="space-y-4" onSubmit={handleSubmit}>
+        {feedback ? (
+          <AuthNotice status={feedback.status} title={feedback.message} />
+        ) : null}
         <div className="space-y-2">
           <Label>{t("auth.emailLabel")}</Label>
           <div className="relative">
@@ -98,10 +113,9 @@ function SignInContent() {
             {t("auth.forgotPasswordLink")}
           </Link>
         </div>
-        {error ? <p className="text-sm text-red-400">{error}</p> : null}
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {t("auth.signIn")}
+          {loading ? t("auth.signingIn") : t("auth.signIn")}
         </Button>
         <Button
           type="button"

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Headset, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,24 +23,17 @@ type DeliveryOption = {
   id: string;
   nameKey: string;
   descriptionKey: string;
-  price: number;
   etaKey: string;
+  price: number;
 };
 
 const deliveryOptions: DeliveryOption[] = [
   {
-    id: "standard",
-    nameKey: "checkout.delivery.standard.name",
-    descriptionKey: "checkout.delivery.standard.description",
-    price: 0,
-    etaKey: "checkout.delivery.standard.eta",
-  },
-  {
-    id: "express",
-    nameKey: "checkout.delivery.express.name",
-    descriptionKey: "checkout.delivery.express.description",
-    price: 12,
-    etaKey: "checkout.delivery.express.eta",
+    id: "flat",
+    nameKey: "checkout.delivery.flat.name",
+    descriptionKey: "checkout.delivery.flat.description",
+    etaKey: "checkout.delivery.flat.eta",
+    price: 6,
   },
 ];
 
@@ -748,6 +742,28 @@ function CheckoutPageContent() {
               </div>
             </CardContent>
           </Card>
+
+          <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
+            <p className="text-sm font-semibold text-white/80">{t("checkout.trust.title")}</p>
+            <div className="space-y-2 text-xs text-white/70">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-lucky-green" />
+                <span>{t("checkout.trust.stripe")}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-lucky-green" />
+                <span>{t("checkout.trust.shipping")}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Headset className="h-4 w-4 text-lucky-green" />
+                <span>{t("checkout.trust.support")}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <RotateCcw className="h-4 w-4 text-lucky-green" />
+                <span>{t("checkout.trust.returns")}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
