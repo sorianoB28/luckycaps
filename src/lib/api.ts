@@ -446,6 +446,8 @@ export async function voteHelpful(reviewId: string, voterKey: string) {
   return res.json() as Promise<{ ok: boolean; counted: boolean; helpful_count: number }>;
 }
 
+type ApiError = Error & { status?: number; code?: string };
+
 async function adminFetchJson<T>(path: string, init?: RequestInit) {
   const url = resolveUrl(path);
   const headers = new Headers(init?.headers ?? {});
@@ -457,9 +459,13 @@ async function adminFetchJson<T>(path: string, init?: RequestInit) {
 
   if (!res.ok) {
     let message = `Request to ${url} failed with status ${res.status}`;
+    let code: string | undefined;
     try {
       const data = (await res.json()) as { error?: string; errors?: Record<string, string> };
-      if (data?.error) message = data.error;
+      if (data?.error) {
+        message = data.error;
+        code = data.error;
+      }
       if (data?.errors) {
         const first = Object.values(data.errors)[0];
         if (first) message = first;
@@ -467,8 +473,9 @@ async function adminFetchJson<T>(path: string, init?: RequestInit) {
     } catch {
       // ignore parse errors
     }
-    const err = new Error(message) as Error & { status?: number };
+    const err = new Error(message) as ApiError;
     err.status = res.status;
+    if (code) err.code = code;
     throw err;
   }
 
@@ -493,19 +500,22 @@ async function adminFetchJsonWithErrors<T>(path: string, init?: RequestInit) {
 
   if (!res.ok) {
     let message = `Request to ${url} failed with status ${res.status}`;
+    let code: string | undefined = data?.error;
     if (data?.error) message = data.error;
     if (data?.errors) {
       const first = Object.values(data.errors)[0];
       if (first) message = first;
     }
-    const err = new Error(message) as Error & { status?: number };
+    const err = new Error(message) as ApiError;
     err.status = res.status;
+    if (code) err.code = code;
     throw err;
   }
 
   if (data?.error) {
-    const err = new Error(data.error) as Error & { status?: number };
+    const err = new Error(data.error) as ApiError;
     err.status = res.status;
+    err.code = data.error;
     throw err;
   }
 

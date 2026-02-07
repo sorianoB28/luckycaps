@@ -37,8 +37,11 @@ export default function AdminDashboard() {
         setProducts(data);
       } catch (err) {
         const status = (err as Error & { status?: number }).status;
+        const code = (err as Error & { code?: string }).code;
         if (status === 401) {
           setError(t("admin.unauthorized"));
+        } else if (code === "admin_products_failed") {
+          setError(t("admin.unableToLoadProducts"));
         } else {
           setError((err as Error).message || t("admin.unableToLoadProducts"));
         }

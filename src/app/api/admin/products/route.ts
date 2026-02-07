@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
 import { slugify } from "@/lib/slugify";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
-import { translateText } from "@/lib/deepl";
+import { translateText } from "@/lib/deeplClient";
 import { detectInputLanguage } from "@/lib/productLanguage";
 import { type Language } from "@/lib/i18n";
 
@@ -77,60 +77,68 @@ export async function GET(request: Request) {
   const { response } = await requireAdmin();
   if (response) return response;
 
-  const rows = (await sql`
-    SELECT
-      p.id,
-      p.slug,
-      p.name,
-      p.name_en,
-      p.name_es,
-      p.category,
-      p.description,
-      p.description_en,
-      p.description_es,
-      p.price_cents,
-      p.sale_price_cents,
-      p.original_price_cents,
-      p.is_new_drop,
-      p.is_sale,
-      p.tags,
-      p.features,
-      p.stock,
-      p.active,
-      p.created_at,
-      p.translation_updated_at,
-      (
-        SELECT url
-        FROM public.product_images pi
-        WHERE pi.product_id = p.id
-        ORDER BY pi.sort_order ASC NULLS LAST, pi.created_at ASC
-        LIMIT 1
-      ) AS image_url,
-      COALESCE(
+  try {
+    const rows = (await sql`
+      SELECT
+        p.id,
+        p.slug,
+        p.name,
+        p.name_en,
+        p.name_es,
+        p.category,
+        p.description,
+        p.description_en,
+        p.description_es,
+        p.price_cents,
+        p.sale_price_cents,
+        p.original_price_cents,
+        p.is_new_drop,
+        p.is_sale,
+        p.tags,
+        p.features,
+        p.stock,
+        p.active,
+        p.created_at,
+        p.translation_updated_at,
         (
-          SELECT ARRAY_AGG(pi.url ORDER BY pi.sort_order ASC NULLS LAST, pi.created_at ASC)
+          SELECT url
           FROM public.product_images pi
           WHERE pi.product_id = p.id
-        ),
-        '{}'::text[]
-      ) AS images,
-      COALESCE(
-        (
-          SELECT ARRAY_AGG(ps.name ORDER BY CASE LOWER(ps.name)
-            WHEN 's/m' THEN 1
-            WHEN 'm/l' THEN 2
-            WHEN 'l/xl' THEN 3
-            ELSE 100 END, ps.name ASC)
-          FROM public.product_sizes ps
-          WHERE ps.product_id = p.id
-        ),
-        '{}'::text[]
-      ) AS sizes
-    FROM public.products p
-    ORDER BY p.created_at DESC
-  `) as unknown as AdminProductRow[];
+          ORDER BY pi.sort_order ASC NULLS LAST, pi.created_at ASC
+          LIMIT 1
+        ) AS image_url,
+        COALESCE(
+          (
+            SELECT ARRAY_AGG(pi.url ORDER BY pi.sort_order ASC NULLS LAST, pi.created_at ASC)
+            FROM public.product_images pi
+            WHERE pi.product_id = p.id
+          ),
+          '{}'::text[]
+        ) AS images,
+        COALESCE(
+          (
+            SELECT ARRAY_AGG(ps.name ORDER BY CASE LOWER(ps.name)
+              WHEN 's/m' THEN 1
+              WHEN 'm/l' THEN 2
+              WHEN 'l/xl' THEN 3
+              ELSE 100 END, ps.name ASC)
+            FROM public.product_sizes ps
+            WHERE ps.product_id = p.id
+          ),
+          '{}'::text[]
+        ) AS sizes
+      FROM public.products p
+      ORDER BY p.created_at DESC
+    `) as unknown as AdminProductRow[];
 
-  return NextResponse.json(rows);
+    return NextResponse.json(rows);
+  } catch (err) {
+    console.error("Admin products GET failed", {
+      message: (err as Error)?.message,
+      error: err,
+    });
+    return NextResponse.json({ error: "admin_products_failed" }, { status: 500 });
+  }
 }
 
 type AdminProductPayload = {

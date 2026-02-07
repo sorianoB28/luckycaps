@@ -1,63 +1,8 @@
-"use server";
-
-type TargetLang = "EN" | "ES";
-
-const SPANISH = "ES";
-const ENGLISH = "EN";
-
-function resolveBaseUrl(apiKey: string | undefined) {
-  const envBase = process.env.DEEPL_API_BASE_URL?.trim();
-  if (envBase) return envBase.replace(/\/+$/, "");
-  if (apiKey?.endsWith(":fx")) return "https://api-free.deepl.com";
-  return "https://api.deepl.com";
-}
-
-export async function translateText(
-  text: string,
-  targetLang: TargetLang
-): Promise<string | null> {
-  const apiKey = process.env.DEEPL_API_KEY;
-  if (!apiKey) {
-    console.error("DeepL translate: missing API key");
-    return null;
-  }
-
-  const trimmed = text?.trim() ?? "";
-  if (!trimmed) return null;
-
-  const baseUrl = resolveBaseUrl(apiKey);
-  const url = `${baseUrl}/v2/translate`;
-
-  try {
-    const params = new URLSearchParams();
-    params.set("text", trimmed);
-    params.set("target_lang", targetLang);
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `DeepL-Auth-Key ${apiKey}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: params.toString(),
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      console.error(`DeepL translate failed status=${res.status}`);
-      return null;
-    }
-
-    const data = (await res.json()) as {
-      translations?: { text?: string }[];
-    };
-    const translated = data?.translations?.[0]?.text;
-    return typeof translated === "string" ? translated : null;
-  } catch (err) {
-    const message = (err as Error).message ?? "unknown error";
-    console.error(`DeepL translate error: ${message}`);
-    return null;
-  }
-}
-
-export const TARGETS = { ENGLISH, SPANISH };
+/**
+ * Pre-fix repro (2026-02-07) hitting GET /api/admin/products in dev crashed with:
+ * Error: A "use server" file can only export async functions, found object.
+ *     at ensureServerEntryExports (node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-validate.js:18:19)
+ * Cause: this module previously had `"use server"` and exported TARGETS (non-async), and was imported by the admin products API route.
+ * The logic now lives in a plain server-only helper to keep route handlers outside Server Actions.
+ */
+export { translateText, TARGETS, type TargetLang } from "./deeplClient";

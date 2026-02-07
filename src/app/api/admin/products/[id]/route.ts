@@ -5,7 +5,7 @@ import sql from "@/lib/adminDb";
 import { slugify } from "@/lib/slugify";
 import { cloudinary } from "@/lib/cloudinary";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
-import { translateText } from "@/lib/deepl";
+import { translateText } from "@/lib/deeplClient";
 import { detectInputLanguage } from "@/lib/productLanguage";
 import { type Language } from "@/lib/i18n";
 
