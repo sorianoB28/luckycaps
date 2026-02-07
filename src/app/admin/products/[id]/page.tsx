@@ -16,6 +16,7 @@ import {
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 import { Product } from "@/types";
 import { useLanguage, useT } from "@/components/providers/LanguageProvider";
+import { resolveAdminError } from "@/lib/adminErrors";
 
 export default function EditProductPage() {
   const t = useT();
@@ -89,7 +90,7 @@ export default function EditProductPage() {
         } else if ((err as Error).message?.includes("Not found")) {
           setError(t("admin.productNotFound"));
         } else {
-          setError((err as Error).message || t("admin.unableToLoadProduct"));
+          setError(resolveAdminError(t, err, "admin.unableToLoadProduct"));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -138,7 +139,7 @@ export default function EditProductPage() {
       if (status === 401) {
         setError(t("admin.unauthorizedCheckAccess"));
       } else {
-        setError((err as Error).message || t("admin.unableToUpdateProduct"));
+        setError(resolveAdminError(t, err, "admin.unableToUpdateProduct"));
       }
     } finally {
       setSaving(false);
@@ -173,7 +174,7 @@ export default function EditProductPage() {
                 if (status === 401) {
                   setError(t("admin.unauthorizedCheckAccess"));
                 } else {
-                  setError((err as Error).message || t("admin.unableToDeleteProduct"));
+                  setError(resolveAdminError(t, err, "admin.unableToDeleteProduct"));
                 }
               } finally {
                 setSaving(false);

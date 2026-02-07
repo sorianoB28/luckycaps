@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { getAdminOrders, type AdminOrder } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/providers/LanguageProvider";
+import { resolveAdminError } from "@/lib/adminErrors";
 
 const STATUSES: AdminOrder["status"][] = [
   "created",
@@ -20,6 +21,15 @@ const STATUSES: AdminOrder["status"][] = [
 ];
 
 type SortOption = "newest" | "oldest";
+
+const STATUS_LABEL_KEYS: Record<AdminOrder["status"], string> = {
+  created: "common.created",
+  paid: "common.paid",
+  shipped: "common.shipped",
+  delivered: "common.delivered",
+  cancelled: "common.cancelled",
+  refunded: "common.refunded",
+};
 
 export default function AdminOrdersPage() {
   const t = useT();
@@ -53,7 +63,7 @@ export default function AdminOrdersPage() {
       setNextCursor(res.nextCursor ?? null);
       setOrders((prev) => (append ? [...prev, ...res.orders] : res.orders));
     } catch (err) {
-      setError((err as Error).message || t("admin.unableToLoadOrders"));
+      setError(resolveAdminError(t, err, "admin.unableToLoadOrders"));
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -106,7 +116,7 @@ export default function AdminOrdersPage() {
             <option value="all">{t("admin.allStatuses")}</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {t(STATUS_LABEL_KEYS[s])}
               </option>
             ))}
           </select>
@@ -194,7 +204,7 @@ export default function AdminOrdersPage() {
                       : "bg-yellow-500/20 text-yellow-200"
                   )}
                 >
-                  {order.status}
+                  {t(STATUS_LABEL_KEYS[order.status])}
                 </span>
                 <span className="text-white/80">{order.items_count}</span>
                 <span className="font-semibold text-white">

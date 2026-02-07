@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ProductForm, ProductFormValues } from "@/app/admin/components/ProductForm";
 import { useLanguage, useT } from "@/components/providers/LanguageProvider";
 import { createAdminProduct, type AdminProductPayload } from "@/lib/api";
+import { resolveAdminError } from "@/lib/adminErrors";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -57,7 +58,7 @@ export default function NewProductPage() {
       if (status === 401) {
         setError(t("admin.unauthorized"));
       } else {
-        setError((err as Error).message || t("admin.unableToCreateProduct"));
+        setError(resolveAdminError(t, err, "admin.unableToCreateProduct"));
       }
     } finally {
       setSubmitting(false);
