@@ -12,7 +12,8 @@ import { Slider } from "@/components/ui/slider";
 import { formatCategory } from "@/lib/formatCategory";
 import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 import { getCategoriesFromProducts, type CategoryInfo } from "@/lib/categories";
-import { useT } from "@/components/providers/LanguageProvider";
+import { useLanguage, useT } from "@/components/providers/LanguageProvider";
+import { selectLocalizedText } from "@/lib/productLanguage";
 
 type SortOption = "featured" | "price-asc" | "price-desc" | "newest";
 
@@ -24,6 +25,7 @@ const effectivePrice = (product: Product) =>
 
 export default function ShopPage() {
   const t = useT();
+  const { language } = useLanguage();
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,6 +325,18 @@ export default function ShopPage() {
                   product.slug,
                   2
                 );
+                const displayName = selectLocalizedText(
+                  { primary: product.name, en: product.name_en, es: product.name_es },
+                  language
+                );
+                const displayDescription = selectLocalizedText(
+                  {
+                    primary: product.description,
+                    en: product.description_en,
+                    es: product.description_es,
+                  },
+                  language
+                );
                 return (
                   <Link
                     key={product.id}
@@ -332,7 +346,7 @@ export default function ShopPage() {
                     <div className="relative aspect-square overflow-hidden bg-black/40">
                       <ProductImageWithFallback
                         src={buildCloudinaryCardUrl(product.image_url ?? undefined)}
-                        alt={product.name}
+                        alt={displayName}
                         category={product.category}
                         slug={product.slug}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
@@ -361,11 +375,11 @@ export default function ShopPage() {
                         </span>
                       </div>
                       <h3 className="line-clamp-1 font-display text-xl text-white">
-                        {product.name}
+                        {displayName}
                       </h3>
                       {product.description ? (
                         <p className="line-clamp-2 text-sm text-white/70">
-                          {product.description}
+                          {displayDescription}
                         </p>
                       ) : null}
                       <div className="mt-auto flex items-center justify-between">

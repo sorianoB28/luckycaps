@@ -8,8 +8,12 @@ export async function GET() {
       p.id,
       p.slug,
       p.name,
+      p.name_en,
+      p.name_es,
       p.category,
       p.description,
+      p.description_en,
+      p.description_es,
       p.price_cents,
       p.sale_price_cents,
       p.original_price_cents,
@@ -21,6 +25,7 @@ export async function GET() {
       p.active,
       p.created_at,
       p.updated_at,
+      p.translation_updated_at,
       img.url AS image_url,
       COALESCE(
         (

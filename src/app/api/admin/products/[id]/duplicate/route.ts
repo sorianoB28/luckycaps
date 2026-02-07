@@ -24,8 +24,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
       p.id,
       p.slug,
       p.name,
+      p.name_en,
+      p.name_es,
       p.category,
       p.description,
+      p.description_en,
+      p.description_es,
       p.price_cents,
       p.sale_price_cents,
       p.original_price_cents,
@@ -34,7 +38,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
       p.tags,
       p.features,
       p.stock,
-      p.active
+      p.active,
+      p.translation_updated_at
     FROM public.products p
     WHERE p.id = ${id}::uuid
     LIMIT 1
@@ -42,8 +47,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
     id: string;
     slug: string;
     name: string;
+    name_en?: string | null;
+    name_es?: string | null;
     category: string;
     description: string;
+    description_en?: string | null;
+    description_es?: string | null;
     price_cents: number;
     sale_price_cents: number | null;
     original_price_cents: number | null;
@@ -53,6 +62,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     features: string[];
     stock: number;
     active: boolean;
+    translation_updated_at?: string | null;
   }[];
 
   const product = rows[0];
@@ -83,8 +93,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
       INSERT INTO public.products (
         slug,
         name,
+        name_en,
+        name_es,
         category,
         description,
+        description_en,
+        description_es,
         price_cents,
         sale_price_cents,
         original_price_cents,
@@ -93,13 +107,18 @@ export async function POST(request: Request, { params }: { params: { id: string 
         tags,
         features,
         stock,
-        active
+        active,
+        translation_updated_at
       )
       VALUES (
         ${candidateSlug},
         ${newName},
+        ${product.name_en},
+        ${product.name_es},
         ${product.category},
         ${product.description},
+        ${product.description_en},
+        ${product.description_es},
         ${product.price_cents},
         ${product.sale_price_cents},
         ${product.original_price_cents},
@@ -108,7 +127,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
         ${product.tags},
         ${product.features},
         ${product.stock},
-        ${product.active}
+        ${product.active},
+        ${product.translation_updated_at}
       )
       RETURNING id
     ),

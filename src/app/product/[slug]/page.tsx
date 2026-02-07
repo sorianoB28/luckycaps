@@ -34,7 +34,8 @@ import { ProductImageWithFallback } from "@/components/products/ProductImageWith
 import { getPlaceholderImages } from "@/lib/placeholderImages";
 import { StarRating } from "@/components/reviews/StarRating";
 import { formatCategory } from "@/lib/formatCategory";
-import { useT } from "@/components/providers/LanguageProvider";
+import { useLanguage, useT } from "@/components/providers/LanguageProvider";
+import { selectLocalizedText } from "@/lib/productLanguage";
 
 type ProductPageProps = {
   params: { slug: string };
@@ -67,6 +68,7 @@ function TrustRow({ label }: { label: string }) {
 
 export default function ProductPage({ params }: ProductPageProps) {
   const t = useT();
+  const { language } = useLanguage();
   const router = useRouter();
   const addToCart = useCart((s) => s.addItem);
   const [data, setData] = useState<ProductDetailResponse | null>(null);
@@ -148,13 +150,53 @@ export default function ProductPage({ params }: ProductPageProps) {
     placeholderImages[0] ??
     null;
 
+  const displayName = useMemo(
+    () =>
+      data
+        ? selectLocalizedText(
+            {
+              primary: data.product.name,
+              en: data.product.name_en,
+              es: data.product.name_es,
+            },
+            language
+          )
+        : "",
+    [data?.product.name, data?.product.name_en, data?.product.name_es, language]
+  );
+
+  const displayDescription = useMemo(
+    () =>
+      data
+        ? selectLocalizedText(
+            {
+              primary: data.product.description,
+              en: data.product.description_en,
+              es: data.product.description_es,
+            },
+            language
+          )
+        : "",
+    [
+      data?.product.description,
+      data?.product.description_en,
+      data?.product.description_es,
+      language,
+    ]
+  );
+
+  useEffect(() => {
+    if (!displayName) return;
+    document.title = `${displayName} | Lucky Caps`;
+  }, [displayName]);
+
   const handleAddToCart = () => {
     if (!data) return;
     if (requiresSizeSelection && !size) return;
     addToCart({
       productId: data.product.id,
       productSlug: data.product.slug,
-      name: data.product.name,
+      name: displayName || data.product.name,
       imageUrl: primaryImage,
       priceCents: priceInfo.current,
       variant,
@@ -209,7 +251,7 @@ export default function ProductPage({ params }: ProductPageProps) {
           <div className="aspect-square overflow-hidden rounded-3xl border border-white/10 bg-white/5">
             <ProductImageWithFallback
               src={primaryImage}
-              alt={data.product.name}
+              alt={displayName || data.product.name}
               category={data.product.category}
               slug={data.product.slug}
               className="h-full w-full object-cover"
@@ -232,7 +274,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                 >
                   <ProductImageWithFallback
                     src={thumb}
-                    alt={`${data.product.name} thumbnail`}
+                    alt={`${displayName || data.product.name} thumbnail`}
                     category={data.product.category}
                     slug={data.product.slug}
                     className="h-20 w-full object-cover"
@@ -257,7 +299,7 @@ export default function ProductPage({ params }: ProductPageProps) {
               ) : null}
             </div>
             <div className="space-y-3">
-              <h1 className="font-display text-4xl leading-tight">{data.product.name}</h1>
+              <h1 className="font-display text-4xl leading-tight">{displayName}</h1>
               <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
                 <StarRating value={data.reviewSummary.avgRating ?? 0} readOnly allowHalf />
                 <span className="font-semibold">
@@ -280,7 +322,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                   </span>
                 ) : null}
               </div>
-              <p className="text-sm text-white/75">{data.product.description}</p>
+              <p className="text-sm text-white/75">{displayDescription}</p>
             </div>
 
             {data.variants.length ? (

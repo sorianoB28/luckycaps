@@ -9,8 +9,12 @@ type ProductRow = {
   id: string;
   slug: string;
   name: string;
+  name_en?: string | null;
+  name_es?: string | null;
   category: string;
   description: string;
+  description_en?: string | null;
+  description_es?: string | null;
   image_url?: string | null;
   price_cents: number;
   sale_price_cents: number | null;
@@ -23,6 +27,7 @@ type ProductRow = {
   active: boolean;
   created_at: string;
   updated_at: string;
+  translation_updated_at?: string | null;
   sizes?: string[];
 };
 
@@ -79,8 +84,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
       id,
       slug,
       name,
+      name_en,
+      name_es,
       category,
       description,
+      description_en,
+      description_es,
       price_cents,
       sale_price_cents,
       original_price_cents,
@@ -91,7 +100,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
       stock,
       active,
       created_at,
-      updated_at
+      updated_at,
+      translation_updated_at
     FROM public.products
     WHERE slug = ${slug} AND active = true
     LIMIT 1

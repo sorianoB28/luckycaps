@@ -33,6 +33,8 @@ const mapApiProductToUiProduct = (item: ApiProduct): Product => {
     id: item.id,
     slug: item.slug,
     name: item.name,
+    name_en: item.name_en ?? null,
+    name_es: item.name_es ?? null,
     price:
       item.is_sale && item.sale_price_cents != null
         ? item.sale_price_cents / 100
@@ -43,6 +45,8 @@ const mapApiProductToUiProduct = (item: ApiProduct): Product => {
     category: item.category,
     tags: item.tags ?? [],
     description: item.description ?? "",
+    description_en: item.description_en ?? null,
+    description_es: item.description_es ?? null,
     features: item.features ?? [],
     isNewDrop: item.is_new_drop || isRecentDrop(item),
     isSale: item.is_sale,

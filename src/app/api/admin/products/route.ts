@@ -4,13 +4,20 @@ import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
 import { slugify } from "@/lib/slugify";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
+import { translateText } from "@/lib/deepl";
+import { detectInputLanguage } from "@/lib/productLanguage";
+import { type Language } from "@/lib/i18n";
 
 type AdminProductRow = {
   id: string;
   slug: string;
   name: string;
+  name_en?: string | null;
+  name_es?: string | null;
   category: string;
   description: string;
+  description_en?: string | null;
+  description_es?: string | null;
   price_cents: number;
   sale_price_cents: number | null;
   original_price_cents: number | null;
@@ -21,6 +28,7 @@ type AdminProductRow = {
   stock: number;
   active: boolean;
   created_at: string;
+  translation_updated_at?: string | null;
   image_url: string | null;
   images: string[];
   sizes: string[];
@@ -74,8 +82,12 @@ export async function GET(request: Request) {
       p.id,
       p.slug,
       p.name,
+      p.name_en,
+      p.name_es,
       p.category,
       p.description,
+      p.description_en,
+      p.description_es,
       p.price_cents,
       p.sale_price_cents,
       p.original_price_cents,
@@ -86,6 +98,7 @@ export async function GET(request: Request) {
       p.stock,
       p.active,
       p.created_at,
+      p.translation_updated_at,
       (
         SELECT url
         FROM public.product_images pi
@@ -125,6 +138,7 @@ type AdminProductPayload = {
   slug?: string;
   category?: string;
   description?: string;
+  sourceLanguage?: Language;
   price?: number;
   salePrice?: number | null;
   originalPrice?: number | null;
@@ -153,6 +167,46 @@ export async function POST(request: Request) {
   const slug = slugify(payload.slug?.trim() || name);
   const category = (payload.category ?? "").trim().toLowerCase();
   const description = payload.description?.trim() ?? "";
+  const preferredLanguage =
+    payload.sourceLanguage === "EN" || payload.sourceLanguage === "ES"
+      ? payload.sourceLanguage
+      : undefined;
+  const sourceLanguage = detectInputLanguage({
+    preferred: preferredLanguage,
+    name,
+    description,
+  });
+
+  let name_en = sourceLanguage === "EN" ? name : null;
+  let name_es = sourceLanguage === "ES" ? name : null;
+  let description_en = sourceLanguage === "EN" ? description : null;
+  let description_es = sourceLanguage === "ES" ? description : null;
+  let translationUpdatedAt: string | null = null;
+
+  const targetLang = sourceLanguage === "EN" ? "ES" : "EN";
+  const needsTranslation =
+    targetLang === "ES"
+      ? !name_es || !description_es
+      : !name_en || !description_en;
+
+  if (needsTranslation) {
+    const translatedName = name ? await translateText(name, targetLang) : null;
+    const translatedDescription = description
+      ? await translateText(description, targetLang)
+      : null;
+
+    if (targetLang === "ES") {
+      if (!name_es && translatedName) name_es = translatedName;
+      if (!description_es && translatedDescription) description_es = translatedDescription;
+    } else {
+      if (!name_en && translatedName) name_en = translatedName;
+      if (!description_en && translatedDescription) description_en = translatedDescription;
+    }
+
+    if (translatedName || translatedDescription) {
+      translationUpdatedAt = new Date().toISOString();
+    }
+  }
   const isSale = Boolean(payload.isSale);
   const isNewDrop = Boolean(payload.isNewDrop);
   const stock = Number(payload.stock ?? 0);
@@ -197,8 +251,12 @@ export async function POST(request: Request) {
       INSERT INTO public.products (
         slug,
         name,
+        name_en,
+        name_es,
         category,
         description,
+        description_en,
+        description_es,
         price_cents,
         sale_price_cents,
         original_price_cents,
@@ -207,13 +265,18 @@ export async function POST(request: Request) {
         tags,
         features,
         stock,
-        active
+        active,
+        translation_updated_at
       )
       VALUES (
         ${slug},
         ${name},
+        ${name_en},
+        ${name_es},
         ${category},
         ${description},
+        ${description_en},
+        ${description_es},
         ${priceCents},
         ${salePriceCents},
         ${originalPriceCents},
@@ -222,7 +285,8 @@ export async function POST(request: Request) {
         ${[]}::text[],
         ${[]}::text[],
         ${stock},
-        ${active}
+        ${active},
+        ${translationUpdatedAt}
       )
       RETURNING id
     `) as unknown as { id: string }[];

@@ -15,10 +15,11 @@ import {
 } from "@/lib/api";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 import { Product } from "@/types";
-import { useT } from "@/components/providers/LanguageProvider";
+import { useLanguage, useT } from "@/components/providers/LanguageProvider";
 
 export default function EditProductPage() {
   const t = useT();
+  const { language } = useLanguage();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const productId = useMemo(
@@ -38,6 +39,8 @@ export default function EditProductPage() {
       id: item.id,
       slug: item.slug,
       name: item.name,
+      name_en: item.name_en ?? null,
+      name_es: item.name_es ?? null,
       price:
         item.is_sale && item.sale_price_cents != null
           ? item.sale_price_cents / 100
@@ -53,6 +56,8 @@ export default function EditProductPage() {
       category: item.category,
       tags: item.tags ?? [],
       description: item.description ?? "",
+      description_en: item.description_en ?? null,
+      description_es: item.description_es ?? null,
       features: item.features ?? [],
       isNewDrop: item.is_new_drop,
       isSale: item.is_sale,
@@ -106,6 +111,7 @@ export default function EditProductPage() {
     slug: values.slug.trim(),
     category: values.category.trim().toLowerCase(),
     description: values.description.trim(),
+    sourceLanguage: language,
     price: values.isSale ? values.salePrice ?? values.price : values.price,
     salePrice: values.isSale ? values.salePrice ?? values.price : null,
     originalPrice: values.isSale

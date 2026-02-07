@@ -5,12 +5,13 @@ import { useSession } from "next-auth/react";
 import { useEffect, useMemo, useState } from "react";
 
 import { ProductForm, ProductFormValues } from "@/app/admin/components/ProductForm";
-import { useT } from "@/components/providers/LanguageProvider";
+import { useLanguage, useT } from "@/components/providers/LanguageProvider";
 import { createAdminProduct, type AdminProductPayload } from "@/lib/api";
 
 export default function NewProductPage() {
   const router = useRouter();
   const t = useT();
+  const { language } = useLanguage();
   const { data: session, status } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -29,6 +30,7 @@ export default function NewProductPage() {
     slug: values.slug.trim(),
     category: values.category.trim().toLowerCase(),
     description: values.description.trim(),
+    sourceLanguage: language,
     price: values.isSale ? values.salePrice ?? values.price : values.price,
     salePrice: values.isSale ? values.salePrice ?? values.price : null,
     originalPrice: values.isSale

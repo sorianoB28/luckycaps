@@ -8,8 +8,9 @@ import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Product } from "@/types";
-import { useT } from "@/components/providers/LanguageProvider";
+import { useLanguage, useT } from "@/components/providers/LanguageProvider";
 import { getPlaceholderImages } from "@/lib/placeholderImages";
+import { selectLocalizedText } from "@/lib/productLanguage";
 
 interface ProductCardProps {
   product: Product;
@@ -17,12 +18,26 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const t = useT();
+  const { language } = useLanguage();
   const fallbacks = getPlaceholderImages(product.category, product.slug, 3);
   const primaryImage =
     product.images && product.images.length > 0
       ? product.images[0]
       : fallbacks[0];
   const fallbackIndex = useRef(1);
+
+  const displayName = selectLocalizedText(
+    { primary: product.name, en: product.name_en, es: product.name_es },
+    language
+  );
+  const displayDescription = selectLocalizedText(
+    {
+      primary: product.description,
+      en: product.description_en,
+      es: product.description_es,
+    },
+    language
+  );
 
   const handleError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     if (fallbackIndex.current >= fallbacks.length) return;
@@ -39,7 +54,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="relative h-56 w-full overflow-hidden bg-white/5">
           <Image
             src={primaryImage}
-            alt={product.name}
+            alt={displayName}
             fill
             className="object-cover transition duration-300 group-hover:scale-105"
             onError={handleError}
@@ -62,9 +77,9 @@ export default function ProductCard({ product }: ProductCardProps) {
         <p className="text-xs uppercase tracking-[0.2em] text-white/50">
           {product.category}
         </p>
-        <h3 className="mt-2 font-display text-2xl">{product.name}</h3>
+        <h3 className="mt-2 font-display text-2xl">{displayName}</h3>
         <p className="mt-2 text-sm text-white/60">
-          {product.description}
+          {displayDescription}
         </p>
         <div className="mt-4 flex items-center justify-between gap-3">
           {product.isSale && product.originalPrice ? (

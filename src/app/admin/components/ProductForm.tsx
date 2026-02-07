@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,9 @@ import { cn } from "@/lib/utils";
 import { slugify } from "@/lib/slugify";
 import { Product } from "@/types";
 import { normalizeSize, sizeOptions, sortSizes } from "@/lib/sizeOptions";
-import { useT } from "@/components/providers/LanguageProvider";
+import { useLanguage, useT } from "@/components/providers/LanguageProvider";
+import { selectLocalizedText } from "@/lib/productLanguage";
+import { type Language } from "@/lib/i18n";
 
 const isHttpUrl = (url?: string | null) => !!url && /^https?:\/\//i.test(url);
 
@@ -37,15 +39,23 @@ interface ProductFormProps {
   submitLabel: string;
 }
 
-const buildInitialForm = (product?: Product): ProductFormValues => ({
-  name: product?.name ?? "",
+const buildInitialForm = (product?: Product, language: Language = "EN"): ProductFormValues => ({
+  name: selectLocalizedText(
+    { primary: product?.name, en: product?.name_en, es: product?.name_es },
+    language
+  ),
   slug: product?.slug ?? "",
   category: product?.category ?? "",
-  description: product?.description ?? "",
+  description: selectLocalizedText(
+    {
+      primary: product?.description,
+      en: product?.description_en,
+      es: product?.description_es,
+    },
+    language
+  ),
   price: product?.isSale ? product.salePrice ?? product.price : product?.price ?? 0,
-  salePrice: product?.isSale
-    ? product.salePrice ?? product.price
-    : product?.salePrice,
+  salePrice: product?.isSale ? product.salePrice ?? product.price : product?.salePrice,
   originalPrice: product?.originalPrice ?? undefined,
   isSale: product?.isSale ?? false,
   isNewDrop: product?.isNewDrop ?? false,
@@ -65,8 +75,9 @@ export function ProductForm({
   submitLabel,
 }: ProductFormProps) {
   const t = useT();
+  const { language } = useLanguage();
   const [form, setForm] = useState<ProductFormValues>(
-    buildInitialForm(initialProduct)
+    buildInitialForm(initialProduct, language)
   );
   const [slugEdited, setSlugEdited] = useState(
     initialProduct?.slug ? true : false
@@ -78,6 +89,11 @@ export function ProductForm({
     { name: string; status: "uploading" | "uploaded" | "failed"; message?: string }[]
   >([]);
   const fileInputId = "product-image-file";
+
+  useEffect(() => {
+    if (!initialProduct) return;
+    setForm(buildInitialForm(initialProduct, language));
+  }, [initialProduct, language]);
 
   const handleNameChange = (value: string) => {
     setForm((prev) => ({

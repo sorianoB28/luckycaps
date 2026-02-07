@@ -1,10 +1,16 @@
 // src/lib/api.ts
+import type { Language } from "./i18n";
+
 export type Product = {
   id: string;
   slug: string;
   name: string;
+  name_en?: string | null;
+  name_es?: string | null;
   category: string;
   description: string;
+  description_en?: string | null;
+  description_es?: string | null;
   image_url: string | null;
   price_cents: number;
   sale_price_cents: number | null;
@@ -17,6 +23,7 @@ export type Product = {
   active: boolean;
   created_at: string;
   updated_at: string;
+  translation_updated_at?: string | null;
   sizes: string[];
 };
 
@@ -96,8 +103,12 @@ export type AdminProduct = {
   id: string;
   slug: string;
   name: string;
+  name_en?: string | null;
+  name_es?: string | null;
   category: string;
   description: string;
+  description_en?: string | null;
+  description_es?: string | null;
   price_cents: number;
   sale_price_cents: number | null;
   original_price_cents: number | null;
@@ -108,6 +119,7 @@ export type AdminProduct = {
   stock: number;
   active: boolean;
   created_at: string;
+  translation_updated_at?: string | null;
   image_url: string | null;
   images: string[];
   sizes: string[];
@@ -120,6 +132,7 @@ export type AdminProductPayload = {
   slug: string;
   category: string;
   description: string;
+  sourceLanguage?: Language;
   price: number;
   salePrice?: number | null;
   originalPrice?: number | null;

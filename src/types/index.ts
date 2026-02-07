@@ -2,6 +2,8 @@ export type Product = {
   id: string;
   slug: string;
   name: string;
+  name_en?: string | null;
+  name_es?: string | null;
   price: number;
   salePrice?: number;
   originalPrice?: number;
@@ -9,6 +11,8 @@ export type Product = {
   category: string;
   tags: string[];
   description: string;
+  description_en?: string | null;
+  description_es?: string | null;
   features: string[];
   isNewDrop: boolean;
   isSale: boolean;

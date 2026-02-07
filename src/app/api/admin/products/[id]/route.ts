@@ -5,6 +5,9 @@ import sql from "@/lib/adminDb";
 import { slugify } from "@/lib/slugify";
 import { cloudinary } from "@/lib/cloudinary";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
+import { translateText } from "@/lib/deepl";
+import { detectInputLanguage } from "@/lib/productLanguage";
+import { type Language } from "@/lib/i18n";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -52,8 +55,12 @@ type AdminProductRow = {
   id: string;
   slug: string;
   name: string;
+  name_en?: string | null;
+  name_es?: string | null;
   category: string;
   description: string;
+  description_en?: string | null;
+  description_es?: string | null;
   price_cents: number;
   sale_price_cents: number | null;
   original_price_cents: number | null;
@@ -64,6 +71,7 @@ type AdminProductRow = {
   stock: number;
   active: boolean;
   created_at: string;
+  translation_updated_at?: string | null;
   image_url: string | null;
   images: string[];
   sizes: string[];
@@ -84,8 +92,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
       p.id,
       p.slug,
       p.name,
+      p.name_en,
+      p.name_es,
       p.category,
       p.description,
+      p.description_en,
+      p.description_es,
       p.price_cents,
       p.sale_price_cents,
       p.original_price_cents,
@@ -96,6 +108,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       p.stock,
       p.active,
       p.created_at,
+      p.translation_updated_at,
       (
         SELECT url
         FROM public.product_images pi
@@ -142,6 +155,7 @@ type AdminProductPayload = {
   slug?: string;
   category?: string;
   description?: string;
+  sourceLanguage?: Language;
   price?: number;
   salePrice?: number | null;
   originalPrice?: number | null;
@@ -173,11 +187,28 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const errors: Record<string, string> = {};
 
   const existingRows = (await sql`
-    SELECT active
+    SELECT
+      active,
+      name,
+      name_en,
+      name_es,
+      description,
+      description_en,
+      description_es,
+      translation_updated_at
     FROM public.products
     WHERE id = ${id}::uuid
     LIMIT 1
-  `) as unknown as { active: boolean }[];
+  `) as unknown as {
+    active: boolean;
+    name: string;
+    name_en?: string | null;
+    name_es?: string | null;
+    description: string;
+    description_en?: string | null;
+    description_es?: string | null;
+    translation_updated_at?: string | null;
+  }[];
 
   if (!existingRows.length) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -187,6 +218,61 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const slug = slugify(payload.slug?.trim() || name);
   const category = (payload.category ?? "").trim().toLowerCase();
   const description = payload.description?.trim() ?? "";
+  const preferredLanguage =
+    payload.sourceLanguage === "EN" || payload.sourceLanguage === "ES"
+      ? payload.sourceLanguage
+      : undefined;
+  const sourceLanguage = detectInputLanguage({
+    preferred: preferredLanguage,
+    name,
+    description,
+  });
+
+  const previousNameEn = existingRows[0].name_en ?? existingRows[0].name ?? "";
+  const previousNameEs = existingRows[0].name_es ?? existingRows[0].name ?? "";
+  const previousDescriptionEn =
+    existingRows[0].description_en ?? existingRows[0].description ?? "";
+  const previousDescriptionEs =
+    existingRows[0].description_es ?? existingRows[0].description ?? "";
+
+  let name_en = sourceLanguage === "EN" ? name : existingRows[0].name_en ?? null;
+  let name_es = sourceLanguage === "ES" ? name : existingRows[0].name_es ?? null;
+  let description_en =
+    sourceLanguage === "EN" ? description : existingRows[0].description_en ?? null;
+  let description_es =
+    sourceLanguage === "ES" ? description : existingRows[0].description_es ?? null;
+  let translationUpdatedAt = existingRows[0].translation_updated_at ?? null;
+
+  const sourceChanged =
+    sourceLanguage === "EN"
+      ? name !== previousNameEn || description !== previousDescriptionEn
+      : name !== previousNameEs || description !== previousDescriptionEs;
+
+  const targetMissing =
+    sourceLanguage === "EN"
+      ? !previousNameEs || !previousDescriptionEs
+      : !previousNameEn || !previousDescriptionEn;
+
+  const targetLang = sourceLanguage === "EN" ? "ES" : "EN";
+
+  if (targetMissing || sourceChanged) {
+    const translatedName = name ? await translateText(name, targetLang) : null;
+    const translatedDescription = description
+      ? await translateText(description, targetLang)
+      : null;
+
+    if (targetLang === "ES") {
+      if (translatedName) name_es = translatedName;
+      if (translatedDescription) description_es = translatedDescription;
+    } else {
+      if (translatedName) name_en = translatedName;
+      if (translatedDescription) description_en = translatedDescription;
+    }
+
+    if (translatedName || translatedDescription) {
+      translationUpdatedAt = new Date().toISOString();
+    }
+  }
   const isSale = Boolean(payload.isSale);
   const isNewDrop = Boolean(payload.isNewDrop);
   const stock = Number(payload.stock ?? 0);
@@ -259,8 +345,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         SET
           slug = ${slug},
           name = ${name},
+          name_en = ${name_en},
+          name_es = ${name_es},
           category = ${category},
           description = ${description},
+          description_en = ${description_en},
+          description_es = ${description_es},
           price_cents = ${priceCents},
           sale_price_cents = ${salePriceCents},
           original_price_cents = ${originalPriceCents},
@@ -268,6 +358,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
           is_sale = ${isSale},
           stock = ${stock},
           active = ${active},
+          translation_updated_at = ${translationUpdatedAt},
           updated_at = now()
         WHERE id = ${id}::uuid
         RETURNING id
