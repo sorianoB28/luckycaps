@@ -8,6 +8,7 @@ import { PromoCodeForm } from "@/app/admin/components/PromoCodeForm";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/components/providers/LanguageProvider";
 import { getAdminPromoCode, type AdminPromoCode, updateAdminPromoCode } from "@/lib/api";
+import { resolveAdminError } from "@/lib/adminErrors";
 
 export default function AdminEditPromoCodePage() {
   const t = useT();
@@ -25,9 +26,9 @@ export default function AdminEditPromoCodePage() {
     setError(null);
     getAdminPromoCode(id)
       .then((data) => setPromo(data))
-      .catch((err) => setError((err as Error).message || "Unable to load promo code"))
+      .catch((err) => setError(resolveAdminError(t, err, "adminPromoCodes.unableToLoad")))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, t]);
 
   if (loading) {
     return <div className="text-white/70">{t("common.loading")}</div>;
@@ -36,7 +37,9 @@ export default function AdminEditPromoCodePage() {
   if (error || !promo) {
     return (
       <div className="space-y-4 text-white/80">
-        <p className="text-lg font-semibold text-white">{error ?? "Not found"}</p>
+        <p className="text-lg font-semibold text-white">
+          {error ?? t("adminPromoCodes.notFound")}
+        </p>
         <Button asChild variant="secondary" className="bg-white/10">
           <Link href="/admin/promo-codes">{t("common.back")}</Link>
         </Button>
@@ -68,7 +71,7 @@ export default function AdminEditPromoCodePage() {
             const updated = await updateAdminPromoCode(promo.id, payload as any);
             setPromo(updated);
           } catch (err) {
-            setError((err as Error).message || "Unable to update promo code");
+            setError(resolveAdminError(t, err, "adminPromoCodes.unableToUpdate"));
           } finally {
             setSubmitting(false);
           }
@@ -77,4 +80,3 @@ export default function AdminEditPromoCodePage() {
     </div>
   );
 }
-

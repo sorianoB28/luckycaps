@@ -25,6 +25,7 @@ import {
   type AdminShippingDefaults,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { resolveAdminError } from "@/lib/adminErrors";
 
 const STATUSES: AdminOrderDetail["status"][] = [
   "created",
@@ -165,7 +166,7 @@ export default function AdminOrderDetailPage() {
         setShipment(res.shipment);
       }
     } catch (err) {
-      setError((err as Error).message || t("admin.unableToLoadOrder"));
+      setError(resolveAdminError(t, err, "admin.unableToLoadOrder"));
     } finally {
       setLoading(false);
     }
@@ -265,7 +266,7 @@ export default function AdminOrderDetailPage() {
         }
       }
     } catch (err) {
-      setShippingError((err as Error).message || t("admin.unableToLoadOrder"));
+      setShippingError(resolveAdminError(t, err, "admin.unableToLoadOrder"));
     } finally {
       setShippingLoading(false);
     }
@@ -364,7 +365,7 @@ export default function AdminOrderDetailPage() {
       setNotes(res.order.admin_notes ?? "");
       setSuccess(t("admin.savedChanges"));
     } catch (err) {
-      setError((err as Error).message || t("admin.unableToSaveChanges"));
+      setError(resolveAdminError(t, err, "admin.unableToSaveChanges"));
     } finally {
       setSaving(false);
     }
@@ -405,7 +406,7 @@ export default function AdminOrderDetailPage() {
       setShippingRates(res.rates ?? []);
       setShippingNotice(t("admin.shippingRatesReady"));
     } catch (err) {
-      setShippingError((err as Error).message || t("admin.unableToLoadOrder"));
+      setShippingError(resolveAdminError(t, err, "admin.unableToLoadOrder"));
     } finally {
       setShippingBusy(false);
     }
@@ -430,7 +431,7 @@ export default function AdminOrderDetailPage() {
         setLabelArchiveError(res.label_error);
       }
     } catch (err) {
-      setShippingError((err as Error).message || t("admin.unableToLoadOrder"));
+      setShippingError(resolveAdminError(t, err, "admin.unableToLoadOrder"));
     } finally {
       setShippingBusy(false);
     }
@@ -451,9 +452,9 @@ export default function AdminOrderDetailPage() {
       if (res.shipment) {
         setShipment(res.shipment);
       }
-      setShippingNotice("Label archived.");
+      setShippingNotice(t("admin.shippingLabelArchived"));
     } catch (err) {
-      setLabelArchiveError((err as Error).message || "Unable to archive label");
+      setLabelArchiveError(resolveAdminError(t, err, "admin.shippingUnableToArchiveLabel"));
     } finally {
       setLabelArchiving(false);
     }
@@ -560,13 +561,13 @@ export default function AdminOrderDetailPage() {
     const volume = lengthIn * widthIn * heightIn;
     const warnings: string[] = [];
     if (volume > 1728) {
-      warnings.push("Volume exceeds 1,728 in^3 (USPS DIM threshold).");
+      warnings.push(t("admin.shippingVolumeWarning"));
     }
     if (lengthIn >= 22) {
-      warnings.push("Length >= 22 in may trigger oversize fees.");
+      warnings.push(t("admin.shippingLengthWarning"));
     }
     return warnings;
-  }, [parcel.length, parcel.width, parcel.height, parcel.distance_unit]);
+  }, [parcel.length, parcel.width, parcel.height, parcel.distance_unit, t]);
 
   const sortedRates = useMemo(() => {
     return [...shippingRates].sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0));
@@ -743,7 +744,10 @@ export default function AdminOrderDetailPage() {
                   </select>
                   {suggestedTemplate && !manualTemplateSelection ? (
                     <p className="text-xs text-white/60">
-                      Suggested: {suggestedTemplate.name} for {itemCount} items.
+                      {t("admin.shippingSuggestedTemplate", {
+                        name: suggestedTemplate.name,
+                        count: itemCount,
+                      })}
                     </p>
                   ) : null}
                   {templateNotice ? (
@@ -908,15 +912,17 @@ export default function AdminOrderDetailPage() {
                     {!shipment.label_asset_url ? (
                       <div className="text-xs text-white/60">
                         {labelArchiving
-                          ? "Archiving label..."
-                          : "Label purchased but not archived yet."}
+                          ? t("admin.shippingLabelArchiving")
+                          : t("admin.shippingLabelNotArchived")}
                         <Button
                           variant="secondary"
                           onClick={handleRetryArchive}
                           disabled={labelArchiving}
                           className="ml-2 bg-white/10"
                         >
-                          {labelArchiving ? "Archiving..." : "Retry archive"}
+                          {labelArchiving
+                            ? t("admin.shippingLabelArchiving")
+                            : t("admin.shippingRetryArchive")}
                         </Button>
                       </div>
                     ) : null}
@@ -927,7 +933,7 @@ export default function AdminOrderDetailPage() {
                     ) : null}
                     {formatPostage(shipment.postage_amount, shipment.postage_currency) ? (
                       <p className="text-sm text-white/70">
-                        Postage:{" "}
+                        {t("admin.shippingPostage")}:{" "}
                         {formatPostage(shipment.postage_amount, shipment.postage_currency)}
                       </p>
                     ) : null}
@@ -973,7 +979,9 @@ export default function AdminOrderDetailPage() {
                                 </p>
                                 {rate.estimated_days != null ? (
                                   <p className="text-xs text-white/60">
-                                    {rate.estimated_days} days
+                                    {t("admin.shippingEstimatedDays", {
+                                      days: rate.estimated_days,
+                                    })}
                                   </p>
                                 ) : rate.duration_terms ? (
                                   <p className="text-xs text-white/60">

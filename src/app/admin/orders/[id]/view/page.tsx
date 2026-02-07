@@ -14,6 +14,7 @@ import {
   type AdminShipment,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { resolveAdminError } from "@/lib/adminErrors";
 
 const STATUSES: AdminOrderDetail["status"][] = [
   "created",
@@ -65,7 +66,7 @@ export default function AdminOrderViewPage() {
         setItems(res.items);
         setShipment(res.shipment ?? null);
       } catch (err) {
-        setError((err as Error).message || t("admin.unableToLoadOrder"));
+        setError(resolveAdminError(t, err, "admin.unableToLoadOrder"));
       } finally {
         setLoading(false);
       }
@@ -102,10 +103,10 @@ export default function AdminOrderViewPage() {
 
   const emailTimestamps = useMemo(
     () => [
-      { label: "Order confirmation sent", value: order?.order_confirmation_sent_at },
-      { label: "Shipping confirmation sent", value: order?.shipping_confirmation_sent_at },
+      { label: t("admin.orderConfirmationSent"), value: order?.order_confirmation_sent_at },
+      { label: t("admin.shippingConfirmationSent"), value: order?.shipping_confirmation_sent_at },
     ],
-    [order]
+    [order, t]
   );
 
   const hasLabel = Boolean(
@@ -306,7 +307,7 @@ export default function AdminOrderViewPage() {
                 )}
                 {order.last_email_error ? (
                   <div className="text-sm text-red-200">
-                    Email error: {order.last_email_error}
+                    {t("admin.emailErrorLabel", { message: order.last_email_error })}
                   </div>
                 ) : null}
               </div>
@@ -343,10 +344,14 @@ export default function AdminOrderViewPage() {
                   ) : null}
                 </>
               ) : (
-                <p className="text-sm text-white/60">No shipping label purchased yet.</p>
+                <p className="text-sm text-white/60">
+                  {t("admin.shippingNoLabelPurchased")}
+                </p>
               )
             ) : (
-              <p className="text-sm text-white/60">No shipment created yet.</p>
+              <p className="text-sm text-white/60">
+                {t("admin.shippingNoShipmentYet")}
+              </p>
             )}
           </div>
         </div>
