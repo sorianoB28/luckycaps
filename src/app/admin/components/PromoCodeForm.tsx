@@ -119,7 +119,7 @@ export function PromoCodeForm(props: {
             value={value.code}
             onChange={(e) => setValue((prev) => ({ ...prev, code: e.target.value }))}
             className="bg-white/5 text-white"
-            placeholder="SAVE10"
+            placeholder={t("adminPromoCodes.codePlaceholder")}
           />
         </div>
 
@@ -153,7 +153,7 @@ export function PromoCodeForm(props: {
             value={value.currency}
             onChange={(e) => setValue((prev) => ({ ...prev, currency: e.target.value }))}
             className="bg-white/5 text-white"
-            placeholder="usd"
+            placeholder={t("adminPromoCodes.currencyPlaceholder")}
           />
         </div>
 
@@ -164,7 +164,7 @@ export function PromoCodeForm(props: {
               value={value.percent_off}
               onChange={(e) => setValue((prev) => ({ ...prev, percent_off: e.target.value }))}
               className="bg-white/5 text-white"
-              placeholder="10"
+              placeholder={t("adminPromoCodes.percentPlaceholder")}
             />
           </div>
         ) : (
@@ -174,7 +174,7 @@ export function PromoCodeForm(props: {
               value={value.amount_off}
               onChange={(e) => setValue((prev) => ({ ...prev, amount_off: e.target.value }))}
               className="bg-white/5 text-white"
-              placeholder="5.00"
+              placeholder={t("adminPromoCodes.amountPlaceholder")}
             />
           </div>
         )}
@@ -185,7 +185,7 @@ export function PromoCodeForm(props: {
             value={value.min_subtotal}
             onChange={(e) => setValue((prev) => ({ ...prev, min_subtotal: e.target.value }))}
             className="bg-white/5 text-white"
-            placeholder="20.00"
+            placeholder={t("adminPromoCodes.minSubtotalPlaceholder")}
           />
         </div>
 
@@ -195,7 +195,7 @@ export function PromoCodeForm(props: {
             value={value.max_redemptions}
             onChange={(e) => setValue((prev) => ({ ...prev, max_redemptions: e.target.value }))}
             className="bg-white/5 text-white"
-            placeholder="100"
+            placeholder={t("adminPromoCodes.maxRedemptionsPlaceholder")}
           />
         </div>
 

@@ -13,6 +13,7 @@ import {
   duplicateAdminProduct,
   getAdminProducts,
 } from "@/lib/api";
+import { resolveAdminError } from "@/lib/adminErrors";
 import { useSession } from "next-auth/react";
 
 const PLACEHOLDER_IMAGE = "/images/placeholder-product.svg";
@@ -43,7 +44,7 @@ export default function AdminDashboard() {
         } else if (code === "admin_products_failed") {
           setError(t("admin.unableToLoadProducts"));
         } else {
-          setError((err as Error).message || t("admin.unableToLoadProducts"));
+          setError(resolveAdminError(t, err, "admin.unableToLoadProducts"));
         }
       } finally {
         setLoading(false);
@@ -194,7 +195,7 @@ export default function AdminDashboard() {
                                 await duplicateAdminProduct(product.id);
                                 await loadProducts();
                               } catch (err) {
-                                setError((err as Error).message || t("admin.unableToDuplicate"));
+                                setError(resolveAdminError(t, err, "admin.unableToDuplicate"));
                               } finally {
                                 setActionId(null);
                               }
@@ -220,7 +221,7 @@ export default function AdminDashboard() {
                                 await deleteAdminProduct(product.id);
                                 await loadProducts();
                               } catch (err) {
-                                setError((err as Error).message || t("admin.unableToDelete"));
+                                setError(resolveAdminError(t, err, "admin.unableToDelete"));
                               } finally {
                                 setActionId(null);
                               }

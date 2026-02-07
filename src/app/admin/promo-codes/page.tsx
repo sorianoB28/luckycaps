@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useT } from "@/components/providers/LanguageProvider";
 import { getAdminPromoCodes, type AdminPromoCode, updateAdminPromoCode } from "@/lib/api";
+import { resolveAdminError } from "@/lib/adminErrors";
 
 const dollars = (cents?: number | null) =>
   cents == null ? "-" : `$${(cents / 100).toFixed(2)}`;
@@ -25,7 +26,7 @@ export default function AdminPromoCodesPage() {
       const res = await getAdminPromoCodes();
       setCodes(res);
     } catch (err) {
-      setError((err as Error).message || "Unable to load promo codes");
+      setError(resolveAdminError(t, err, "adminPromoCodes.unableToLoad"));
     } finally {
       setLoading(false);
     }
@@ -88,9 +89,12 @@ export default function AdminPromoCodesPage() {
                       : t("adminPromoCodes.discountTypeAmount");
                   const window =
                     pc.starts_at || pc.ends_at
-                      ? `${pc.starts_at ? new Date(pc.starts_at).toLocaleDateString() : "-"} -> ${
-                          pc.ends_at ? new Date(pc.ends_at).toLocaleDateString() : "-"
-                        }`
+                      ? t("adminPromoCodes.windowRange", {
+                          start: pc.starts_at
+                            ? new Date(pc.starts_at).toLocaleDateString()
+                            : "-",
+                          end: pc.ends_at ? new Date(pc.ends_at).toLocaleDateString() : "-",
+                        })
                       : "-";
                   return (
                     <tr key={pc.id}>
@@ -136,7 +140,7 @@ export default function AdminPromoCodesPage() {
                                   prev.map((row) => (row.id === pc.id ? updated : row))
                                 );
                               } catch (err) {
-                                setError((err as Error).message || "Unable to update promo code");
+                                setError(resolveAdminError(t, err, "adminPromoCodes.unableToUpdate"));
                               } finally {
                                 setSavingId(null);
                               }
@@ -157,4 +161,3 @@ export default function AdminPromoCodesPage() {
     </div>
   );
 }
-

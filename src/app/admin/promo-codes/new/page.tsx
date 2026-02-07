@@ -6,6 +6,7 @@ import { useState } from "react";
 import { PromoCodeForm } from "@/app/admin/components/PromoCodeForm";
 import { createAdminPromoCode } from "@/lib/api";
 import { useT } from "@/components/providers/LanguageProvider";
+import { resolveAdminError } from "@/lib/adminErrors";
 
 export default function AdminNewPromoCodePage() {
   const t = useT();
@@ -30,7 +31,7 @@ export default function AdminNewPromoCodePage() {
             const created = await createAdminPromoCode(payload as any);
             router.replace(`/admin/promo-codes/${created.id}`);
           } catch (err) {
-            setError((err as Error).message || "Unable to create promo code");
+            setError(resolveAdminError(t, err, "adminPromoCodes.unableToCreate"));
           } finally {
             setSubmitting(false);
           }
@@ -39,4 +40,3 @@ export default function AdminNewPromoCodePage() {
     </div>
   );
 }
-
