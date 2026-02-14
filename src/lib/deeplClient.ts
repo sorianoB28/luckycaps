@@ -12,18 +12,28 @@ function resolveBaseUrl(apiKey: string | undefined) {
   return "https://api.deepl.com";
 }
 
-export async function translateText(
+type DeeplTranslation = {
+  text: string | null;
+  detectedSourceLang: TargetLang | null;
+};
+
+const normalizeLang = (val?: string | null): TargetLang | null => {
+  const up = (val ?? "").toUpperCase();
+  return up === "EN" || up === "ES" ? (up as TargetLang) : null;
+};
+
+async function requestTranslate(
   text: string,
   targetLang: TargetLang
-): Promise<string | null> {
+): Promise<DeeplTranslation> {
   const apiKey = process.env.DEEPL_API_KEY;
   if (!apiKey) {
     console.error("DeepL translate: missing API key");
-    return null;
+    return { text: null, detectedSourceLang: null };
   }
 
   const trimmed = text?.trim() ?? "";
-  if (!trimmed) return null;
+  if (!trimmed) return { text: null, detectedSourceLang: null };
 
   const baseUrl = resolveBaseUrl(apiKey);
   const url = `${baseUrl}/v2/translate`;
@@ -45,19 +55,43 @@ export async function translateText(
 
     if (!res.ok) {
       console.error(`DeepL translate failed status=${res.status}`);
-      return null;
+      return { text: null, detectedSourceLang: null };
     }
 
     const data = (await res.json()) as {
-      translations?: { text?: string }[];
+      translations?: { text?: string; detected_source_language?: string }[];
     };
     const translated = data?.translations?.[0]?.text;
-    return typeof translated === "string" ? translated : null;
+    const detected = normalizeLang(data?.translations?.[0]?.detected_source_language);
+    return {
+      text: typeof translated === "string" ? translated : null,
+      detectedSourceLang: detected,
+    };
   } catch (err) {
     const message = (err as Error).message ?? "unknown error";
     console.error(`DeepL translate error: ${message}`);
-    return null;
+    return { text: null, detectedSourceLang: null };
   }
+}
+
+export async function translateText(
+  text: string,
+  targetLang: TargetLang
+): Promise<string | null> {
+  const { text: translated } = await requestTranslate(text, targetLang);
+  return translated;
+}
+
+export async function translateTextWithDetection(
+  text: string,
+  targetLang: TargetLang
+): Promise<DeeplTranslation> {
+  return requestTranslate(text, targetLang);
+}
+
+export async function detectLanguage(text: string): Promise<TargetLang | null> {
+  const { detectedSourceLang } = await requestTranslate(text, "EN");
+  return detectedSourceLang;
 }
 
 export { TARGETS };

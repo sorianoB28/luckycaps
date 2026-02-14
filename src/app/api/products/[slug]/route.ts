@@ -28,6 +28,8 @@ type ProductRow = {
   created_at: string;
   updated_at: string;
   translation_updated_at?: string | null;
+  translation_source_locale?: string | null;
+  translated_at?: string | null;
   sizes?: string[];
 };
 
@@ -101,7 +103,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
       active,
       created_at,
       updated_at,
-      translation_updated_at
+      translation_updated_at,
+      translation_source_locale,
+      translated_at
     FROM public.products
     WHERE slug = ${slug} AND active = true
     LIMIT 1

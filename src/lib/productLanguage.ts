@@ -64,3 +64,38 @@ export function selectLocalizedText(
   }
   return en || primary || es || "";
 }
+
+type ProductLike = {
+  name: string;
+  name_en?: string | null;
+  name_es?: string | null;
+  description?: string | null;
+  description_en?: string | null;
+  description_es?: string | null;
+};
+
+export function getLocalizedProductText(product: ProductLike, language: Language) {
+  return {
+    name: selectLocalizedText(
+      { primary: product.name, en: product.name_en, es: product.name_es },
+      language
+    ),
+    description: selectLocalizedText(
+      {
+        primary: product.description,
+        en: product.description_en,
+        es: product.description_es,
+      },
+      language
+    ),
+  };
+}
+
+export function getLocalizedProduct(
+  product: ProductLike,
+  locale: Language | string
+): { title: string; description: string } {
+  const lang = (locale || "EN").toString().toUpperCase() === "ES" ? "ES" : "EN";
+  const { name, description } = getLocalizedProductText(product, lang as Language);
+  return { title: name, description };
+}

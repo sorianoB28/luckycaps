@@ -9,11 +9,12 @@ import { ProductImageWithFallback } from "@/components/products/ProductImageWith
 import { getProducts, type Product } from "@/lib/api";
 import { getPlaceholderImages } from "@/lib/placeholderImages";
 import { Slider } from "@/components/ui/slider";
+import { SelectField } from "@/components/ui/select-field";
 import { formatCategory } from "@/lib/formatCategory";
 import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 import { getCategoriesFromProducts, type CategoryInfo } from "@/lib/categories";
 import { useLanguage, useT } from "@/components/providers/LanguageProvider";
-import { selectLocalizedText } from "@/lib/productLanguage";
+import { getLocalizedProduct } from "@/lib/productLanguage";
 
 type SortOption = "featured" | "price-asc" | "price-desc" | "newest";
 
@@ -274,18 +275,20 @@ export default function ShopPage() {
               {t("shop.showing", { shown: filteredProducts.length, total: products.length })}
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm text-white">
+              <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-sm text-white">
                 <ArrowUpDown className="h-4 w-4 text-white/60" />
-                <select
+                <SelectField
                   value={sort}
-                  onChange={(e) => setSort(e.target.value as SortOption)}
-                  className="bg-transparent text-sm text-white focus:outline-none"
-                >
-                  <option value="featured">{t("shop.featured")}</option>
-                  <option value="price-asc">{t("shop.priceLowHigh")}</option>
-                  <option value="price-desc">{t("shop.priceHighLow")}</option>
-                  <option value="newest">{t("shop.newest")}</option>
-                </select>
+                  aria-label={t("shop.sort")}
+                  onValueChange={(value) => setSort(value as SortOption)}
+                  options={[
+                    { value: "featured", label: t("shop.featured") },
+                    { value: "price-asc", label: t("shop.priceLowHigh") },
+                    { value: "price-desc", label: t("shop.priceHighLow") },
+                    { value: "newest", label: t("shop.newest") },
+                  ]}
+                  className="h-8 min-w-[170px] border-0 bg-transparent py-0 pl-0 text-sm shadow-none"
+                />
               </div>
             </div>
           </div>
@@ -325,18 +328,8 @@ export default function ShopPage() {
                   product.slug,
                   2
                 );
-                const displayName = selectLocalizedText(
-                  { primary: product.name, en: product.name_en, es: product.name_es },
-                  language
-                );
-                const displayDescription = selectLocalizedText(
-                  {
-                    primary: product.description,
-                    en: product.description_en,
-                    es: product.description_es,
-                  },
-                  language
-                );
+                const { title: displayName, description: displayDescription } =
+                  getLocalizedProduct(product, language);
                 return (
                   <Link
                     key={product.id}

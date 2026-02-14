@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Product } from "@/types";
 import { useLanguage, useT } from "@/components/providers/LanguageProvider";
 import { getPlaceholderImages } from "@/lib/placeholderImages";
-import { selectLocalizedText } from "@/lib/productLanguage";
+import { getLocalizedProduct } from "@/lib/productLanguage";
 
 interface ProductCardProps {
   product: Product;
@@ -26,16 +26,8 @@ export default function ProductCard({ product }: ProductCardProps) {
       : fallbacks[0];
   const fallbackIndex = useRef(1);
 
-  const displayName = selectLocalizedText(
-    { primary: product.name, en: product.name_en, es: product.name_es },
-    language
-  );
-  const displayDescription = selectLocalizedText(
-    {
-      primary: product.description,
-      en: product.description_en,
-      es: product.description_es,
-    },
+  const { title: displayName, description: displayDescription } = getLocalizedProduct(
+    product,
     language
   );
 

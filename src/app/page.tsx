@@ -53,6 +53,9 @@ const mapApiProductToUiProduct = (item: ApiProduct): Product => {
     variants: [],
     sizes,
     stock: item.stock,
+    translation_source_locale: (item.translation_source_locale as "EN" | "ES" | null) ?? null,
+    translated_at: item.translated_at ?? item.translation_updated_at ?? null,
+    translation_updated_at: item.translation_updated_at ?? null,
   };
 };
 

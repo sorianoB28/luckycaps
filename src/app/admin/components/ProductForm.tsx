@@ -11,7 +11,7 @@ import { slugify } from "@/lib/slugify";
 import { Product } from "@/types";
 import { normalizeSize, sizeOptions, sortSizes } from "@/lib/sizeOptions";
 import { useLanguage, useT } from "@/components/providers/LanguageProvider";
-import { selectLocalizedText } from "@/lib/productLanguage";
+import { getLocalizedProduct } from "@/lib/productLanguage";
 import { type Language } from "@/lib/i18n";
 
 const isHttpUrl = (url?: string | null) => !!url && /^https?:\/\//i.test(url);
@@ -39,21 +39,13 @@ interface ProductFormProps {
   submitLabel: string;
 }
 
-const buildInitialForm = (product?: Product, language: Language = "EN"): ProductFormValues => ({
-  name: selectLocalizedText(
-    { primary: product?.name, en: product?.name_en, es: product?.name_es },
-    language
-  ),
+const buildInitialForm = (product?: Product, language: Language = "EN"): ProductFormValues => {
+  const localized = product ? getLocalizedProduct(product, language) : { title: "", description: "" };
+  return {
+  name: localized.title,
   slug: product?.slug ?? "",
   category: product?.category ?? "",
-  description: selectLocalizedText(
-    {
-      primary: product?.description,
-      en: product?.description_en,
-      es: product?.description_es,
-    },
-    language
-  ),
+  description: localized.description,
   price: product?.isSale ? product.salePrice ?? product.price : product?.price ?? 0,
   salePrice: product?.isSale ? product.salePrice ?? product.price : product?.salePrice,
   originalPrice: product?.originalPrice ?? undefined,
@@ -67,7 +59,8 @@ const buildInitialForm = (product?: Product, language: Language = "EN"): Product
       .map((size) => normalizeSize(size))
       .filter((s): s is NonNullable<typeof s> => Boolean(s))
   ),
-});
+  };
+};
 
 export function ProductForm({
   initialProduct,

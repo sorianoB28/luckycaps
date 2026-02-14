@@ -5,7 +5,7 @@ import sql from "@/lib/adminDb";
 import { slugify } from "@/lib/slugify";
 import { cloudinary } from "@/lib/cloudinary";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
-import { translateText } from "@/lib/deeplClient";
+import { detectLanguage, translateText } from "@/lib/deeplClient";
 import { detectInputLanguage } from "@/lib/productLanguage";
 import { type Language } from "@/lib/i18n";
 
@@ -72,6 +72,8 @@ type AdminProductRow = {
   active: boolean;
   created_at: string;
   translation_updated_at?: string | null;
+  translation_source_locale?: Language | null;
+  translated_at?: string | null;
   image_url: string | null;
   images: string[];
   sizes: string[];
@@ -109,6 +111,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       p.active,
       p.created_at,
       p.translation_updated_at,
+      p.translation_source_locale,
+      p.translated_at,
       (
         SELECT url
         FROM public.product_images pi
@@ -195,7 +199,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       description,
       description_en,
       description_es,
-      translation_updated_at
+      translation_updated_at,
+      translation_source_locale,
+      translated_at
     FROM public.products
     WHERE id = ${id}::uuid
     LIMIT 1
@@ -208,6 +214,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     description_en?: string | null;
     description_es?: string | null;
     translation_updated_at?: string | null;
+    translation_source_locale?: Language | null;
+    translated_at?: string | null;
   }[];
 
   if (!existingRows.length) {
@@ -222,11 +230,15 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     payload.sourceLanguage === "EN" || payload.sourceLanguage === "ES"
       ? payload.sourceLanguage
       : undefined;
-  const sourceLanguage = detectInputLanguage({
-    preferred: preferredLanguage,
-    name,
-    description,
-  });
+  const deeplDetected = await detectLanguage(name || description);
+  const sourceLanguage =
+    preferredLanguage ??
+    deeplDetected ??
+    detectInputLanguage({
+      preferred: preferredLanguage,
+      name,
+      description,
+    });
 
   const previousNameEn = existingRows[0].name_en ?? existingRows[0].name ?? "";
   const previousNameEs = existingRows[0].name_es ?? existingRows[0].name ?? "";
@@ -241,7 +253,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     sourceLanguage === "EN" ? description : existingRows[0].description_en ?? null;
   let description_es =
     sourceLanguage === "ES" ? description : existingRows[0].description_es ?? null;
-  let translationUpdatedAt = existingRows[0].translation_updated_at ?? null;
+  let translationUpdatedAt =
+    existingRows[0].translated_at ?? existingRows[0].translation_updated_at ?? null;
+  let translationSourceLocale = existingRows[0].translation_source_locale ?? null;
+  let translatedAt = existingRows[0].translated_at ?? existingRows[0].translation_updated_at ?? null;
 
   const sourceChanged =
     sourceLanguage === "EN"
@@ -271,8 +286,26 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     if (translatedName || translatedDescription) {
       translationUpdatedAt = new Date().toISOString();
+      translationSourceLocale = sourceLanguage;
+      translatedAt = translationUpdatedAt;
+    } else {
+      console.warn("DeepL translation missing on update, saving originals only", {
+        id,
+        targetLang,
+      });
     }
   }
+  // best-effort fallback to keep English-facing fields populated
+  if (!name_en) name_en = name;
+  if (!description_en) description_en = description;
+  const translationSourceLower =
+    translationSourceLocale?.toLowerCase() === "es"
+      ? "es"
+      : translationSourceLocale?.toLowerCase() === "en"
+      ? "en"
+      : null;
+  const baseName = sourceLanguage === "ES" ? name_en ?? name : name;
+  const baseDescription = sourceLanguage === "ES" ? description_en ?? description : description;
   const isSale = Boolean(payload.isSale);
   const isNewDrop = Boolean(payload.isNewDrop);
   const stock = Number(payload.stock ?? 0);
@@ -344,11 +377,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         UPDATE public.products
         SET
           slug = ${slug},
-          name = ${name},
+          name = ${baseName},
           name_en = ${name_en},
           name_es = ${name_es},
           category = ${category},
-          description = ${description},
+          description = ${baseDescription},
           description_en = ${description_en},
           description_es = ${description_es},
           price_cents = ${priceCents},
@@ -358,7 +391,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
           is_sale = ${isSale},
           stock = ${stock},
           active = ${active},
-          translation_updated_at = ${translationUpdatedAt},
+          translation_source_locale = ${translationSourceLower},
+          translated_at = ${translatedAt ?? translationUpdatedAt},
+          translation_updated_at = ${translatedAt ?? translationUpdatedAt},
           updated_at = now()
         WHERE id = ${id}::uuid
         RETURNING id

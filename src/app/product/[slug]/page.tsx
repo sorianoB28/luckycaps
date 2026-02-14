@@ -35,7 +35,8 @@ import { getPlaceholderImages } from "@/lib/placeholderImages";
 import { StarRating } from "@/components/reviews/StarRating";
 import { formatCategory } from "@/lib/formatCategory";
 import { useLanguage, useT } from "@/components/providers/LanguageProvider";
-import { selectLocalizedText } from "@/lib/productLanguage";
+import { getLocalizedProduct } from "@/lib/productLanguage";
+import { SelectField } from "@/components/ui/select-field";
 
 type ProductPageProps = {
   params: { slug: string };
@@ -150,40 +151,12 @@ export default function ProductPage({ params }: ProductPageProps) {
     placeholderImages[0] ??
     null;
 
-  const displayName = useMemo(
-    () =>
-      data
-        ? selectLocalizedText(
-            {
-              primary: data.product.name,
-              en: data.product.name_en,
-              es: data.product.name_es,
-            },
-            language
-          )
-        : "",
-    [data?.product.name, data?.product.name_en, data?.product.name_es, language]
+  const displayTexts = useMemo(
+    () => (data ? getLocalizedProduct(data.product, language) : { title: "", description: "" }),
+    [data, language]
   );
-
-  const displayDescription = useMemo(
-    () =>
-      data
-        ? selectLocalizedText(
-            {
-              primary: data.product.description,
-              en: data.product.description_en,
-              es: data.product.description_es,
-            },
-            language
-          )
-        : "",
-    [
-      data?.product.description,
-      data?.product.description_en,
-      data?.product.description_es,
-      language,
-    ]
-  );
+  const displayName = displayTexts.title;
+  const displayDescription = displayTexts.description;
 
   useEffect(() => {
     if (!displayName) return;
@@ -717,16 +690,18 @@ function ProductReviews({
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-2 text-sm text-white">
               <span className="text-white/60">{t("shop.sort")}</span>
-              <select
+              <SelectField
                 value={sort}
-                onChange={(e) => setSort(e.target.value as SortKey)}
-                className="bg-transparent text-sm text-white focus:outline-none"
-              >
-                <option value="recent">{t("reviews.sortOptions.recent")}</option>
-                <option value="high">{t("reviews.sortOptions.high")}</option>
-                <option value="low">{t("reviews.sortOptions.low")}</option>
-                <option value="helpful">{t("reviews.sortOptions.helpful")}</option>
-              </select>
+                aria-label={t("shop.sort")}
+                onValueChange={(value) => setSort(value as SortKey)}
+                options={[
+                  { value: "recent", label: t("reviews.sortOptions.recent") },
+                  { value: "high", label: t("reviews.sortOptions.high") },
+                  { value: "low", label: t("reviews.sortOptions.low") },
+                  { value: "helpful", label: t("reviews.sortOptions.helpful") },
+                ]}
+                className="h-8 min-w-[165px] border-0 bg-transparent py-0 pl-0 text-sm shadow-none"
+              />
             </div>
             <button
               type="button"

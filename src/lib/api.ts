@@ -24,6 +24,8 @@ export type Product = {
   created_at: string;
   updated_at: string;
   translation_updated_at?: string | null;
+  translation_source_locale?: Language | null;
+  translated_at?: string | null;
   sizes: string[];
 };
 
@@ -120,6 +122,8 @@ export type AdminProduct = {
   active: boolean;
   created_at: string;
   translation_updated_at?: string | null;
+  translation_source_locale?: Language | null;
+  translated_at?: string | null;
   image_url: string | null;
   images: string[];
   sizes: string[];
@@ -559,6 +563,15 @@ export async function duplicateAdminProduct(id: string) {
   return adminFetchJson<{ productId: string }>(`/api/admin/products/${id}/duplicate`, {
     method: "POST",
   });
+}
+
+export async function retranslateAdminProducts() {
+  return adminFetchJson<{
+    ok: boolean;
+    total: number;
+    updated: number;
+    failed: { id: string; error?: string }[];
+  }>("/api/admin/products/retranslate", { method: "POST" });
 }
 
 export async function getAdminOrders(params?: {

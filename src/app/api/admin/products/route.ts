@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
 import { slugify } from "@/lib/slugify";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
-import { translateText } from "@/lib/deeplClient";
+import { detectLanguage, translateText } from "@/lib/deeplClient";
 import { detectInputLanguage } from "@/lib/productLanguage";
 import { type Language } from "@/lib/i18n";
 
@@ -29,6 +29,8 @@ type AdminProductRow = {
   active: boolean;
   created_at: string;
   translation_updated_at?: string | null;
+  translation_source_locale?: Language | null;
+  translated_at?: string | null;
   image_url: string | null;
   images: string[];
   sizes: string[];
@@ -100,6 +102,8 @@ export async function GET(request: Request) {
         p.active,
         p.created_at,
         p.translation_updated_at,
+        p.translation_source_locale,
+        p.translated_at,
         (
           SELECT url
           FROM public.product_images pi
@@ -179,17 +183,23 @@ export async function POST(request: Request) {
     payload.sourceLanguage === "EN" || payload.sourceLanguage === "ES"
       ? payload.sourceLanguage
       : undefined;
-  const sourceLanguage = detectInputLanguage({
-    preferred: preferredLanguage,
-    name,
-    description,
-  });
+  const deeplDetected = await detectLanguage(name || description);
+  const sourceLanguage =
+    preferredLanguage ??
+    deeplDetected ??
+    detectInputLanguage({
+      preferred: preferredLanguage,
+      name,
+      description,
+    });
 
   let name_en = sourceLanguage === "EN" ? name : null;
   let name_es = sourceLanguage === "ES" ? name : null;
   let description_en = sourceLanguage === "EN" ? description : null;
   let description_es = sourceLanguage === "ES" ? description : null;
   let translationUpdatedAt: string | null = null;
+  let translationSourceLocale: Language | null = null;
+  let translatedAt: string | null = null;
 
   const targetLang = sourceLanguage === "EN" ? "ES" : "EN";
   const needsTranslation =
@@ -213,8 +223,24 @@ export async function POST(request: Request) {
 
     if (translatedName || translatedDescription) {
       translationUpdatedAt = new Date().toISOString();
+      translationSourceLocale = sourceLanguage;
+      translatedAt = translationUpdatedAt;
+    } else {
+      console.warn("DeepL translation missing, saving originals only");
     }
   }
+
+  const baseName = sourceLanguage === "ES" ? name_en ?? name : name;
+  const baseDescription = sourceLanguage === "ES" ? description_en ?? description : description;
+  // best-effort fallback when translation failed
+  if (!name_en) name_en = name;
+  if (!description_en) description_en = description;
+  const translationSourceLower =
+    translationSourceLocale?.toLowerCase() === "es"
+      ? "es"
+      : translationSourceLocale?.toLowerCase() === "en"
+      ? "en"
+      : null;
   const isSale = Boolean(payload.isSale);
   const isNewDrop = Boolean(payload.isNewDrop);
   const stock = Number(payload.stock ?? 0);
@@ -274,15 +300,17 @@ export async function POST(request: Request) {
         features,
         stock,
         active,
+        translation_source_locale,
+        translated_at,
         translation_updated_at
       )
       VALUES (
         ${slug},
-        ${name},
+        ${baseName},
         ${name_en},
         ${name_es},
         ${category},
-        ${description},
+        ${baseDescription},
         ${description_en},
         ${description_es},
         ${priceCents},
@@ -294,7 +322,9 @@ export async function POST(request: Request) {
         ${[]}::text[],
         ${stock},
         ${active},
-        ${translationUpdatedAt}
+        ${translationSourceLower},
+        ${translatedAt ?? translationUpdatedAt},
+        ${translatedAt ?? translationUpdatedAt}
       )
       RETURNING id
     `) as unknown as { id: string }[];

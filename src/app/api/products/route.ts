@@ -26,6 +26,8 @@ export async function GET() {
       p.created_at,
       p.updated_at,
       p.translation_updated_at,
+      p.translation_source_locale,
+      p.translated_at,
       img.url AS image_url,
       COALESCE(
         (

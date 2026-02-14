@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select-field";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/providers/LanguageProvider";
 import {
@@ -730,18 +731,18 @@ export default function AdminOrderDetailPage() {
                   <label className="text-xs uppercase tracking-[0.2em] text-white/50">
                     {t("admin.shippingPackageTemplate")}
                   </label>
-                  <select
+                  <SelectField
                     value={parcelTemplateId ?? ""}
-                    onChange={(e) => handleTemplateChange(e.target.value)}
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-                  >
-                    <option value="">{t("admin.shippingCustomTemplate")}</option>
-                    {parcelTemplates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name}
-                      </option>
-                    ))}
-                  </select>
+                    aria-label={t("admin.shippingPackageTemplate")}
+                    onValueChange={(value) => handleTemplateChange(value)}
+                    options={[
+                      { value: "", label: t("admin.shippingCustomTemplate") },
+                      ...parcelTemplates.map((template) => ({
+                        value: template.id,
+                        label: template.name,
+                      })),
+                    ]}
+                  />
                   {suggestedTemplate && !manualTemplateSelection ? (
                     <p className="text-xs text-white/60">
                       {t("admin.shippingSuggestedTemplate", {
@@ -812,37 +813,33 @@ export default function AdminOrderDetailPage() {
                     <label className="text-xs uppercase tracking-[0.2em] text-white/50">
                       {t("admin.shippingDistanceUnit")}
                     </label>
-                    <select
+                    <SelectField
                       value={parcel.distance_unit}
-                      onChange={(e) =>
-                        setParcel((prev) => ({ ...prev, distance_unit: e.target.value }))
+                      aria-label={t("admin.shippingDistanceUnit")}
+                      onValueChange={(value) =>
+                        setParcel((prev) => ({ ...prev, distance_unit: value }))
                       }
-                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-                    >
-                      {distanceUnits.map((unit) => (
-                        <option key={unit} value={unit}>
-                          {unit}
-                        </option>
-                      ))}
-                    </select>
+                      options={distanceUnits.map((unit) => ({
+                        value: unit,
+                        label: unit,
+                      }))}
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs uppercase tracking-[0.2em] text-white/50">
                       {t("admin.shippingMassUnit")}
                     </label>
-                    <select
+                    <SelectField
                       value={parcel.mass_unit}
-                      onChange={(e) =>
-                        setParcel((prev) => ({ ...prev, mass_unit: e.target.value }))
+                      aria-label={t("admin.shippingMassUnit")}
+                      onValueChange={(value) =>
+                        setParcel((prev) => ({ ...prev, mass_unit: value }))
                       }
-                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-                    >
-                      {massUnits.map((unit) => (
-                        <option key={unit} value={unit}>
-                          {unit}
-                        </option>
-                      ))}
-                    </select>
+                      options={massUnits.map((unit) => ({
+                        value: unit,
+                        label: unit,
+                      }))}
+                    />
                   </div>
                 </div>
                 {parcelWarnings.length ? (
@@ -855,17 +852,15 @@ export default function AdminOrderDetailPage() {
                   <label className="text-xs uppercase tracking-[0.2em] text-white/50">
                     {t("admin.shippingLabelFormat")}
                   </label>
-                  <select
+                  <SelectField
                     value={labelFormat}
-                    onChange={(e) => setLabelFormat(e.target.value as LabelFormat)}
-                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-                  >
-                    {LABEL_FORMATS.map((format) => (
-                      <option key={format} value={format}>
-                        {format}
-                      </option>
-                    ))}
-                  </select>
+                    aria-label={t("admin.shippingLabelFormat")}
+                    onValueChange={(value) => setLabelFormat(value as LabelFormat)}
+                    options={LABEL_FORMATS.map((format) => ({
+                      value: format,
+                      label: format,
+                    }))}
+                  />
                 </div>
 
                 <div className="flex flex-wrap gap-2">
@@ -1039,17 +1034,17 @@ export default function AdminOrderDetailPage() {
               <label className="text-xs uppercase tracking-[0.2em] text-white/50">
                 {t("admin.statusLabel")}
               </label>
-              <select
+              <SelectField
                 value={status}
-                onChange={(e) => setStatus(e.target.value as AdminOrderDetail["status"])}
-                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {t(STATUS_LABEL_KEYS[s])}
-                  </option>
-                ))}
-              </select>
+                aria-label={t("admin.statusLabel")}
+                onValueChange={(value) =>
+                  setStatus(value as AdminOrderDetail["status"])
+                }
+                options={STATUSES.map((s) => ({
+                  value: s,
+                  label: t(STATUS_LABEL_KEYS[s]),
+                }))}
+              />
             </div>
 
             <div className="space-y-2">

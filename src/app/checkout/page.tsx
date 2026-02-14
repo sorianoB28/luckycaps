@@ -589,7 +589,7 @@ function CheckoutPageContent() {
         </div>
 
         <div className="w-full md:w-[360px]">
-          <Card className="border-white/10 bg-white/5 text-white md:sticky md:top-6">
+          <Card className="border-white/10 bg-white/5 text-white">
             <CardHeader>
               <CardTitle>{t("checkout.orderSummary")}</CardTitle>
             </CardHeader>

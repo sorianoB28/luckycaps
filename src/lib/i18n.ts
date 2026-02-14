@@ -79,7 +79,7 @@ const en: Dictionary = {
   footer: {
     tagline: "Lucky Supply",
     blurb:
-      "Badge-style caps with hand-applied emblems. Dark base, neon-green edge, built in Des Moines.",
+      "Badge-style caps handcrafted in Des Moines with raised emblems and street-level attitude. Limited drops only, made for people who wear their own identity.",
     shop: "Shop",
     stayInLoop: "Stay in the loop",
     noSpam: "No spam. Just drops and behind-the-scenes.",
@@ -99,6 +99,11 @@ const en: Dictionary = {
       smallBatch: "Small-batch caps",
       local: "Made in Des Moines",
     },
+    badges: {
+      craftedByHand: "Crafted by hand",
+      limitedDrops: "Limited edition drops",
+      boldIdentity: "Bold identity",
+    },
     shopLinks: {
       snapbacks: "Snapbacks",
       fitted: "Fitted",
@@ -115,6 +120,20 @@ const en: Dictionary = {
       privacy: "Privacy",
       terms: "Terms",
     },
+  },
+  categories: {
+    snapbacks: "Snapbacks",
+    fitted: "Fitted",
+    trucker: "Trucker",
+    beanies: "Beanies",
+    custom: "Custom",
+    dad_hat: "Dad Hat",
+    rope: "Rope",
+    five_panel: "Five Panel",
+    flat_bill: "Flat Bill",
+    caps: "Caps",
+    gorra: "Cap",
+    snapbacks_2pk: "Snapbacks 2-Pack",
   },
   home: {
     heroImageAlt: "Cap with neon green glow",
@@ -991,7 +1010,7 @@ const es: Dictionary = {
   footer: {
     tagline: "Lucky Supply",
     blurb:
-      "Gorras con emblemas aplicados a mano. Base oscura, verde neón, hechas en Des Moines.",
+      "Gorras estilo badge hechas a mano en Des Moines, con emblemas trabajados al detalle y actitud de calle. Solo drops limitados para quien viste su propia identidad.",
     shop: "Tienda",
     stayInLoop: "Mantente al tanto",
     noSpam: "Sin spam. Solo lanzamientos y detrás de cámaras.",
@@ -1011,6 +1030,11 @@ const es: Dictionary = {
       smallBatch: "Lotes pequeños",
       local: "Hechas en Des Moines",
     },
+    badges: {
+      craftedByHand: "Hechas a mano",
+      limitedDrops: "Drops de edición limitada",
+      boldIdentity: "Identidad sin filtro",
+    },
     shopLinks: {
       snapbacks: "Snapbacks",
       fitted: "Fitted",
@@ -1027,6 +1051,20 @@ const es: Dictionary = {
       privacy: "Privacidad",
       terms: "Términos",
     },
+  },
+  categories: {
+    snapbacks: "Snapbacks",
+    fitted: "Ajustadas",
+    trucker: "Trucker",
+    beanies: "Beanies",
+    custom: "Personalizadas",
+    dad_hat: "Dad Hat",
+    rope: "Rope",
+    five_panel: "Cinco paneles",
+    flat_bill: "Visera plana",
+    caps: "Gorras",
+    gorra: "Gorra",
+    snapbacks_2pk: "Snapbacks paquete de 2",
   },
   home: {
     heroImageAlt: "Fondo con gorra y brillo verde",
@@ -1855,7 +1893,7 @@ function walkDictionary(
 }
 
 if (process.env.NODE_ENV !== "production") {
-  const mojibakePattern = /[ÃÂ�]/;
+  const mojibakePattern = /(?:Ã.|Â.|�)/;
   const mojibakeHits: string[] = [];
   walkDictionary(dictionaries.EN, [], (path, value) => {
     if (mojibakePattern.test(value)) mojibakeHits.push(`EN:${path}`);
@@ -1913,3 +1951,4 @@ export function createTranslator(language: Language) {
     return interpolate(raw as string, vars);
   };
 }
+

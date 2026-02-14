@@ -39,7 +39,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
       p.features,
       p.stock,
       p.active,
-      p.translation_updated_at
+      p.translation_updated_at,
+      p.translation_source_locale,
+      p.translated_at
     FROM public.products p
     WHERE p.id = ${id}::uuid
     LIMIT 1
@@ -63,6 +65,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
     stock: number;
     active: boolean;
     translation_updated_at?: string | null;
+    translation_source_locale?: string | null;
+    translated_at?: string | null;
   }[];
 
   const product = rows[0];
@@ -108,6 +112,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
         features,
         stock,
         active,
+        translation_source_locale,
+        translated_at,
         translation_updated_at
       )
       VALUES (
@@ -128,6 +134,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
         ${product.features},
         ${product.stock},
         ${product.active},
+        ${product.translation_source_locale?.toLowerCase?.() ?? null},
+        ${product.translated_at},
         ${product.translation_updated_at}
       )
       RETURNING id

@@ -12,6 +12,7 @@ import {
   deleteAdminProduct,
   duplicateAdminProduct,
   getAdminProducts,
+  retranslateAdminProducts,
 } from "@/lib/api";
 import { resolveAdminError } from "@/lib/adminErrors";
 import { useSession } from "next-auth/react";
@@ -26,6 +27,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [checkingTranslations, setCheckingTranslations] = useState(false);
+  const [translationMessage, setTranslationMessage] = useState<string | null>(null);
 
   const isAdmin = useMemo(() => session?.user?.role === "admin", [session?.user?.role]);
 
@@ -33,6 +36,7 @@ export default function AdminDashboard() {
     async () => {
       setLoading(true);
       setError(null);
+      setTranslationMessage(null);
       try {
         const data = await getAdminProducts();
         setProducts(data);
@@ -71,14 +75,45 @@ export default function AdminDashboard() {
           </p>
           <h1 className="font-display text-4xl">{t("admin.products")}</h1>
         </div>
-        <Button onClick={() => router.push("/admin/products/new")}>
-          {t("admin.addProduct")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              setCheckingTranslations(true);
+              setTranslationMessage(null);
+              try {
+                const res = await retranslateAdminProducts();
+                const failedCount = res.failed?.length ?? 0;
+                setTranslationMessage(
+                  failedCount
+                    ? `${t("admin.translationsChecked")} (${res.updated}/${res.total}, failed ${failedCount})`
+                    : t("admin.translationsChecked")
+                );
+                await loadProducts();
+              } catch (err) {
+                setError(resolveAdminError(t, err, "admin.unableToLoadProducts"));
+              } finally {
+                setCheckingTranslations(false);
+              }
+            }}
+            disabled={checkingTranslations || loading}
+          >
+            {checkingTranslations ? t("admin.checkingTranslations") : t("admin.checkTranslations")}
+          </Button>
+          <Button onClick={() => router.push("/admin/products/new")}>
+            {t("admin.addProduct")}
+          </Button>
+        </div>
       </div>
 
       {error ? (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
           {error}
+        </div>
+      ) : null}
+      {translationMessage ? (
+        <div className="rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm text-white/80">
+          {translationMessage}
         </div>
       ) : null}
 

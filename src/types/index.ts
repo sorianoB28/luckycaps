@@ -19,6 +19,9 @@ export type Product = {
   variants: string[];
   sizes: string[];
   stock: number;
+  translation_source_locale?: "EN" | "ES" | null;
+  translated_at?: string | null;
+  translation_updated_at?: string | null;
 };
 
 export type CartItem = {

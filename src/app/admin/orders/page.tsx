@@ -6,6 +6,7 @@ import { Loader2, Search, ChevronDown, ArrowUpRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SelectField } from "@/components/ui/select-field";
 import { getAdminOrders, type AdminOrder } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/providers/LanguageProvider";
@@ -108,26 +109,28 @@ export default function AdminOrdersPage() {
           </Button>
         </form>
         <div className="flex flex-wrap items-center gap-2">
-          <select
+          <SelectField
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as AdminOrder["status"] | "all")}
-            className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-          >
-            <option value="all">{t("admin.allStatuses")}</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(STATUS_LABEL_KEYS[s])}
-              </option>
-            ))}
-          </select>
-          <select
+            aria-label={t("common.status")}
+            onValueChange={(value) =>
+              setStatusFilter(value as AdminOrder["status"] | "all")
+            }
+            options={[
+              { value: "all", label: t("admin.allStatuses") },
+              ...STATUSES.map((s) => ({ value: s, label: t(STATUS_LABEL_KEYS[s]) })),
+            ]}
+            className="min-w-[185px]"
+          />
+          <SelectField
             value={sort}
-            onChange={(e) => setSort(e.target.value as SortOption)}
-            className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-          >
-            <option value="newest">{t("admin.newestFirst")}</option>
-            <option value="oldest">{t("admin.oldestFirst")}</option>
-          </select>
+            aria-label={t("shop.sort")}
+            onValueChange={(value) => setSort(value as SortOption)}
+            options={[
+              { value: "newest", label: t("admin.newestFirst") },
+              { value: "oldest", label: t("admin.oldestFirst") },
+            ]}
+            className="min-w-[175px]"
+          />
         </div>
       </div>
 

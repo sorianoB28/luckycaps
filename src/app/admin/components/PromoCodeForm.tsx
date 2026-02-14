@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SelectField } from "@/components/ui/select-field";
 import { useT } from "@/components/providers/LanguageProvider";
 import type { AdminPromoCode } from "@/lib/api";
 
@@ -125,26 +126,32 @@ export function PromoCodeForm(props: {
 
         <div className="space-y-2">
           <Label>{t("common.status")}</Label>
-          <select
+          <SelectField
             value={value.active ? "active" : "inactive"}
-            onChange={(e) => setValue((prev) => ({ ...prev, active: e.target.value === "active" }))}
-            className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-          >
-            <option value="active">{t("adminPromoCodes.statusActive")}</option>
-            <option value="inactive">{t("adminPromoCodes.statusInactive")}</option>
-          </select>
+            aria-label={t("common.status")}
+            onValueChange={(next) =>
+              setValue((prev) => ({ ...prev, active: next === "active" }))
+            }
+            options={[
+              { value: "active", label: t("adminPromoCodes.statusActive") },
+              { value: "inactive", label: t("adminPromoCodes.statusInactive") },
+            ]}
+          />
         </div>
 
         <div className="space-y-2">
           <Label>{t("adminPromoCodes.discountTypeLabel")}</Label>
-          <select
+          <SelectField
             value={value.discount_type}
-            onChange={(e) => setValue((prev) => ({ ...prev, discount_type: e.target.value as any }))}
-            className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-          >
-            <option value="percent">{t("adminPromoCodes.discountTypePercent")}</option>
-            <option value="amount">{t("adminPromoCodes.discountTypeAmount")}</option>
-          </select>
+            aria-label={t("adminPromoCodes.discountTypeLabel")}
+            onValueChange={(next) =>
+              setValue((prev) => ({ ...prev, discount_type: next as "percent" | "amount" }))
+            }
+            options={[
+              { value: "percent", label: t("adminPromoCodes.discountTypePercent") },
+              { value: "amount", label: t("adminPromoCodes.discountTypeAmount") },
+            ]}
+          />
         </div>
 
         <div className="space-y-2">
