@@ -35,6 +35,7 @@ export default function FooterClient({ categories }: FooterClientProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [successState, setSuccessState] = useState<"success" | "duplicate" | null>(null);
   const factPills = [
     t("footer.badges.craftedByHand"),
     t("footer.badges.limitedDrops"),
@@ -69,6 +70,7 @@ export default function FooterClient({ categories }: FooterClientProps) {
     event.preventDefault();
     setError(null);
     setSuccess(null);
+    setSuccessState(null);
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
@@ -91,12 +93,24 @@ export default function FooterClient({ categories }: FooterClientProps) {
           source: "site_footer",
         }),
       });
-      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; alreadySubscribed?: boolean }
+        | null;
       if (!res.ok || !data?.ok) {
         setError(data?.error || t("footer.subscribeError"));
         return;
       }
-      setSuccess(t("footer.subscribed"));
+      if (data.alreadySubscribed) {
+        setSuccess(
+          language === "ES"
+            ? "Ya estabas suscrito. Seguimos en contacto."
+            : "You are already subscribed. You are still on the list."
+        );
+        setSuccessState("duplicate");
+      } else {
+        setSuccess(t("footer.subscribed"));
+        setSuccessState("success");
+      }
       setEmail("");
       setConsent(false);
     } catch (err) {
@@ -169,10 +183,15 @@ export default function FooterClient({ categories }: FooterClientProps) {
               <span className={accentDot} />
               <span>{t("footer.stayInLoop")}</span>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-3 text-sm text-white/70">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-3 text-sm text-white/70"
+              data-testid="marketing-signup-form"
+            >
               <p className="text-white/60">{t("footer.noSpam")}</p>
               <div className="flex gap-2">
                 <input
+                  data-testid="marketing-email-input"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -180,6 +199,7 @@ export default function FooterClient({ categories }: FooterClientProps) {
                   className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-lucky-green"
                 />
                 <button
+                  data-testid="marketing-submit"
                   type="submit"
                   disabled={isSubmitting}
                   className="rounded-lg bg-lucky-green px-4 text-sm font-semibold text-lucky-darker transition hover:bg-lucky-green/90 focus:outline-none focus:ring-2 focus:ring-lucky-green"
@@ -190,6 +210,7 @@ export default function FooterClient({ categories }: FooterClientProps) {
               <div className="space-y-1">
                 <label className="mb-2 flex items-center gap-2 text-xs text-white/60">
                   <input
+                    data-testid="marketing-consent"
                     type="checkbox"
                     className="accent-lucky-green"
                     checked={consent}
@@ -197,10 +218,14 @@ export default function FooterClient({ categories }: FooterClientProps) {
                   />{" "}
                   {t("footer.consent")}
                 </label>
-                {error ? <p className="text-xs text-red-400">{error}</p> : null}
-                {success ? (
-                  <p className="text-xs text-lucky-green" aria-live="polite">
-                    {success}
+                {error || success ? (
+                  <p
+                    data-testid="marketing-status"
+                    data-state={error ? "error" : successState ?? "success"}
+                    className={error ? "text-xs text-red-400" : "text-xs text-lucky-green"}
+                    aria-live="polite"
+                  >
+                    {error || success}
                   </p>
                 ) : null}
               </div>

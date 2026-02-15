@@ -77,6 +77,7 @@ function CheckoutPageContent() {
   const { data: session, status: sessionStatus } = useSession();
   const searchParams = useSearchParams();
   const isCanceled = searchParams.get("canceled") === "1";
+  const e2eFail = searchParams.get("e2e_fail");
   const entries = useMemo(() => Object.entries(items), [items]);
   const [contact, setContact] = useState({ email: "", phone: "" });
   const [shipping, setShipping] = useState({
@@ -182,7 +183,10 @@ function CheckoutPageContent() {
     const preserveExisting = overrides?.preserveExisting ?? false;
 
     try {
-      const res = await fetch("/api/checkout/quote", {
+      const quoteUrl = e2eFail
+        ? `/api/checkout/quote?e2e_fail=${encodeURIComponent(e2eFail)}`
+        : "/api/checkout/quote";
+      const res = await fetch(quoteUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -196,6 +200,11 @@ function CheckoutPageContent() {
 
       const data = (await res.json()) as QuoteResponseOk | QuoteResponseErr;
       if (nextId !== quoteReqIdRef.current) return null;
+      if (!res.ok) {
+        if (!preserveExisting) setQuote(null);
+        setQuoteError(t("checkout.quoteLoadFailed"));
+        return { ok: false, error: t("checkout.quoteLoadFailed") } satisfies QuoteResponseErr;
+      }
 
       if (!("ok" in data) || !data.ok) {
         if (!preserveExisting) setQuote(null);
@@ -214,8 +223,8 @@ function CheckoutPageContent() {
     } catch {
       if (nextId !== quoteReqIdRef.current) return null;
       if (!preserveExisting) setQuote(null);
-      setQuoteError(t("checkout.unableToPlaceOrder"));
-      return { ok: false, error: t("checkout.unableToPlaceOrder") } satisfies QuoteResponseErr;
+      setQuoteError(t("checkout.quoteLoadFailed"));
+      return { ok: false, error: t("checkout.quoteLoadFailed") } satisfies QuoteResponseErr;
     } finally {
       if (nextId === quoteReqIdRef.current) setQuoteLoading(false);
     }
@@ -401,13 +410,14 @@ function CheckoutPageContent() {
                 variant="secondary"
                 className="bg-white/10"
                 onClick={handleAutofill}
+                data-testid="checkout-autofill"
               >
                 {t("checkout.autofill")}
               </Button>
             ) : null}
           </div>
 
-          <Card className="border-white/10 bg-white/5 text-white">
+          <Card className="border-white/10 bg-white/5 text-white" data-testid="checkout-summary">
             <CardHeader>
               <CardTitle>{t("checkout.contactTitle")}</CardTitle>
             </CardHeader>
@@ -567,6 +577,7 @@ function CheckoutPageContent() {
             {errors ? <p className="text-sm text-red-400">{errors}</p> : null}
             <Button
               onClick={handlePlaceOrder}
+              data-testid="checkout-place-order"
               disabled={
                 !requiredFilled ||
                 entries.length === 0 ||
@@ -600,6 +611,7 @@ function CheckoutPageContent() {
                     <div
                       key={`${item.product_id}-${item.size ?? "na"}-${idx}`}
                       className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-3"
+                      data-testid="checkout-line-item"
                     >
                       <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-white/5">
                         {item.image_url ? (
@@ -631,6 +643,7 @@ function CheckoutPageContent() {
                   <div
                     key={key}
                     className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-3"
+                    data-testid="checkout-line-item"
                   >
                     <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-white/5">
                       {item.imageUrl ? (
@@ -660,26 +673,35 @@ function CheckoutPageContent() {
               <div className="space-y-2 text-sm text-white/80">
                 <div className="flex items-center justify-between">
                   <span>{t("common.subtotal")}</span>
-                  <span>
-                    {quote ? `$${(quote.subtotal_cents / 100).toFixed(2)}` : t("common.loading")}
+                  <span data-testid="checkout-summary-subtotal-value">
+                    <span data-testid="checkout-subtotal-value">
+                      {quote ? `$${(quote.subtotal_cents / 100).toFixed(2)}` : t("common.loading")}
+                    </span>
                   </span>
                 </div>
                 {quote && quote.discount_cents > 0 ? (
-                  <div className="flex items-center justify-between">
+                  <div
+                    className="flex items-center justify-between"
+                    data-testid="checkout-summary-discount-row"
+                  >
                     <span>{t("common.discount")}</span>
-                    <span className="text-lucky-green">
-                      -${(quote.discount_cents / 100).toFixed(2)}
+                    <span className="text-lucky-green" data-testid="checkout-summary-discount-value">
+                      <span data-testid="checkout-discount-value">
+                        -${(quote.discount_cents / 100).toFixed(2)}
+                      </span>
                     </span>
                   </div>
                 ) : null}
                 <div className="flex items-center justify-between">
                   <span>{t("cart.shipping")}</span>
-                  <span>
-                    {quote
-                      ? quote.shipping_cents === 0
-                        ? t("checkout.free")
-                        : `$${(quote.shipping_cents / 100).toFixed(2)}`
-                      : t("common.loading")}
+                  <span data-testid="checkout-summary-shipping-value">
+                    <span data-testid="checkout-shipping-value">
+                      {quote
+                        ? quote.shipping_cents === 0
+                          ? t("checkout.free")
+                          : `$${(quote.shipping_cents / 100).toFixed(2)}`
+                        : t("common.loading")}
+                    </span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -692,8 +714,10 @@ function CheckoutPageContent() {
               <Separator className="border-white/10" />
               <div className="flex items-center justify-between text-lg font-semibold">
                 <span>{t("common.total")}</span>
-                <span>
-                  {quote ? `$${(quote.total_cents / 100).toFixed(2)}` : t("common.loading")}
+                <span data-testid="checkout-summary-total-value">
+                  <span data-testid="checkout-total-value">
+                    {quote ? `$${(quote.total_cents / 100).toFixed(2)}` : t("common.loading")}
+                  </span>
                 </span>
               </div>
               <Separator className="border-white/10" />
@@ -701,6 +725,7 @@ function CheckoutPageContent() {
                 <Label>{t("checkout.promoCode")}</Label>
                 <div className="flex gap-2">
                   <Input
+                    data-testid="checkout-promo-input"
                     value={promo}
                     onChange={(e) => {
                       setPromo(e.target.value);
@@ -712,6 +737,7 @@ function CheckoutPageContent() {
                   />
                   {appliedPromo ? (
                     <Button
+                      data-testid="checkout-promo-remove"
                       variant="secondary"
                       className="bg-white/10"
                       type="button"
@@ -721,6 +747,7 @@ function CheckoutPageContent() {
                     </Button>
                   ) : (
                     <Button
+                      data-testid="checkout-promo-apply"
                       variant="secondary"
                       className="bg-white/10"
                       type="button"
@@ -731,14 +758,39 @@ function CheckoutPageContent() {
                     </Button>
                   )}
                 </div>
-                {promoError ? (
-                  <p className="text-xs text-red-300">{promoError}</p>
-                ) : appliedPromo ? (
-                  <p className="text-xs text-white/60">
-                    {t("checkout.promoApplied")}: {appliedPromo.normalized_code}
+                {promoError || appliedPromo ? (
+                  <p
+                    className={promoError ? "text-xs text-red-300" : "text-xs text-white/60"}
+                    data-testid="checkout-promo-status"
+                  >
+                    {promoError ? (
+                      promoError
+                    ) : (
+                      <span data-testid="checkout-promo-applied">
+                        {t("checkout.promoApplied")}: {appliedPromo?.normalized_code}
+                      </span>
+                    )}
                   </p>
                 ) : null}
-                {quoteError ? <p className="text-xs text-red-300">{quoteError}</p> : null}
+                {quoteError ? (
+                  <div
+                    className="space-y-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3"
+                    data-testid="checkout-quote-error"
+                  >
+                    <p className="text-xs text-red-300" data-testid="checkout-quote-error-text">
+                      {quoteError}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="bg-white/10"
+                      onClick={() => requestQuote().catch(() => null)}
+                      data-testid="checkout-quote-retry"
+                    >
+                      {t("checkout.retryQuote")}
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </CardContent>
           </Card>

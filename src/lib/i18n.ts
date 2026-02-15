@@ -221,9 +221,11 @@ const en: Dictionary = {
     newDrop: "New Drop",
     sale: "Sale",
     loadingProducts: "Loading products...",
+    loadFailed: "Couldn't load products. Please try again.",
     emptyTitle: "No products match your filters.",
     emptyCopy: "Adjust filters or reset to see everything.",
     clearFilters: "Clear filters",
+    retryLoad: "Retry",
   },
   product: {
     variant: "Variant",
@@ -280,6 +282,8 @@ const en: Dictionary = {
     notice: "Secure UI flow - payments not enabled yet.",
     loadingCheckout: "Loading checkout...",
     unableToPlaceOrder: "Unable to place order.",
+    quoteLoadFailed: "Couldn't calculate shipping or total. Please try again.",
+    retryQuote: "Retry totals",
     requiredFieldsError: "Please complete required fields and add items to your cart.",
     missingCheckoutUrl: "Missing checkout url.",
     shippingAddressTitle: "Shipping address",
@@ -783,6 +787,7 @@ const en: Dictionary = {
     editProduct: "Edit Product",
     duplicate: "Duplicate",
     addProduct: "Add Product",
+    checkTranslations: "Check translations",
     backToProducts: "Back to Products",
     allStatuses: "All statuses",
     newestFirst: "Newest first",
@@ -1152,9 +1157,11 @@ const es: Dictionary = {
     newDrop: "Nuevo lanzamiento",
     sale: "Oferta",
     loadingProducts: "Cargando productos...",
+    loadFailed: "No se pudieron cargar los productos. Intenta de nuevo.",
     emptyTitle: "Ningún producto coincide con tus filtros.",
     emptyCopy: "Ajusta los filtros o restablece para ver todo.",
     clearFilters: "Limpiar filtros",
+    retryLoad: "Reintentar",
   },
   product: {
     variant: "Variante",
@@ -1211,6 +1218,8 @@ const es: Dictionary = {
     notice: "Flujo seguro - pagos no habilitados todavía.",
     loadingCheckout: "Cargando checkout...",
     unableToPlaceOrder: "No se pudo realizar el pedido.",
+    quoteLoadFailed: "No se pudo calcular envio ni total. Intenta de nuevo.",
+    retryQuote: "Reintentar totales",
     requiredFieldsError: "Completa los campos obligatorios y agrega artículos al carrito.",
     missingCheckoutUrl: "Falta la URL de checkout.",
     shippingAddressTitle: "Dirección de envío",
@@ -1719,6 +1728,7 @@ const es: Dictionary = {
     editProduct: "Editar producto",
     duplicate: "Duplicar",
     addProduct: "Agregar producto",
+    checkTranslations: "Revisar traducciones",
     backToProducts: "Volver a productos",
     allStatuses: "Todos los estados",
     newestFirst: "Más nuevos primero",
@@ -1877,6 +1887,8 @@ export const dictionaries: Record<Language, Dictionary> = {
   ES: es,
 };
 
+const MISSING_TRANSLATION_PREFIX = "MISSING_TRANSLATION:";
+
 function walkDictionary(
   node: Dictionary,
   path: string[] = [],
@@ -1939,7 +1951,7 @@ export function createTranslator(language: Language) {
         // eslint-disable-next-line no-console
         console.warn(`Missing translation for key "${key}" in all locales.`);
       }
-      return key.replace(/\./g, " ");
+      return `${MISSING_TRANSLATION_PREFIX}${key}`;
     }
 
     if (missingInLocale && process.env.NODE_ENV !== "production") {

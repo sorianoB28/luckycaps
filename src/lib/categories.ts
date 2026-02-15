@@ -120,7 +120,7 @@ export function sortDynamicCategories<T extends { key: string; slug: string }>(
 }
 
 type ProductLike = {
-  category: string;
+  category?: string | null;
   image_url?: string | null;
   images?: string[];
   slug?: string;
@@ -153,7 +153,18 @@ export function getCategoriesFromProducts<T extends ProductLike>(
 ): CategoryInfo[] {
   const map = new Map<string, CategoryInfo>();
 
+  if (!Array.isArray(products)) {
+    if (process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.warn("[HOME_PAGE_RENDER] categories input was not an array", {
+        receivedType: typeof products,
+      });
+    }
+    return [];
+  }
+
   products.forEach((product) => {
+    if (!product || typeof product !== "object") return;
     const key = normalizeCategorySlug(product.category);
     if (!key || map.has(key)) return;
     map.set(key, {

@@ -1,0 +1,81 @@
+name: E2E Tests
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  playwright-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: true
+      NODE_ENV: development
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_MODE: "true"
+      E2E_RUN_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+      E2E_GUEST_EMAIL: ${{ secrets.E2E_GUEST_EMAIL }}
+      NETLIFY_DATABASE_URL: ${{ secrets.NETLIFY_DATABASE_URL }}
+      NETLIFY_DATABASE_URL_UNPOOLED: ${{ secrets.NETLIFY_DATABASE_URL_UNPOOLED }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      SITE_URL: http://127.0.0.1:3000
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Start Next.js dev server
+        run: |
+          nohup npm run dev:next -- --hostname 127.0.0.1 --port 3000 > /tmp/next-dev.log 2>&1 &
+          echo "Waiting for app at $E2E_BASE_URL ..."
+          for i in {1..90}; do
+            if curl -fsS "$E2E_BASE_URL/api/dev/e2e/ping" >/dev/null; then
+              echo "App is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App failed to start in time"
+          tail -n 200 /tmp/next-dev.log || true
+          exit 1
+
+      - name: Run Playwright E2E
+        run: npm run test:e2e
+
+      - name: Show server logs on failure
+        if: failure()
+        run: tail -n 300 /tmp/next-dev.log || true
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 14

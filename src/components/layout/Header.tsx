@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ShoppingBag, Menu, User, X } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
@@ -29,6 +29,20 @@ const navLinks = [
   { href: "/story", key: "story" as const },
 ];
 
+function useSafePathname() {
+  const warned = useRef(false);
+  try {
+    return usePathname();
+  } catch (err) {
+    if (!warned.current && process.env.NODE_ENV !== "production") {
+      warned.current = true;
+      // eslint-disable-next-line no-console
+      console.warn("[HEADER] usePathname unavailable; using window.location fallback.", err);
+    }
+    return null;
+  }
+}
+
 export default function Header() {
   const { cartOpen, setCartOpen } = useUIStore();
   const { setLanguage, language } = useLanguage();
@@ -41,15 +55,17 @@ export default function Header() {
     0
   );
   const previousCount = useRef<number | null>(null);
-  const pathname = usePathname();
-  const router = useRouter();
+  const pathname = useSafePathname();
   const t = useT();
   const prefersReducedMotion = useReducedMotion();
   const [cartPulseKey, setCartPulseKey] = useState(0);
 
+  const activePathname =
+    pathname ?? (typeof window !== "undefined" ? window.location.pathname : "/");
+
   const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    return pathname?.startsWith(href);
+    if (href === "/") return activePathname === "/";
+    return activePathname.startsWith(href);
   };
 
   useEffect(() => {
@@ -164,10 +180,12 @@ export default function Header() {
               {isAuthed ? (
                 <DropdownMenuItem
                   className="text-red-400 focus:text-red-300"
-                  onSelect={(e) => {
+                  onSelect={async (e) => {
                     e.preventDefault();
-                    signOut();
-                    router.push("/");
+                    await signOut({ redirect: false });
+                    if (typeof window !== "undefined") {
+                      window.location.assign("/");
+                    }
                   }}
                 >
                   {t("auth.signOut")}
@@ -205,10 +223,14 @@ export default function Header() {
               onClick={() => setCartOpen(true)}
               aria-label={t("header.openCart")}
               className="relative"
+              data-testid="open-cart-button"
             >
               <ShoppingBag className="h-5 w-5" />
               {itemCount > 0 ? (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-lucky-green text-[10px] font-bold text-lucky-darker">
+                <span
+                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-lucky-green text-[10px] font-bold text-lucky-darker"
+                  data-testid="cart-count"
+                >
                   {itemCount}
                 </span>
               ) : null}

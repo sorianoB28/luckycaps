@@ -709,11 +709,17 @@ export default function AdminOrderDetailPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white space-y-4">
+          <div
+            className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white space-y-4"
+            data-testid="admin-shipping-panel"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold">{t("admin.shippingLabelTitle")}</h3>
               {shipment?.status ? (
-                <span className="text-xs uppercase tracking-[0.2em] text-white/50">
+                <span
+                  className="text-xs uppercase tracking-[0.2em] text-white/50"
+                  data-testid="admin-shipping-status"
+                >
                   {t("common.status")}: {shipment.status}
                 </span>
               ) : null}
@@ -882,7 +888,9 @@ export default function AdminOrderDetailPage() {
                 </div>
 
                 {shippingNotice ? (
-                  <p className="text-sm text-lucky-green">{shippingNotice}</p>
+                  <p className="text-sm text-lucky-green" data-testid="admin-shipping-notice">
+                    {shippingNotice}
+                  </p>
                 ) : null}
                 {shippingError ? (
                   <p className="text-sm text-red-400">{shippingError}</p>
@@ -892,8 +900,13 @@ export default function AdminOrderDetailPage() {
                 ) : null}
 
                 {shipment?.status === "purchased" ? (
-                  <div className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2">
-                    <p className="text-sm text-lucky-green">{t("admin.shippingLabelReady")}</p>
+                  <div
+                    className="rounded-xl border border-white/10 bg-black/30 p-4 space-y-2"
+                    data-testid="admin-shipping-purchased-panel"
+                  >
+                    <p className="text-sm text-lucky-green" data-testid="admin-shipping-label-ready">
+                      {t("admin.shippingLabelReady")}
+                    </p>
                     <Button
                       variant="secondary"
                       className="bg-white/10"
@@ -922,7 +935,7 @@ export default function AdminOrderDetailPage() {
                       </div>
                     ) : null}
                     {shipment.tracking_number ? (
-                      <p className="text-sm text-white/70">
+                      <p className="text-sm text-white/70" data-testid="admin-shipping-tracking-number">
                         {t("admin.shippingTrackingNumber")}: {shipment.tracking_number}
                       </p>
                     ) : null}
@@ -943,14 +956,15 @@ export default function AdminOrderDetailPage() {
                       </a>
                     ) : null}
                     {order.status !== "shipped" ? (
-                      <Button
-                        variant="secondary"
-                        onClick={() => handleQuickAction("shipped")}
-                        disabled={saving || !canInteract}
-                        className="bg-white/10"
-                      >
-                        {t("admin.shippingMarkShipped")}
-                      </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => handleQuickAction("shipped")}
+                          disabled={saving || !canInteract}
+                          className="bg-white/10"
+                          data-testid="admin-shipping-mark-shipped"
+                        >
+                          {t("admin.shippingMarkShipped")}
+                        </Button>
                     ) : null}
                   </div>
                 ) : null}
@@ -958,7 +972,7 @@ export default function AdminOrderDetailPage() {
                 <div className="space-y-3">
                   <p className="text-sm font-semibold">{t("admin.shippingRatesTitle")}</p>
                   {sortedRates.length ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2" data-testid="admin-shipping-rates-list">
                       {sortedRates.map((rate) => {
                         const amount = Number(rate.amount);
                         const displayAmount = Number.isFinite(amount) ? amount.toFixed(2) : "--";
@@ -966,6 +980,7 @@ export default function AdminOrderDetailPage() {
                           <div
                             key={rate.id}
                             className="rounded-xl border border-white/10 bg-black/30 p-3"
+                            data-testid="admin-shipping-rate-row"
                           >
                             <div className="flex flex-wrap items-center justify-between gap-3">
                               <div className="space-y-1">
@@ -993,6 +1008,7 @@ export default function AdminOrderDetailPage() {
                                   onClick={() => handleBuyLabel(rate.id)}
                                   disabled={shippingBusy || !canManageShipping}
                                   className="mt-2 bg-white/10"
+                                  data-testid="admin-shipping-buy-label"
                                 >
                                   {t("admin.shippingBuyLabel")}
                                 </Button>

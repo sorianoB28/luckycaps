@@ -14,7 +14,20 @@ type Body = {
   shippingAddress?: Record<string, unknown> | null;
 };
 
+function shouldForceQuoteFailure(request: Request) {
+  if (process.env.NODE_ENV === "production") return false;
+
+  const url = new URL(request.url);
+  const failQuery = url.searchParams.get("e2e_fail")?.toLowerCase();
+  const failHeader = request.headers.get("x-e2e-fail")?.toLowerCase();
+  return failQuery === "checkout_quote" || failQuery === "quote" || failHeader === "checkout_quote";
+}
+
 export async function POST(request: Request) {
+  if (shouldForceQuoteFailure(request)) {
+    return NextResponse.json({ ok: false, error: "E2E forced quote failure" }, { status: 500 });
+  }
+
   let body: Body;
   try {
     body = (await request.json()) as Body;

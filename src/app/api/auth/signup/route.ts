@@ -57,6 +57,19 @@ export async function POST(request: Request) {
     `) as unknown as { id: string; email: string }[];
 
     const user = rows[0];
+    if (marketingOptIn && user?.id) {
+      await sql`
+        INSERT INTO public.marketing_subscribers (email, locale, source, user_id, status, ip, user_agent)
+        VALUES (${email}, 'en', 'auth_signup', ${user.id}, 'subscribed', null, 'signup')
+        ON CONFLICT (email) DO UPDATE
+        SET status = 'subscribed',
+            unsubscribed_at = NULL,
+            source = EXCLUDED.source,
+            locale = COALESCE(marketing_subscribers.locale, EXCLUDED.locale),
+            user_id = COALESCE(EXCLUDED.user_id, marketing_subscribers.user_id),
+            user_agent = COALESCE(EXCLUDED.user_agent, marketing_subscribers.user_agent)
+      `;
+    }
 
     return NextResponse.json({ ok: true, userId: user.id }, { status: 201 });
   } catch (err) {

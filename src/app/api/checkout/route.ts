@@ -47,6 +47,7 @@ type CheckoutRequestBody = {
 };
 
 const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const isE2EMode = process.env.E2E_MODE?.toLowerCase() === "true";
 
 const isUuid = (value: string) =>
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
@@ -289,6 +290,15 @@ export async function POST(request: Request) {
 
     if (!stripeSession.url) {
       throw new Error("Stripe session missing url");
+    }
+
+    if (isE2EMode) {
+      return NextResponse.json({
+        url: stripeSession.url,
+        sessionUrl: stripeSession.url,
+        checkoutSessionId: stripeSession.id,
+        e2eMode: true,
+      });
     }
 
     return NextResponse.json({ url: stripeSession.url });

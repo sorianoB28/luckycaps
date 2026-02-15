@@ -42,6 +42,8 @@ export type ShippoPurchase = {
   postage_currency: string | null;
 };
 
+const isE2EMode = process.env.E2E_MODE?.toLowerCase() === "true";
+
 function resolveShippoToken() {
   const testToken = process.env.SHIPPO_TEST_TOKEN;
   const liveToken = process.env.SHIPPO_API_TOKEN;
@@ -134,6 +136,22 @@ export async function createShipmentDraft(params: {
 
 export async function buyLabel(params: { rate_id: string; label_format: string }) {
   const { rate_id, label_format } = params;
+  const isE2ERate = rate_id.startsWith("e2e-rate-");
+  const shouldUseE2EStub =
+    isE2EMode || (process.env.NODE_ENV !== "production" && isE2ERate);
+
+  if (shouldUseE2EStub) {
+    const stamp = Date.now().toString(36);
+    return {
+      transaction_id: "",
+      label_url: `https://example.com/e2e/labels/${encodeURIComponent(rate_id)}-${stamp}.${label_format.toLowerCase() === "zplii" ? "zpl" : "pdf"}`,
+      tracking_number: `E2E${stamp.toUpperCase()}`,
+      tracking_url: `https://example.com/e2e/tracking/${encodeURIComponent(rate_id)}-${stamp}`,
+      postage_amount: 4.25,
+      postage_currency: "USD",
+    } satisfies ShippoPurchase;
+  }
+
   const response = await shippoFetch<any>("transactions", {
     rate: rate_id,
     label_file_type: label_format,

@@ -58,9 +58,11 @@ export default function OrderPageClient({
   const shipment = order.shipment;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 md:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-12 md:px-8" data-testid="order-page">
       <p className="text-sm uppercase tracking-[0.2em] text-white/50">{t("order.kicker")}</p>
-      <h1 className="mt-2 font-display text-4xl text-white">{t("order.title", { id: order.id })}</h1>
+      <h1 className="mt-2 font-display text-4xl text-white" data-testid="order-page-title">
+        {t("order.title", { id: order.id })}
+      </h1>
       <p className="mt-1 text-white/60">{t("order.statusValue", { status: order.status })}</p>
       {successNotice ? (
         <div className="mt-3 rounded-xl border border-lucky-green/30 bg-lucky-green/10 px-4 py-3 text-sm text-lucky-green">
@@ -143,7 +145,9 @@ export default function OrderPageClient({
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
             <h2 className="font-semibold">{t("checkout.contactTitle")}</h2>
-            <p className="text-sm text-white/70">{order.email}</p>
+            <p className="text-sm text-white/70" data-testid="order-contact-email">
+              {order.email}
+            </p>
             {contact?.phone ? <p className="text-sm text-white/70">{contact.phone}</p> : null}
             {contact?.notes ? (
               <p className="mt-2 text-sm text-white/70 whitespace-pre-line">{contact.notes}</p>

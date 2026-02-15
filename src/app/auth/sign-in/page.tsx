@@ -33,6 +33,15 @@ function SignInContent() {
     searchParams?.get("redirect") ||
     searchParams?.get("callbackUrl") ||
     "/";
+  const accessReason = searchParams?.get("reason");
+  const accessNoticeMessage =
+    accessReason === "admin_required"
+      ? t("admin.unauthorized")
+      : accessReason === "session_expired"
+      ? t("adminProductForm.sessionExpired")
+      : accessReason === "auth_required"
+      ? t("auth.signInSubtitle")
+      : null;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,6 +79,11 @@ function SignInContent() {
   return (
     <AuthShell title={t("auth.signIn")} subtitle={t("auth.signInSubtitle")}>
       <form className="space-y-4" onSubmit={handleSubmit}>
+        {accessNoticeMessage ? (
+          <div data-testid="auth-access-notice" data-reason={accessReason ?? ""}>
+            <AuthNotice status="error" title={accessNoticeMessage} />
+          </div>
+        ) : null}
         {feedback ? (
           <AuthNotice status={feedback.status} title={feedback.message} />
         ) : null}

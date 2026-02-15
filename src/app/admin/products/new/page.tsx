@@ -22,7 +22,10 @@ export default function NewProductPage() {
   useEffect(() => {
     if (status === "loading") return;
     if (!isAdmin) {
-      router.replace(`/auth/sign-in?redirect=${encodeURIComponent("/admin/products/new")}`);
+      const reason = status === "authenticated" ? "admin_required" : "auth_required";
+      router.replace(
+        `/auth/sign-in?redirect=${encodeURIComponent("/admin/products/new")}&reason=${reason}`
+      );
     }
   }, [isAdmin, router, status]);
 
@@ -56,7 +59,7 @@ export default function NewProductPage() {
     } catch (err) {
       const status = (err as Error & { status?: number }).status;
       if (status === 401) {
-        setError(t("admin.unauthorized"));
+        setError(t("adminProductForm.sessionExpired"));
       } else {
         setError(resolveAdminError(t, err, "admin.unableToCreateProduct"));
       }
@@ -73,7 +76,11 @@ export default function NewProductPage() {
         </p>
         <h1 className="font-display text-4xl">{t("admin.addProduct")}</h1>
       </div>
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-red-300" data-testid="admin-auth-error">
+          {error}
+        </p>
+      ) : null}
       <ProductForm
         submitLabel={submitting ? t("common.saving") : t("admin.addProduct")}
         onSubmit={handleCreate}

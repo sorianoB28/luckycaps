@@ -58,6 +58,14 @@ export async function POST(request: Request) {
   const sessionEmail = authSession?.user?.email?.toLowerCase().trim() ?? null;
 
   try {
+    const existingSubscriber = (await sql`
+      SELECT status
+      FROM public.marketing_subscribers
+      WHERE lower(email) = ${email}
+      LIMIT 1
+    `) as unknown as Array<{ status: string | null }>;
+    const alreadySubscribed = existingSubscriber[0]?.status === "subscribed";
+
     const userMatch = (await sql`
       SELECT id FROM public.users WHERE lower(email) = ${email} LIMIT 1
     `) as unknown as { id: string }[];
@@ -91,7 +99,7 @@ export async function POST(request: Request) {
       `;
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, alreadySubscribed });
   } catch (err) {
     console.error("Subscribe error", err);
     return NextResponse.json({ ok: false, error: "Unable to subscribe" }, { status: 500 });

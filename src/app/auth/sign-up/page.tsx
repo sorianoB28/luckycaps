@@ -90,11 +90,12 @@ function SignUpContent() {
       title={t("auth.signUp")}
       subtitle={t("auth.signUpSubtitle")}
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit} data-testid="signup-form">
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-2">
             <Label>{t("auth.firstNameLabel")}</Label>
             <Input
+              data-testid="signup-first-name"
               value={form.firstName}
               onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
               className="bg-white/5 text-white"
@@ -103,6 +104,7 @@ function SignUpContent() {
           <div className="space-y-2">
             <Label>{t("auth.lastNameLabel")}</Label>
             <Input
+              data-testid="signup-last-name"
               value={form.lastName}
               onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
               className="bg-white/5 text-white"
@@ -112,6 +114,7 @@ function SignUpContent() {
         <div className="space-y-2">
           <Label>{t("auth.emailLabel")}</Label>
           <Input
+            data-testid="signup-email"
             type="email"
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
@@ -123,6 +126,7 @@ function SignUpContent() {
           <div className="space-y-2">
             <Label>{t("auth.passwordLabel")}</Label>
             <Input
+              data-testid="signup-password"
               type="password"
               value={form.password}
               onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
@@ -134,6 +138,7 @@ function SignUpContent() {
           <div className="space-y-2">
             <Label>{t("auth.confirmPasswordLabel")}</Label>
             <Input
+              data-testid="signup-password-confirm"
               type="password"
               value={form.confirm}
               onChange={(e) => setForm((prev) => ({ ...prev, confirm: e.target.value }))}
@@ -145,6 +150,7 @@ function SignUpContent() {
         <div className="space-y-2 text-sm text-white/80">
           <label className="flex items-center gap-2">
             <input
+              data-testid="signup-terms"
               type="checkbox"
               checked={form.terms}
               onChange={(e) => setForm((prev) => ({ ...prev, terms: e.target.checked }))}
@@ -154,6 +160,7 @@ function SignUpContent() {
           </label>
           <label className="flex items-center gap-2">
             <input
+              data-testid="signup-marketing-optin"
               type="checkbox"
               checked={form.marketing}
               onChange={(e) => setForm((prev) => ({ ...prev, marketing: e.target.checked }))}
@@ -164,7 +171,7 @@ function SignUpContent() {
           <p className="text-xs text-white/50">{t("auth.unsubscribeCopy")}</p>
         </div>
         {error ? <p className="text-sm text-red-400">{error}</p> : null}
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button type="submit" className="w-full" disabled={loading} data-testid="signup-submit">
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {t("auth.signUp")}
         </Button>

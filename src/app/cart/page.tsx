@@ -42,6 +42,7 @@ export default function CartPage() {
             <div
               key={key}
               className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row"
+              data-testid="cart-line-item"
             >
               <div className="relative h-28 w-28 overflow-hidden rounded-xl bg-white/5">
                 {item.imageUrl ? (
@@ -73,7 +74,10 @@ export default function CartPage() {
                     >
                       <Minus className="h-4 w-4" />
                     </button>
-                    <span className="min-w-[24px] text-center text-sm font-semibold">
+                    <span
+                      className="min-w-[24px] text-center text-sm font-semibold"
+                      data-testid="cart-item-quantity"
+                    >
                       {item.quantity}
                     </span>
                     <button

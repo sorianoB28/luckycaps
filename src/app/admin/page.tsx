@@ -60,7 +60,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (status !== "authenticated") return;
     if (!isAdmin) {
-      router.replace("/auth/sign-in?redirect=/admin");
+      router.replace("/auth/sign-in?redirect=/admin&reason=admin_required");
       return;
     }
     loadProducts();

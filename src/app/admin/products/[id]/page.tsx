@@ -98,7 +98,10 @@ export default function EditProductPage() {
     };
     if (status === "loading") return;
     if (!isAdmin) {
-      router.replace(`/auth/sign-in?redirect=${encodeURIComponent(`/admin/products/${productId}`)}`);
+      const reason = status === "authenticated" ? "admin_required" : "auth_required";
+      router.replace(
+        `/auth/sign-in?redirect=${encodeURIComponent(`/admin/products/${productId}`)}&reason=${reason}`
+      );
       return;
     }
     load();
@@ -137,7 +140,7 @@ export default function EditProductPage() {
     } catch (err) {
       const status = (err as Error & { status?: number }).status;
       if (status === 401) {
-        setError(t("admin.unauthorizedCheckAccess"));
+        setError(t("adminProductForm.sessionExpired"));
       } else {
         setError(resolveAdminError(t, err, "admin.unableToUpdateProduct"));
       }
@@ -185,7 +188,11 @@ export default function EditProductPage() {
           </Button>
         </div>
       </div>
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-red-300" data-testid="admin-auth-error">
+          {error}
+        </p>
+      ) : null}
       {loading ? (
         <p className="text-white/70">{t("admin.loadingProduct")}</p>
       ) : product ? (

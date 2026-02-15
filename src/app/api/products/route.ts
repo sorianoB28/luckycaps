@@ -2,7 +2,20 @@
 import { NextResponse } from "next/server";
 import sql from "@/lib/db";
 
-export async function GET() {
+function shouldForceProductsFailure(request: Request) {
+  if (process.env.NODE_ENV === "production") return false;
+
+  const url = new URL(request.url);
+  const failQuery = url.searchParams.get("e2e_fail")?.toLowerCase();
+  const failHeader = request.headers.get("x-e2e-fail")?.toLowerCase();
+  return failQuery === "products" || failHeader === "products";
+}
+
+export async function GET(request: Request) {
+  if (shouldForceProductsFailure(request)) {
+    return NextResponse.json({ error: "E2E forced products failure" }, { status: 500 });
+  }
+
   const rows = await sql`
     SELECT
       p.id,

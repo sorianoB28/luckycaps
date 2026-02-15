@@ -13,7 +13,7 @@ import { useT } from "@/components/providers/LanguageProvider";
 const CheckoutShell = ({ children }: { children: ReactNode }) => {
   const t = useT();
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16">
+    <div className="mx-auto max-w-3xl px-4 py-16" data-testid="checkout-success-shell">
       <Card className="border-white/10 bg-white/5 text-white">
         <CardHeader>
           <CardTitle className="font-display text-3xl">
@@ -84,15 +84,19 @@ const CheckoutSuccessContent = () => {
   return (
     <CheckoutShell>
       {loading ? (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" data-testid="checkout-success-finalizing">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>{t("checkout.finalizingCopy")}</span>
         </div>
       ) : error ? (
-        <div className="space-y-3">
-          <p className="text-sm text-red-300">{error}</p>
+        <div className="space-y-3" data-testid="checkout-success-error">
+          <p className="text-sm text-red-300" data-testid="checkout-success-error-text">
+            {error}
+          </p>
           <Button asChild variant="secondary" className="bg-white/10">
-            <Link href="/checkout">{t("checkout.returnToCheckout")}</Link>
+            <Link href="/checkout" data-testid="checkout-success-return-link">
+              {t("checkout.returnToCheckout")}
+            </Link>
           </Button>
         </div>
       ) : null}
@@ -104,7 +108,7 @@ const CheckoutSuccessFallback = () => {
   const t = useT();
   return (
     <CheckoutShell>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3" data-testid="checkout-success-finalizing">
         <Loader2 className="h-4 w-4 animate-spin" />
         <span>{t("checkout.finalizingCopy")}</span>
       </div>

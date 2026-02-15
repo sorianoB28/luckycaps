@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,30 @@ export default function AdminLayout({
   const { data: session, status } = useSession();
   const t = useT();
   const isAdmin = session?.user?.role === "admin";
+  const hadAuthenticatedSession = useRef(false);
+  const safePath = pathname || "/admin";
+  const accessReason =
+    status === "authenticated"
+      ? "admin_required"
+      : hadAuthenticatedSession.current
+      ? "session_expired"
+      : "auth_required";
+  const signInHref = `/auth/sign-in?redirect=${encodeURIComponent(
+    safePath
+  )}&reason=${accessReason}`;
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      hadAuthenticatedSession.current = true;
+    }
+  }, [status]);
 
   useEffect(() => {
     if (status === "loading") return;
     if (!isAdmin) {
-      router.replace(`/auth/sign-in?redirect=${encodeURIComponent(pathname)}`);
+      router.replace(signInHref);
     }
-  }, [isAdmin, pathname, router, status]);
+  }, [isAdmin, router, signInHref, status]);
 
   if (status === "loading") {
     return (
@@ -35,7 +52,30 @@ export default function AdminLayout({
   }
 
   if (!isAdmin) {
-    return null;
+    const accessMessage =
+      accessReason === "admin_required"
+        ? t("admin.unauthorized")
+        : accessReason === "session_expired"
+        ? t("adminProductForm.sessionExpired")
+        : t("auth.signInSubtitle");
+
+    return (
+      <div className="min-h-screen bg-lucky-dark px-4 py-16 text-white">
+        <div
+          className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-black/40 p-6 text-center"
+          data-testid="admin-access-blocked"
+          data-reason={accessReason}
+        >
+          <h1 className="font-display text-2xl">{t("admin.title")}</h1>
+          <p className="mt-3 text-sm text-white/80">{accessMessage}</p>
+          <Button asChild className="mt-5">
+            <Link href={signInHref} data-testid="admin-access-signin-link">
+              {t("auth.signIn")}
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowUpDown, Check, Loader2, RotateCcw, Sparkles, Tag } from "lucide-react";
@@ -37,38 +37,34 @@ export default function ShopPage() {
   const [sort, setSort] = useState<SortOption>("featured");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0]);
   const [priceBounds, setPriceBounds] = useState<[number, number]>([0, 0]);
+  const e2eFail = searchParams.get("e2e_fail");
+
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getProducts({ e2eFail });
+      setProducts(res);
+      if (res.length) {
+        const prices = res.map((p) => effectivePrice(p));
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        setPriceBounds([min, max]);
+        setPriceRange([min, max]);
+      } else {
+        setPriceBounds([0, 0]);
+        setPriceRange([0, 0]);
+      }
+    } catch {
+      setError(t("shop.loadFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }, [e2eFail, t]);
 
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await getProducts();
-        if (cancelled) return;
-        setProducts(res);
-        if (res.length) {
-          const prices = res.map((p) => effectivePrice(p));
-          const min = Math.min(...prices);
-          const max = Math.max(...prices);
-          setPriceBounds([min, max]);
-          setPriceRange([min, max]);
-        } else {
-          setPriceBounds([0, 0]);
-          setPriceRange([0, 0]);
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setError((err as Error).message || "Unable to load products.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    loadProducts().catch(() => null);
+  }, [loadProducts]);
 
   const categories: CategoryInfo[] = useMemo(
     () => getCategoriesFromProducts(products),
@@ -299,8 +295,20 @@ export default function ShopPage() {
               {t("shop.loadingProducts")}
             </div>
           ) : error ? (
-            <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-red-100">
-              {error}
+            <div
+              className="space-y-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-red-100"
+              data-testid="shop-products-error"
+            >
+              <p data-testid="shop-products-error-text">{error}</p>
+              <button
+                type="button"
+                onClick={() => loadProducts().catch(() => null)}
+                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm text-white transition hover:border-white/40"
+                data-testid="shop-products-retry"
+              >
+                <RotateCcw className="h-4 w-4" />
+                {t("shop.retryLoad")}
+              </button>
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-white/20 bg-black/30 p-8 text-center text-white/70">

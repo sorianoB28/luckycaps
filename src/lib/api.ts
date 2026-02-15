@@ -368,8 +368,12 @@ async function fetchJson<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function getProducts() {
-  return fetchJson<Product[]>("/api/products");
+export async function getProducts(options?: { e2eFail?: string | null }) {
+  const e2eFail = options?.e2eFail?.trim();
+  const path = e2eFail
+    ? `/api/products?e2e_fail=${encodeURIComponent(e2eFail)}`
+    : "/api/products";
+  return fetchJson<Product[]>(path);
 }
 
 export async function getProductBySlug(slug: string) {
