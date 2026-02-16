@@ -10,6 +10,7 @@ import {
   ensureCheckoutSessionsTable,
 } from "@/lib/checkoutSessions";
 import { computeCheckoutQuote } from "@/lib/checkoutQuote";
+import { setSentryUserFromSession } from "@/lib/sentryUser";
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const stripe =
@@ -56,6 +57,7 @@ const isUuid = (value: string) =>
 
 export async function POST(request: Request) {
   const authSession = await getServerSession(authOptions);
+  setSentryUserFromSession(authSession);
   const sessionUserId =
     authSession?.user?.id && isUuid(authSession.user.id)
       ? authSession.user.id

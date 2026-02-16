@@ -6,6 +6,34 @@ on:
   workflow_dispatch:
 
 jobs:
+  storybook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: true
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser for Storybook tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      - name: Run Storybook interaction tests
+        run: npm run test:storybook
+
   playwright-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -78,4 +106,45 @@ jobs:
         with:
           name: test-results
           path: test-results/
+          retention-days: 14
+
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: true
+      NODE_ENV: production
+      NETLIFY_DATABASE_URL: ${{ secrets.NETLIFY_DATABASE_URL }}
+      NETLIFY_DATABASE_URL_UNPOOLED: ${{ secrets.NETLIFY_DATABASE_URL_UNPOOLED }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      SITE_URL: http://127.0.0.1:3000
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        run: npx @lhci/cli@0.15.1 autorun --config=./lighthouserc.json
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: |
+            lighthouse-report/
+            .lighthouseci/
           retention-days: 14

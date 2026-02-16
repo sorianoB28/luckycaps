@@ -102,6 +102,34 @@ PowerShell:
 $env:PWDEBUG=1; npm run test:e2e
 ```
 
+## Storybook UI
+
+Run Storybook locally:
+
+```bash
+npm run storybook
+```
+
+Build static Storybook:
+
+```bash
+npm run build-storybook
+```
+
+## Storybook Tests
+
+Run Storybook interaction tests (CI-friendly, no watch):
+
+```bash
+npm run test:storybook
+```
+
+Run Storybook interaction tests in watch mode:
+
+```bash
+npm run test:storybook:watch
+```
+
 ## Tech Stack
 
 - Next.js App Router + TypeScript

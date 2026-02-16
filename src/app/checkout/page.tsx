@@ -3,19 +3,19 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Headset, RotateCcw, ShieldCheck, Truck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CheckoutTrustCard } from "@/components/checkout/CheckoutTrustCard";
+import { CheckoutSummaryCard } from "@/components/checkout/CheckoutSummaryCard";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
 import { createCheckout } from "@/lib/api";
 import { useSession } from "next-auth/react";
 import { useT } from "@/components/providers/LanguageProvider";
-import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 
 const SHOW_DEV_TOOLS = process.env.NODE_ENV !== "production";
 
@@ -600,222 +600,40 @@ function CheckoutPageContent() {
         </div>
 
         <div className="w-full md:w-[360px]">
-          <Card className="border-white/10 bg-white/5 text-white">
-            <CardHeader>
-              <CardTitle>{t("checkout.orderSummary")}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                {quote?.items?.length ? (
-                  quote.items.map((item, idx) => (
-                    <div
-                      key={`${item.product_id}-${item.size ?? "na"}-${idx}`}
-                      className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-3"
-                      data-testid="checkout-line-item"
-                    >
-                      <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-white/5">
-                        {item.image_url ? (
-                          <img
-                            src={buildCloudinaryCardUrl(item.image_url)}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[10px] text-white/50">
-                            {t("cart.noImage")}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 text-sm">
-                        <p className="font-semibold">{item.name}</p>
-                        <p className="text-white/60">
-                          {(item.variant || t("cart.variantFallback"))} /{" "}
-                          {(item.size || t("cart.sizeFallback"))}
-                        </p>
-                        <p className="mt-1 text-white/70">
-                          {item.quantity} x ${(item.price_cents / 100).toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  entries.map(([key, item]) => (
-                  <div
-                    key={key}
-                    className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-3"
-                    data-testid="checkout-line-item"
-                  >
-                    <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-white/5">
-                      {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-[10px] text-white/50">
-                          {t("cart.noImage")}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 text-sm">
-                      <p className="font-semibold">{item.name}</p>
-                      <p className="text-white/60">
-                        {(item.variant || t("cart.variantFallback"))} / {(item.size || t("cart.sizeFallback"))}
-                      </p>
-                      <p className="mt-1 text-white/70">{item.quantity} x {t("common.loading")}</p>
-                    </div>
-                  </div>
-                ))
-                )}
-              </div>
-              <Separator className="border-white/10" />
-              <div className="space-y-2 text-sm text-white/80">
-                <div className="flex items-center justify-between">
-                  <span>{t("common.subtotal")}</span>
-                  <span data-testid="checkout-summary-subtotal-value">
-                    <span data-testid="checkout-subtotal-value">
-                      {quote ? `$${(quote.subtotal_cents / 100).toFixed(2)}` : t("common.loading")}
-                    </span>
-                  </span>
-                </div>
-                {quote && quote.discount_cents > 0 ? (
-                  <div
-                    className="flex items-center justify-between"
-                    data-testid="checkout-summary-discount-row"
-                  >
-                    <span>{t("common.discount")}</span>
-                    <span className="text-lucky-green" data-testid="checkout-summary-discount-value">
-                      <span data-testid="checkout-discount-value">
-                        -${(quote.discount_cents / 100).toFixed(2)}
-                      </span>
-                    </span>
-                  </div>
-                ) : null}
-                <div className="flex items-center justify-between">
-                  <span>{t("cart.shipping")}</span>
-                  <span data-testid="checkout-summary-shipping-value">
-                    <span data-testid="checkout-shipping-value">
-                      {quote
-                        ? quote.shipping_cents === 0
-                          ? t("checkout.free")
-                          : `$${(quote.shipping_cents / 100).toFixed(2)}`
-                        : t("common.loading")}
-                    </span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>{t("cart.tax")}</span>
-                  <span>
-                    {quote ? `$${(quote.tax_cents / 100).toFixed(2)}` : t("common.loading")}
-                  </span>
-                </div>
-              </div>
-              <Separator className="border-white/10" />
-              <div className="flex items-center justify-between text-lg font-semibold">
-                <span>{t("common.total")}</span>
-                <span data-testid="checkout-summary-total-value">
-                  <span data-testid="checkout-total-value">
-                    {quote ? `$${(quote.total_cents / 100).toFixed(2)}` : t("common.loading")}
-                  </span>
-                </span>
-              </div>
-              <Separator className="border-white/10" />
-              <div className="space-y-2">
-                <Label>{t("checkout.promoCode")}</Label>
-                <div className="flex gap-2">
-                  <Input
-                    data-testid="checkout-promo-input"
-                    value={promo}
-                    onChange={(e) => {
-                      setPromo(e.target.value);
-                      setPromoError(null);
-                    }}
-                    placeholder={t("checkout.couponPlaceholder")}
-                    disabled={Boolean(appliedPromo)}
-                    className="bg-white/5 text-white"
-                  />
-                  {appliedPromo ? (
-                    <Button
-                      data-testid="checkout-promo-remove"
-                      variant="secondary"
-                      className="bg-white/10"
-                      type="button"
-                      onClick={handleRemovePromo}
-                    >
-                      {t("checkout.promoRemove")}
-                    </Button>
-                  ) : (
-                    <Button
-                      data-testid="checkout-promo-apply"
-                      variant="secondary"
-                      className="bg-white/10"
-                      type="button"
-                      disabled={promoApplying}
-                      onClick={handleApplyPromo}
-                    >
-                      {promoApplying ? t("common.loading") : t("checkout.apply")}
-                    </Button>
-                  )}
-                </div>
-                {promoError || appliedPromo ? (
-                  <p
-                    className={promoError ? "text-xs text-red-300" : "text-xs text-white/60"}
-                    data-testid="checkout-promo-status"
-                  >
-                    {promoError ? (
-                      promoError
-                    ) : (
-                      <span data-testid="checkout-promo-applied">
-                        {t("checkout.promoApplied")}: {appliedPromo?.normalized_code}
-                      </span>
-                    )}
-                  </p>
-                ) : null}
-                {quoteError ? (
-                  <div
-                    className="space-y-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3"
-                    data-testid="checkout-quote-error"
-                  >
-                    <p className="text-xs text-red-300" data-testid="checkout-quote-error-text">
-                      {quoteError}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      className="bg-white/10"
-                      onClick={() => requestQuote().catch(() => null)}
-                      data-testid="checkout-quote-retry"
-                    >
-                      {t("checkout.retryQuote")}
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
+          <CheckoutSummaryCard
+            quote={quote}
+            fallbackItems={entries.map(([key, item]) => ({
+              key,
+              name: item.name,
+              imageUrl: item.imageUrl,
+              variant: item.variant,
+              size: item.size,
+              quantity: item.quantity,
+            }))}
+            promo={promo}
+            onPromoChange={(value) => {
+              setPromo(value);
+              setPromoError(null);
+            }}
+            promoApplying={promoApplying}
+            appliedPromo={appliedPromo}
+            promoError={promoError}
+            quoteError={quoteError}
+            onApplyPromo={handleApplyPromo}
+            onRemovePromo={handleRemovePromo}
+            onRetryQuote={() => {
+              requestQuote().catch(() => null);
+            }}
+          />
 
-          <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
-            <p className="text-sm font-semibold text-white/80">{t("checkout.trust.title")}</p>
-            <div className="space-y-2 text-xs text-white/70">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-lucky-green" />
-                <span>{t("checkout.trust.stripe")}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-lucky-green" />
-                <span>{t("checkout.trust.shipping")}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Headset className="h-4 w-4 text-lucky-green" />
-                <span>{t("checkout.trust.support")}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <RotateCcw className="h-4 w-4 text-lucky-green" />
-                <span>{t("checkout.trust.returns")}</span>
-              </div>
-            </div>
-          </div>
+          <CheckoutTrustCard
+            className="mt-4"
+            title={t("checkout.trust.title")}
+            stripeLabel={t("checkout.trust.stripe")}
+            shippingLabel={t("checkout.trust.shipping")}
+            supportLabel={t("checkout.trust.support")}
+            returnsLabel={t("checkout.trust.returns")}
+          />
         </div>
       </div>
     </div>

@@ -22,6 +22,15 @@ function makeSafeName(value: string) {
   return value.replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase() || "diag";
 }
 
+function safePageUrl(page: Page) {
+  if (page.isClosed()) return "<page-closed>";
+  try {
+    return page.url();
+  } catch {
+    return "<unavailable>";
+  }
+}
+
 export async function captureSectionDiagnostics(
   page: Page,
   options: CaptureDiagnosticsOptions
@@ -34,51 +43,58 @@ export async function captureSectionDiagnostics(
 
   await mkdir(outDir, { recursive: true });
 
-  const sectionData = await page
-    .evaluate((rawSelector) => {
-      const selectors = rawSelector
-        .split(",")
-        .map((part) => part.trim())
-        .filter(Boolean);
-
-      const isVisible = (el: Element) => {
-        const style = window.getComputedStyle(el);
-        if (!style || style.display === "none" || style.visibility === "hidden") return false;
-        const rect = el.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
-      };
-
-      let selectedElement: Element | null = null;
-      let selectedSelector = "body";
-      for (const selector of selectors) {
-        const candidate = document.querySelector(selector);
-        if (candidate && isVisible(candidate)) {
-          selectedElement = candidate;
-          selectedSelector = selector;
-          break;
-        }
+  const sectionData = page.isClosed()
+    ? {
+        selector: "<page-closed>",
+        html: "<page closed before diagnostics capture>",
+        text: "<page closed before diagnostics capture>",
       }
+    : await page
+        .evaluate((rawSelector) => {
+          const selectors = rawSelector
+            .split(",")
+            .map((part) => part.trim())
+            .filter(Boolean);
 
-      const node = selectedElement ?? document.body;
-      const html = (node as HTMLElement).outerHTML || "";
-      const text = (node.textContent || "").replace(/\s+/g, " ").trim();
+          const isVisible = (el: Element) => {
+            const style = window.getComputedStyle(el);
+            if (!style || style.display === "none" || style.visibility === "hidden") return false;
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          };
 
-      return {
-        selector: selectedSelector,
-        html: html.slice(0, 80_000),
-        text: text.slice(0, 4_000),
-      };
-    }, options.sectionSelector ?? DEFAULT_SECTION_SELECTOR)
-    .catch(() => ({
-      selector: "<unavailable>",
-      html: "<unable to capture section html>",
-      text: "<unable to capture section text>",
-    }));
+          let selectedElement: Element | null = null;
+          let selectedSelector = "body";
+          for (const selector of selectors) {
+            const candidate = document.querySelector(selector);
+            if (candidate && isVisible(candidate)) {
+              selectedElement = candidate;
+              selectedSelector = selector;
+              break;
+            }
+          }
 
+          const node = selectedElement ?? document.body;
+          const html = (node as HTMLElement).outerHTML || "";
+          const text = (node.textContent || "").replace(/\s+/g, " ").trim();
+
+          return {
+            selector: selectedSelector,
+            html: html.slice(0, 80_000),
+            text: text.slice(0, 4_000),
+          };
+        }, options.sectionSelector ?? DEFAULT_SECTION_SELECTOR)
+        .catch(() => ({
+          selector: "<unavailable>",
+          html: "<unable to capture section html>",
+          text: "<unable to capture section text>",
+        }));
+
+  const pageUrl = safePageUrl(page);
   const payload = [
     `label: ${options.label}`,
     `reason: ${options.reason ?? "n/a"}`,
-    `url: ${page.url()}`,
+    `url: ${pageUrl}`,
     `selector: ${sectionData.selector}`,
     "",
     "text:",
@@ -89,10 +105,14 @@ export async function captureSectionDiagnostics(
   ].join("\n");
 
   await writeFile(textPath, payload, "utf8").catch(() => {});
-  await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {});
+  if (!page.isClosed()) {
+    await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {});
+  } else {
+    await writeFile(screenshotPath, "page closed - screenshot unavailable", "utf8").catch(() => {});
+  }
 
   // eslint-disable-next-line no-console
-  console.error(`[diag] ${options.label} url=${page.url()}`);
+  console.error(`[diag] ${options.label} url=${pageUrl}`);
   // eslint-disable-next-line no-console
   console.error(`[diag] section dump: ${textPath}`);
   // eslint-disable-next-line no-console
@@ -100,7 +120,7 @@ export async function captureSectionDiagnostics(
 
   if (options.testInfo) {
     await options.testInfo.attach(`${options.label}-url`, {
-      body: Buffer.from(page.url(), "utf8"),
+      body: Buffer.from(pageUrl, "utf8"),
       contentType: "text/plain",
     });
     await options.testInfo.attach(`${options.label}-section`, {

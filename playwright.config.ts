@@ -11,14 +11,15 @@ export default defineConfig({
   fullyParallel: false,
   globalSetup: "./e2e/global-setup.ts",
   timeout: 45_000,
-  workers: process.env.CI ? 2 : 4,
+  workers: process.env.CI ? 2 : undefined,
   expect: {
     timeout: 10_000,
   },
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [["dot"], ["html", { open: "never" }]] : [["list"]],
   use: {
     baseURL,
+    storageState: undefined,
     navigationTimeout: 20_000,
     trace: "on-first-retry",
     screenshot: "only-on-failure",

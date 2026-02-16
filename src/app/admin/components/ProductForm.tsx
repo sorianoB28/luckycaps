@@ -33,10 +33,23 @@ export type ProductFormValues = {
   sizes: string[];
 };
 
+type UploadStatus = {
+  name: string;
+  status: "uploading" | "uploaded" | "failed";
+  message?: string;
+};
+
+export type ProductFormStoryState = {
+  uploading?: boolean;
+  uploadErrors?: string[];
+  uploadStatuses?: UploadStatus[];
+};
+
 interface ProductFormProps {
   initialProduct?: Product;
   onSubmit: (values: ProductFormValues) => void;
   submitLabel: string;
+  storyState?: ProductFormStoryState;
 }
 
 const buildInitialForm = (product?: Product, language: Language = "EN"): ProductFormValues => {
@@ -66,6 +79,7 @@ export function ProductForm({
   initialProduct,
   onSubmit,
   submitLabel,
+  storyState,
 }: ProductFormProps) {
   const t = useT();
   const { language } = useLanguage();
@@ -78,9 +92,7 @@ export function ProductForm({
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
-  const [uploadStatuses, setUploadStatuses] = useState<
-    { name: string; status: "uploading" | "uploaded" | "failed"; message?: string }[]
-  >([]);
+  const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
   const fileInputId = "product-image-file";
 
   useEffect(() => {
@@ -221,13 +233,16 @@ export function ProductForm({
     () => form.images.some((img) => !isHttpUrl(img.url?.trim())),
     [form.images]
   );
+  const effectiveUploading = storyState?.uploading ?? uploading;
+  const effectiveUploadErrors = storyState?.uploadErrors ?? uploadErrors;
+  const effectiveUploadStatuses = storyState?.uploadStatuses ?? uploadStatuses;
   const submitBlockedReason = useMemo(() => {
-    if (uploading) return t("adminProductForm.waitUploads");
-    if (uploadErrors.length) return uploadErrors[0];
+    if (effectiveUploading) return t("adminProductForm.waitUploads");
+    if (effectiveUploadErrors.length) return effectiveUploadErrors[0];
     if (hasInvalidImages)
       return t("adminProductForm.invalidImages");
     return null;
-  }, [hasInvalidImages, t, uploadErrors, uploading]);
+  }, [effectiveUploadErrors, effectiveUploading, hasInvalidImages, t]);
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
@@ -456,7 +471,7 @@ export function ProductForm({
                 accept="image/*"
                 multiple
                 onChange={handleFileSelect}
-                disabled={uploading}
+                disabled={effectiveUploading}
                 className="bg-white/5 text-white"
               />
               <p className="text-xs text-white/50">
@@ -464,23 +479,23 @@ export function ProductForm({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {uploading ? (
+              {effectiveUploading ? (
                 <span className="text-xs text-white/70">{t("common.uploading")}</span>
               ) : null}
             </div>
-              {uploadErrors.length ? (
+              {effectiveUploadErrors.length ? (
                 <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-100">
                   <p className="font-semibold">{t("adminProductForm.uploadFailed")}</p>
                   <ul className="mt-1 space-y-1 text-xs">
-                    {uploadErrors.map((err, idx) => (
+                    {effectiveUploadErrors.map((err, idx) => (
                     <li key={idx}>{err}</li>
                   ))}
                 </ul>
               </div>
             ) : null}
-            {uploadStatuses.length ? (
+            {effectiveUploadStatuses.length ? (
               <div className="space-y-1 text-xs text-white/70">
-                {uploadStatuses.map((stat, idx) => (
+                {effectiveUploadStatuses.map((stat, idx) => (
                   <div key={`${stat.name}-${idx}`} className="flex items-center gap-2">
                     <span className="truncate">{stat.name}</span>
                     <span

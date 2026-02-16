@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ShoppingBag, Menu, User, X } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +43,30 @@ function useSafePathname() {
   }
 }
 
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setPrefersReducedMotion(mediaQuery.matches);
+    update();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", update);
+      return () => mediaQuery.removeEventListener("change", update);
+    }
+
+    mediaQuery.addListener(update);
+    return () => mediaQuery.removeListener(update);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
 export default function Header() {
   const { cartOpen, setCartOpen } = useUIStore();
   const { setLanguage, language } = useLanguage();
@@ -57,7 +81,7 @@ export default function Header() {
   const previousCount = useRef<number | null>(null);
   const pathname = useSafePathname();
   const t = useT();
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [cartPulseKey, setCartPulseKey] = useState(0);
 
   const activePathname =
@@ -126,6 +150,7 @@ export default function Header() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.25em]">
             <button
+              data-testid="header-language-en"
               type="button"
               onClick={() => setLanguage("EN")}
               className={cn(
@@ -140,6 +165,7 @@ export default function Header() {
             </button>
             <span className="text-white/40">|</span>
             <button
+              data-testid="header-language-es"
               type="button"
               onClick={() => setLanguage("ES")}
               className={cn(

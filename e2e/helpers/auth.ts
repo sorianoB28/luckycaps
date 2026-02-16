@@ -3,12 +3,18 @@ import { expect } from "@playwright/test";
 
 import { gotoAndWait } from "./navigation";
 import { waitForAppReady } from "./appReady";
+import { e2eEmail, getWorkerScope } from "./run";
 
 type LoginOptions = {
   signInPath?: string;
   expectedPathname?: string | RegExp;
   email?: string;
   password?: string;
+};
+
+export type E2ELoginCredentials = {
+  email: string;
+  password: string;
 };
 
 function pathnameMatchesExpected(pathname: string, expectedPathname: string) {
@@ -41,6 +47,44 @@ async function findVisibleLocator(candidates: Locator[], timeout = 15_000) {
     }
   }
   return null;
+}
+
+export async function createRunScopedUser(
+  page: Page,
+  label = "user"
+): Promise<E2ELoginCredentials> {
+  const worker = getWorkerScope();
+  const password = process.env.E2E_USER_PASSWORD || `E2E!Pass-${Date.now()}-Aa1`;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const stamp = `${Date.now()}-${worker}-${attempt}`;
+    const email = e2eEmail(`${label}-${stamp}`);
+
+    const response = await page.request.post("/api/auth/signup", {
+      data: {
+        email,
+        password,
+        first_name: "E2E",
+        last_name: "User",
+        marketing_opt_in: false,
+      },
+    });
+
+    if (response.ok()) {
+      return { email, password };
+    }
+
+    const text = await response.text();
+    if (response.status() === 400 && /already registered/i.test(text)) {
+      continue;
+    }
+
+    throw new Error(
+      `Unable to create run-scoped E2E user. Status ${response.status()}. Response: ${text}`
+    );
+  }
+
+  throw new Error("Unable to create run-scoped E2E user after retries.");
 }
 
 export async function login(page: Page, options: LoginOptions = {}) {

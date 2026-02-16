@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 
 import sql from "@/lib/db";
 import { authOptions } from "@/lib/auth";
+import { setSentryUserFromSession } from "@/lib/sentryUser";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,8 @@ type SubscribeBody = {
 const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const isUuid = (value: string) =>
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value);
+const methodNotAllowed = () =>
+  NextResponse.json({ ok: false, error: "Method not allowed" }, { status: 405 });
 
 const normalizeLocale = (value?: string) => {
   const lc = value?.toLowerCase() ?? "";
@@ -53,6 +56,7 @@ export async function POST(request: Request) {
   const ip = getClientIp(request.headers);
 
   const authSession = await getServerSession(authOptions);
+  setSentryUserFromSession(authSession);
   const sessionUserId =
     authSession?.user?.id && isUuid(authSession.user.id) ? authSession.user.id : null;
   const sessionEmail = authSession?.user?.email?.toLowerCase().trim() ?? null;
@@ -104,4 +108,20 @@ export async function POST(request: Request) {
     console.error("Subscribe error", err);
     return NextResponse.json({ ok: false, error: "Unable to subscribe" }, { status: 500 });
   }
+}
+
+export async function GET() {
+  return methodNotAllowed();
+}
+
+export async function PUT() {
+  return methodNotAllowed();
+}
+
+export async function PATCH() {
+  return methodNotAllowed();
+}
+
+export async function DELETE() {
+  return methodNotAllowed();
 }

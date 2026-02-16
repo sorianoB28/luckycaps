@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import sql from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { setSentryUserFromSession } from "@/lib/sentryUser";
 
 type ReviewRow = {
   id: string;
@@ -23,6 +24,9 @@ type SummaryRow = {
   avg_rating: number | null;
   review_count: number;
 };
+
+const methodNotAllowed = () =>
+  NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -87,6 +91,7 @@ type CreateReviewPayload = {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
+  setSentryUserFromSession(session);
 
   let payload: CreateReviewPayload;
   try {
@@ -224,4 +229,16 @@ export async function POST(request: Request) {
   const inserted = insertRows[0];
 
   return NextResponse.json({ reviewId: inserted.id }, { status: 201 });
+}
+
+export async function PUT() {
+  return methodNotAllowed();
+}
+
+export async function PATCH() {
+  return methodNotAllowed();
+}
+
+export async function DELETE() {
+  return methodNotAllowed();
 }

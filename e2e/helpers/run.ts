@@ -31,6 +31,11 @@ export function getE2EBaseURL() {
   return process.env.E2E_BASE_URL || "http://localhost:8888";
 }
 
+export function getWorkerScope() {
+  const raw = process.env.TEST_WORKER_INDEX?.trim() ?? "0";
+  return raw.replace(/[^0-9]+/g, "") || "0";
+}
+
 export function e2eSlug(label: string) {
   const suffix = sanitizeSegment(label) || "item";
   return `e2e-${RUN_ID}-${suffix}`;

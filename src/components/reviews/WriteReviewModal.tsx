@@ -127,6 +127,7 @@ export function WriteReviewModal({
             <div className="space-y-2">
               <Label>{t("reviews.titleLabel")}</Label>
               <Input
+                data-testid="review-modal-title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t("reviews.titlePlaceholder")}
@@ -146,6 +147,7 @@ export function WriteReviewModal({
           <div className="space-y-2">
             <Label>{t("reviews.reviewLabel")}</Label>
             <Textarea
+              data-testid="review-modal-body"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={4}
@@ -191,6 +193,7 @@ export function WriteReviewModal({
           </div>
           <label className="flex items-center gap-2 text-sm text-white/80">
             <input
+              data-testid="review-modal-guidelines"
               type="checkbox"
               checked={guidelines}
               onChange={(e) => setGuidelines(e.target.checked)}
@@ -200,7 +203,9 @@ export function WriteReviewModal({
           </label>
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
           <div className="flex items-center gap-3">
-            <Button onClick={handleSubmit}>{t("reviews.submit")}</Button>
+            <Button onClick={handleSubmit} data-testid="review-modal-submit">
+              {t("reviews.submit")}
+            </Button>
             <Button variant="ghost" onClick={onClose}>
               {t("common.cancel")}
             </Button>

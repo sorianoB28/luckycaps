@@ -19,6 +19,7 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const t = useT();
   const { language } = useLanguage();
+  const isOutOfStock = product.stock <= 0;
   const fallbacks = getPlaceholderImages(product.category, product.slug, 3);
   const primaryImage =
     product.images && product.images.length > 0
@@ -62,15 +63,30 @@ export default function ProductCard({ product }: ProductCardProps) {
                 {t("shop.sale")}
               </Badge>
             ) : null}
+            {isOutOfStock ? (
+              <Badge className="rounded-none bg-zinc-700 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
+                {t("product.outOfStock")}
+              </Badge>
+            ) : null}
           </div>
         </div>
       </Link>
       <div className="flex flex-1 flex-col p-5">
-        <p className="text-xs uppercase tracking-[0.2em] text-white/50">
+        <p className="truncate text-xs uppercase tracking-[0.2em] text-white/50">
           {product.category}
         </p>
-        <h3 className="mt-2 font-display text-2xl">{displayName}</h3>
-        <p className="mt-2 text-sm text-white/60">
+        <h3
+          className="mt-2 font-display text-2xl"
+          style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+          data-testid="product-card-title"
+        >
+          {displayName}
+        </h3>
+        <p
+          className="mt-2 text-sm text-white/60"
+          style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+          data-testid="product-card-description"
+        >
           {displayDescription}
         </p>
         <div className="mt-4 flex items-center justify-between gap-3">
@@ -86,9 +102,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           ) : (
             <p className="text-lg font-semibold">${product.price}</p>
           )}
-          <Button variant="secondary" size="sm" asChild>
-            <Link href={`/product/${product.slug}`}>{t("common.view")}</Link>
-          </Button>
+          {isOutOfStock ? (
+            <Button variant="secondary" size="sm" disabled>
+              {t("product.outOfStock")}
+            </Button>
+          ) : (
+            <Button variant="secondary" size="sm" asChild>
+              <Link href={`/product/${product.slug}`}>{t("common.view")}</Link>
+            </Button>
+          )}
         </div>
       </div>
     </motion.div>

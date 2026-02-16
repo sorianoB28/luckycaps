@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_SENTRY_DSN: process.env.SENTRY_DSN || "",
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [

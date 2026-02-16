@@ -2,7 +2,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 import { gotoAndWait } from "./navigation";
 import { waitForAppReady } from "./appReady";
-import { e2eEmail } from "./run";
+import { e2eEmail, getWorkerScope } from "./run";
 
 type AdminCredentials = {
   email: string;
@@ -26,7 +26,7 @@ function readAdminCredentials(): AdminCredentials {
   }
 
   return {
-    email: e2eEmail("admin"),
+    email: e2eEmail(`admin-worker-${getWorkerScope()}`),
     password: fallbackPassword,
     seed: true,
   };

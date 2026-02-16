@@ -7,15 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/store/cart";
 import { useT } from "@/components/providers/LanguageProvider";
+import { calculateSubtotalCents } from "@/lib/cartMath";
 
 export default function CartPage() {
   const t = useT();
   const { items, setQuantity, removeItem } = useCart();
   const entries = Object.entries(items);
 
-  const subtotalCents = entries.reduce(
-    (sum, [, item]) => sum + item.priceCents * item.quantity,
-    0
+  const subtotalCents = calculateSubtotalCents(
+    entries.map(([, item]) => ({ price_cents: item.priceCents, quantity: item.quantity }))
   );
 
   if (entries.length === 0) {

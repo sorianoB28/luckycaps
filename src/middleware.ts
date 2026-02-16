@@ -14,6 +14,10 @@ function buildSignInRedirect(request: NextRequest, reason: "auth_required" | "ad
   return url;
 }
 
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
 export async function middleware(request: NextRequest) {
   const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
   if (!secret) {
@@ -32,15 +36,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(buildSignInRedirect(request, "auth_required"));
   }
 
-  const role = typeof token.role === "string" ? token.role.toLowerCase() : "";
-  if (role !== "admin") {
-    return NextResponse.redirect(buildSignInRedirect(request, "admin_required"));
+  if (isAdminPath(request.nextUrl.pathname)) {
+    const role = typeof token.role === "string" ? token.role.toLowerCase() : "";
+    if (role !== "admin") {
+      return NextResponse.redirect(buildSignInRedirect(request, "admin_required"));
+    }
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/account/:path*"],
 };
-

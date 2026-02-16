@@ -3,6 +3,12 @@ import "server-only";
 import sql from "@/lib/db";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 import { validatePromoCode } from "@/lib/promo";
+import {
+  calculateSubtotalCents,
+  calculateTotalCents,
+  getEffectivePriceCents,
+  shippingCentsForDelivery,
+} from "@/lib/cartMath";
 
 export type QuoteItemInput = {
   productId: string;
@@ -42,10 +48,6 @@ const isUuid = (value: string) =>
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
     value
   );
-
-const shippingCentsForDelivery = (_deliveryOption: string) => {
-  return 600; // flat rate for now
-};
 
 export async function computeCheckoutQuote(params: {
   items: QuoteItemInput[];
@@ -148,10 +150,7 @@ export async function computeCheckoutQuote(params: {
 
   const orderItems = itemInputs.map((input) => {
     const product = productMap.get(input.productId)!;
-    const price =
-      product.is_sale && product.sale_price_cents != null
-        ? product.sale_price_cents
-        : product.price_cents;
+    const price = getEffectivePriceCents(product);
     return {
       product_id: product.id,
       product_slug: product.slug,
@@ -164,10 +163,7 @@ export async function computeCheckoutQuote(params: {
     };
   });
 
-  const subtotalCents = orderItems.reduce(
-    (sum, item) => sum + item.price_cents * item.quantity,
-    0
-  );
+  const subtotalCents = calculateSubtotalCents(orderItems);
 
   const shippingCents = shippingCentsForDelivery(params.deliveryOption);
   const taxCents = 0; // tax disabled for now to match Stripe exactly
@@ -204,7 +200,12 @@ export async function computeCheckoutQuote(params: {
     discountCents = promoResult.discount_cents;
   }
 
-  const totalCents = Math.max(0, subtotalCents - discountCents + shippingCents + taxCents);
+  const totalCents = calculateTotalCents({
+    subtotal_cents: subtotalCents,
+    discount_cents: discountCents,
+    shipping_cents: shippingCents,
+    tax_cents: taxCents,
+  });
 
   const quote: CheckoutQuote = {
     currency: "usd",

@@ -22,26 +22,42 @@ function parseLanguage(value: string | null): Language | null {
   return null;
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("EN");
+type LanguageProviderProps = {
+  children: React.ReactNode;
+  forcedLanguage?: Language;
+};
+
+export function LanguageProvider({ children, forcedLanguage }: LanguageProviderProps) {
+  const [language, setLanguageState] = useState<Language>(forcedLanguage ?? "EN");
+  const persistLanguage = !forcedLanguage;
 
   useEffect(() => {
+    if (forcedLanguage) return;
     const saved = parseLanguage(window.localStorage.getItem(STORAGE_KEY));
     if (saved) setLanguageState(saved);
-  }, []);
+  }, [forcedLanguage]);
+
+  useEffect(() => {
+    if (!forcedLanguage) return;
+    setLanguageState(forcedLanguage);
+  }, [forcedLanguage]);
 
   const setLanguage = useCallback((next: Language) => {
     setLanguageState(next);
-    window.localStorage.setItem(STORAGE_KEY, next);
-  }, []);
+    if (persistLanguage) {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    }
+  }, [persistLanguage]);
 
   const toggleLanguage = useCallback(() => {
     setLanguageState((prev) => {
       const next = prev === "EN" ? "ES" : "EN";
-      window.localStorage.setItem(STORAGE_KEY, next);
+      if (persistLanguage) {
+        window.localStorage.setItem(STORAGE_KEY, next);
+      }
       return next;
     });
-  }, []);
+  }, [persistLanguage]);
 
   const t = useMemo(() => createTranslator(language), [language]);
 
