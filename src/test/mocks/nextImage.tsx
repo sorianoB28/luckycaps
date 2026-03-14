@@ -10,11 +10,12 @@ type ImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
 export default function NextImage({
   src,
   alt,
-  fill: _fill,
-  priority: _priority,
+  fill,
+  priority,
   ...rest
 }: ImageProps) {
+  void fill;
+  void priority;
   const resolvedSrc = typeof src === "string" ? src : src?.src || "";
   return <img src={resolvedSrc} alt={alt} {...rest} />;
 }
-

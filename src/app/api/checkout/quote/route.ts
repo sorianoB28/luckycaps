@@ -54,7 +54,11 @@ export async function POST(request: Request) {
 
   if (!result.ok) {
     return NextResponse.json(
-      { ok: false, error: result.error, promoError: (result as any).promoError ?? null },
+      {
+        ok: false,
+        error: result.error,
+        promoError: "promoError" in result ? result.promoError ?? null : null,
+      },
       { status: 200 }
     );
   }

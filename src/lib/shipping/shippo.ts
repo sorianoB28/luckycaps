@@ -44,9 +44,53 @@ export type ShippoPurchase = {
   postage_currency: string | null;
 };
 
+type ShippoMessage = {
+  text?: string | null;
+};
+
+type ShippoErrorResponse = {
+  detail?: string | null;
+  messages?: ShippoMessage[] | null;
+};
+
+type ShippoServiceLevel = {
+  name?: string | null;
+  token?: string | null;
+};
+
+type ShippoRateResponse = {
+  object_id?: string | null;
+  amount?: string | number | null;
+  currency?: string | null;
+  provider?: string | null;
+  servicelevel?: ShippoServiceLevel | null;
+  estimated_days?: number | null;
+  duration_terms?: string | null;
+};
+
+type ShippoShipmentResponse = ShippoErrorResponse & {
+  object_id?: string | null;
+  rates?: ShippoRateResponse[] | null;
+};
+
+type ShippoTransactionResponse = ShippoErrorResponse & {
+  status?: string | null;
+  object_id?: string | null;
+  label_url?: string | null;
+  tracking_number?: string | null;
+  tracking_url_provider?: string | null;
+  rate?: {
+    amount?: string | number | null;
+    currency?: string | null;
+  } | null;
+};
+
 const isE2EMode = process.env.E2E_MODE?.toLowerCase() === "true";
 
-async function shippoFetch<T>(path: string, body: Record<string, unknown>) {
+async function shippoFetch<T extends ShippoErrorResponse>(
+  path: string,
+  body: Record<string, unknown>
+) {
   const { token } = resolveShippoConfig();
 
   const res = await fetch(`https://api.goshippo.com/${path}`, {
@@ -58,7 +102,7 @@ async function shippoFetch<T>(path: string, body: Record<string, unknown>) {
     body: JSON.stringify(body),
   });
 
-  const json = (await res.json()) as T & { detail?: string; messages?: Array<{ text?: string }> };
+  const json = (await res.json()) as T;
   if (!res.ok) {
     const message = json?.detail || json?.messages?.[0]?.text || `Shippo error (${res.status})`;
     throw new Error(message);
@@ -66,7 +110,7 @@ async function shippoFetch<T>(path: string, body: Record<string, unknown>) {
   return json;
 }
 
-async function shippoFetchGet<T>(path: string) {
+async function shippoFetchGet<T extends ShippoErrorResponse>(path: string) {
   const { token } = resolveShippoConfig();
 
   const res = await fetch(`https://api.goshippo.com/${path}`, {
@@ -77,7 +121,7 @@ async function shippoFetchGet<T>(path: string) {
     },
   });
 
-  const json = (await res.json()) as T & { detail?: string; messages?: Array<{ text?: string }> };
+  const json = (await res.json()) as T;
   if (!res.ok) {
     const message = json?.detail || json?.messages?.[0]?.text || `Shippo error (${res.status})`;
     throw new Error(message);
@@ -85,7 +129,7 @@ async function shippoFetchGet<T>(path: string) {
   return json;
 }
 
-function normalizeRate(rate: any): ShippoRate | null {
+function normalizeRate(rate: ShippoRateResponse): ShippoRate | null {
   if (!rate?.object_id) return null;
   const amount = Number(rate.amount);
   return {
@@ -106,7 +150,7 @@ export async function createShipmentDraft(params: {
   parcel: ShippoParcel;
 }) {
   const { ship_from, ship_to, parcel } = params;
-  const response = await shippoFetch<any>("shipments", {
+  const response = await shippoFetch<ShippoShipmentResponse>("shipments", {
     address_from: ship_from,
     address_to: ship_to,
     parcels: [parcel],
@@ -141,7 +185,7 @@ export async function buyLabel(params: { rate_id: string; label_format: string }
     } satisfies ShippoPurchase;
   }
 
-  const response = await shippoFetch<any>("transactions", {
+  const response = await shippoFetch<ShippoTransactionResponse>("transactions", {
     rate: rate_id,
     label_file_type: label_format,
     async: false,
@@ -171,7 +215,7 @@ export async function fetchTransactionLabelUrl(transactionId: string) {
     throw new Error("Missing Shippo transaction id");
   }
 
-  const response = await shippoFetchGet<any>(`transactions/${transactionId}`);
+  const response = await shippoFetchGet<ShippoTransactionResponse>(`transactions/${transactionId}`);
   if (response?.status && response.status !== "SUCCESS") {
     throw new Error("Shippo transaction is not successful");
   }

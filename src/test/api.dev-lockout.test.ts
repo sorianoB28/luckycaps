@@ -42,8 +42,8 @@ vi.mock("bcryptjs", () => ({
 
 type RouteCase = {
   name: string;
-  load: () => Promise<Record<string, (...args: any[]) => Promise<Response>>>;
-  invoke: (mod: Record<string, (...args: any[]) => Promise<Response>>) => Promise<Response>;
+  load: () => Promise<Record<string, (...args: unknown[]) => Promise<Response>>>;
+  invoke: (mod: Record<string, (...args: unknown[]) => Promise<Response>>) => Promise<Response>;
 };
 
 const cases: RouteCase[] = [

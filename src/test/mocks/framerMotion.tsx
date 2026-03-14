@@ -5,8 +5,8 @@ type DivProps = React.HTMLAttributes<HTMLDivElement> & {
 };
 
 export const motion = {
-  div: ({ children, whileHover: _whileHover, ...rest }: DivProps) => (
-    <div {...rest}>{children}</div>
-  ),
+  div: ({ children, whileHover, ...rest }: DivProps) => {
+    void whileHover;
+    return <div {...rest}>{children}</div>;
+  },
 };
-

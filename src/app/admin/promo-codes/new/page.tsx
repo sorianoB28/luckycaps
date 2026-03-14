@@ -28,7 +28,7 @@ export default function AdminNewPromoCodePage() {
           setSubmitting(true);
           setError(null);
           try {
-            const created = await createAdminPromoCode(payload as any);
+            const created = await createAdminPromoCode(payload);
             router.replace(`/admin/promo-codes/${created.id}`);
           } catch (err) {
             setError(resolveAdminError(t, err, "adminPromoCodes.unableToCreate"));

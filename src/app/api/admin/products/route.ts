@@ -75,7 +75,7 @@ const centsFromNumber = (value?: unknown) => {
   return Math.round(num * 100);
 };
 
-export async function GET(request: Request) {
+export async function GET() {
   const { response } = await requireAdmin();
   if (response) return response;
 

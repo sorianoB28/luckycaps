@@ -545,7 +545,7 @@ export async function recordCheckoutTotalMismatch(params: {
     FROM public.checkout_sessions
     WHERE stripe_checkout_session_id = ${stripeCheckoutSessionId}
     LIMIT 1
-  `) as Array<{ total_cents: number | null; currency: string | null; contact: any }>;
+  `) as Array<{ total_cents: number | null; currency: string | null; contact: unknown }>;
 
   const row = rows[0];
   if (!row) return { ok: false as const, reason: "checkout_not_found" };

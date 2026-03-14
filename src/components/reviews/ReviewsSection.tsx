@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Review, useReviewsStore } from "@/store/reviewsStore";
+import { useReviewsStore } from "@/store/reviewsStore";
 import { cn } from "@/lib/utils";
 import { StarRating } from "./StarRating";
 import { WriteReviewModal } from "./WriteReviewModal";

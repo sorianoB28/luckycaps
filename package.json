@@ -70,10 +70,5 @@
     "typescript": "^5.5.3",
     "vite": "^7.3.1",
     "vitest": "^4.0.18"
-  },
-  "eslintConfig": {
-    "extends": [
-      "plugin:storybook/recommended"
-    ]
   }
 }

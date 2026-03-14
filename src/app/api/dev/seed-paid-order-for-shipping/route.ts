@@ -75,7 +75,6 @@ export async function POST(request: Request) {
 
     const shippingCents = 600;
     const subtotalCents = product.effective_price_cents;
-    const totalCents = subtotalCents + shippingCents;
     const shippingAddress = {
       firstName: "E2E",
       lastName: "Buyer",

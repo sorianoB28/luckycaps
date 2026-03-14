@@ -85,7 +85,7 @@ export async function uploadLabelBufferToCloudinary(params: {
         filename_override: filename,
       })
     );
-  } catch (err) {
+  } catch {
     return attemptUpload(
       withFolder({
         resource_type: "raw",

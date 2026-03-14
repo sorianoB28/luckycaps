@@ -105,7 +105,7 @@ export function Slider({
           const distMin = Math.abs(raw - minValue);
           const distMax = Math.abs(raw - maxValue);
           const thumb = distMin <= distMax ? "min" : "max";
-          handlePointerDown(e as any, thumb);
+          handlePointerDown(e, thumb);
         }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

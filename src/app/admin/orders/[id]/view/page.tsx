@@ -16,15 +16,6 @@ import {
 import { cn } from "@/lib/utils";
 import { resolveAdminError } from "@/lib/adminErrors";
 
-const STATUSES: AdminOrderDetail["status"][] = [
-  "created",
-  "paid",
-  "shipped",
-  "delivered",
-  "cancelled",
-  "refunded",
-];
-
 const STATUS_LABEL_KEYS: Record<AdminOrderDetail["status"], string> = {
   created: "common.created",
   paid: "common.paid",

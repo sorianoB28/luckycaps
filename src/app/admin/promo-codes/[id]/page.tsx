@@ -68,7 +68,7 @@ export default function AdminEditPromoCodePage() {
           setSubmitting(true);
           setError(null);
           try {
-            const updated = await updateAdminPromoCode(promo.id, payload as any);
+            const updated = await updateAdminPromoCode(promo.id, payload);
             setPromo(updated);
           } catch (err) {
             setError(resolveAdminError(t, err, "adminPromoCodes.unableToUpdate"));

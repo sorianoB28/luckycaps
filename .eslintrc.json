@@ -1,0 +1,15 @@
+{
+  "root": true,
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript",
+    "plugin:storybook/recommended"
+  ],
+  "ignorePatterns": [
+    ".next/",
+    "node_modules/",
+    "coverage/",
+    "playwright-report/",
+    "test-results/"
+  ]
+}

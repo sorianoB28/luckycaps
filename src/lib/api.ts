@@ -514,7 +514,7 @@ async function adminFetchJsonWithErrors<T>(path: string, init?: RequestInit) {
 
   if (!res.ok) {
     let message = `Request to ${url} failed with status ${res.status}`;
-    let code: string | undefined = data?.error;
+    const code: string | undefined = data?.error;
     if (data?.error) message = data.error;
     if (data?.errors) {
       const first = Object.values(data.errors)[0];

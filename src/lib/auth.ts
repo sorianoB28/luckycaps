@@ -13,6 +13,12 @@ type DbUser = {
   last_name: string | null;
 };
 
+type SessionUserFields = {
+  role?: string;
+  firstName?: string;
+  lastName?: string;
+};
+
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -85,19 +91,22 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      const mutableToken = token as typeof token & SessionUserFields;
       if (user) {
-        token.role = (user as any).role ?? "customer";
-        token.firstName = (user as any).firstName ?? undefined;
-        token.lastName = (user as any).lastName ?? undefined;
+        const typedUser = user as typeof user & SessionUserFields;
+        mutableToken.role = typedUser.role ?? "customer";
+        mutableToken.firstName = typedUser.firstName ?? undefined;
+        mutableToken.lastName = typedUser.lastName ?? undefined;
       }
-      return token;
+      return mutableToken;
     },
     async session({ session, token }) {
+      const typedToken = token as typeof token & SessionUserFields;
       if (session.user) {
-        session.user.role = (token as any).role ?? "customer";
+        session.user.role = typedToken.role ?? "customer";
         session.user.id = token.sub ?? "";
-        session.user.firstName = (token as any).firstName ?? undefined;
-        session.user.lastName = (token as any).lastName ?? undefined;
+        session.user.firstName = typedToken.firstName ?? undefined;
+        session.user.lastName = typedToken.lastName ?? undefined;
       }
       return session;
     },

@@ -24,7 +24,8 @@ function normalizeQuantity(value: unknown): number {
   return Math.max(0, Math.floor(quantity));
 }
 
-export function shippingCentsForDelivery(_deliveryOption: string): number {
+export function shippingCentsForDelivery(deliveryOption: string): number {
+  void deliveryOption;
   return FLAT_SHIPPING_CENTS;
 }
 

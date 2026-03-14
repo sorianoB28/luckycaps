@@ -191,7 +191,7 @@ export async function PATCH(
     }
 
     const setParts: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
 
     if (body.status) {
       if (!ALLOWED_STATUSES.includes(body.status)) {
