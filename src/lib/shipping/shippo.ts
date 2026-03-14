@@ -1,5 +1,7 @@
 import "server-only";
 
+import { resolveShippoConfig } from "@/lib/shipping/shippoConfig";
+
 type ShippoAddress = {
   name?: string;
   company?: string;
@@ -44,18 +46,8 @@ export type ShippoPurchase = {
 
 const isE2EMode = process.env.E2E_MODE?.toLowerCase() === "true";
 
-function resolveShippoToken() {
-  const testToken = process.env.SHIPPO_TEST_TOKEN;
-  const liveToken = process.env.SHIPPO_API_TOKEN;
-  if (testToken && process.env.NODE_ENV !== "production") return testToken;
-  return liveToken || testToken || null;
-}
-
 async function shippoFetch<T>(path: string, body: Record<string, unknown>) {
-  const token = resolveShippoToken();
-  if (!token) {
-    throw new Error("Missing Shippo API token");
-  }
+  const { token } = resolveShippoConfig();
 
   const res = await fetch(`https://api.goshippo.com/${path}`, {
     method: "POST",
@@ -75,10 +67,7 @@ async function shippoFetch<T>(path: string, body: Record<string, unknown>) {
 }
 
 async function shippoFetchGet<T>(path: string) {
-  const token = resolveShippoToken();
-  if (!token) {
-    throw new Error("Missing Shippo API token");
-  }
+  const { token } = resolveShippoConfig();
 
   const res = await fetch(`https://api.goshippo.com/${path}`, {
     method: "GET",

@@ -89,9 +89,5 @@ test("admin buys shipping label for a paid order", async ({ page }, testInfo) =>
   expect(
     orderData.shipment?.status === "purchased" || orderData.order?.status === "shipped"
   ).toBeTruthy();
-
-  const emailSignal = Boolean(
-    orderData.order?.shipping_confirmation_sent_at || orderData.order?.last_email_error
-  );
-  expect(emailSignal).toBeTruthy();
+  expect(orderData.order?.shipping_confirmation_sent_at ?? null).toBeNull();
 });

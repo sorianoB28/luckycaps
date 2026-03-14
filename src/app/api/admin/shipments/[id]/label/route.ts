@@ -72,7 +72,8 @@ async function buildLabelCandidates(shipment: ShipmentRow) {
       }
     } catch (err) {
       const message = (err as Error).message || "Unable to fetch Shippo label";
-      const code = message.includes("Missing Shippo API token")
+      const code =
+        message.includes("SHIPPO_API_TOKEN") || message.includes("SHIPPO_TEST_TOKEN")
         ? "shippo_token_missing"
         : "shippo_label_fetch_failed";
       console.error("Shippo label fetch failed", {

@@ -23,9 +23,14 @@ type CheckoutSummaryStoryProps = {
 const quoteBase: CheckoutSummaryQuote = {
   subtotal_cents: 7800,
   discount_cents: 0,
+  tax_rate: 0.07,
   shipping_cents: 600,
-  tax_cents: 0,
-  total_cents: 8400,
+  shipping_status: "selected",
+  shipping_display: "$6.00",
+  tax_cents: 546,
+  total_cents: 8946,
+  total_status: "ready",
+  total_display: "$89.46",
   items: [
     {
       product_id: "story-product-1",
@@ -114,7 +119,9 @@ export const PromoApplied: Story = {
     quote: {
       ...quoteBase,
       discount_cents: 100,
-      total_cents: 8300,
+      tax_cents: 539,
+      total_cents: 8839,
+      total_display: "$88.39",
     },
     appliedPromo: { promo_code_id: "story-promo", normalized_code: "LUCKY1" },
     promo: "LUCKY1",

@@ -1,6 +1,8 @@
 import "server-only";
 
 import sql from "@/lib/db";
+import { resolveDeploymentContext } from "@/lib/deploymentContext";
+import { isLocalhostOrigin, resolveConfiguredAppOrigin } from "@/lib/siteUrl";
 
 type EmailEventType = "order_confirmation" | "shipping_confirmation";
 
@@ -358,7 +360,7 @@ const computeOrderTotals = (order: OrderEmailRow) => {
   const shippingCents =
     Number.isFinite(order.shipping_cents) && order.shipping_cents != null
       ? order.shipping_cents
-      : 600;
+      : 0;
   const taxCents =
     Number.isFinite(order.tax_cents) && order.tax_cents != null ? order.tax_cents : 0;
   const totalCents =
@@ -850,7 +852,8 @@ const resolveEmailConfig = () => {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.EMAIL_FROM?.trim();
   const replyTo = process.env.EMAIL_REPLY_TO?.trim();
-  const siteUrl = process.env.SITE_URL?.trim();
+  const siteUrl = resolveConfiguredAppOrigin();
+  const context = resolveDeploymentContext();
 
   if (!apiKey) throw new Error("Missing RESEND_API_KEY");
   if (!from) throw new Error("Missing EMAIL_FROM");
@@ -858,7 +861,17 @@ const resolveEmailConfig = () => {
     throw new Error("EMAIL_FROM must use the format \"Name <email@domain.com>\"");
   }
   if (!replyTo) throw new Error("Missing EMAIL_REPLY_TO");
-  if (!siteUrl) throw new Error("Missing SITE_URL");
+  if (!siteUrl) {
+    throw new Error(
+      "Missing public site origin. Set SITE_URL, NEXT_PUBLIC_SITE_URL, or URL for email links."
+    );
+  }
+  if (context === "production") {
+    const parsed = new URL(siteUrl);
+    if (parsed.protocol !== "https:" || isLocalhostOrigin(siteUrl)) {
+      throw new Error("Production email links require an https non-localhost public site origin.");
+    }
+  }
 
   return { apiKey, from, replyTo, siteUrl };
 };
@@ -1254,7 +1267,7 @@ export async function buildEmailPreview(params: {
     params.siteUrl?.trim() ||
     process.env.SITE_URL?.trim() ||
     process.env.URL?.trim() ||
-    "http://localhost:3000";
+    "http://localhost:8888";
   const contact = parseJson<{ email?: string }>(data.order.contact, {});
   const toEmail = String(data.order.email || contact?.email || "customer@example.com").trim();
 

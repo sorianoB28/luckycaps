@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
 
 import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
-
-const stripeSecret = process.env.STRIPE_SECRET_KEY;
-const stripe =
-  stripeSecret && stripeSecret.trim()
-    ? new Stripe(stripeSecret, { apiVersion: "2024-04-10" })
-    : null;
+import { getStripeServer } from "@/lib/stripeConfig";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,10 +79,6 @@ export async function POST(request: Request) {
     const { response } = await requireAdmin();
     if (response) return response;
 
-    if (!stripe) {
-      return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
-    }
-
     let body: UpsertBody;
     try {
       body = (await request.json()) as UpsertBody;
@@ -127,7 +117,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Code already exists" }, { status: 400 });
     }
 
-    const coupon = await stripe.coupons.create({
+    const coupon = await getStripeServer().coupons.create({
       duration: "once",
       ...(discountType === "percent"
         ? { percent_off: percentOff! }

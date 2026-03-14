@@ -51,6 +51,9 @@ export async function readCheckoutTotals(page: Page) {
   const subtotalText =
     (await readText(page.getByTestId("checkout-summary-subtotal-value"))) ||
     (await readText(page.getByTestId("checkout-subtotal-value")));
+  const taxText =
+    (await readText(page.getByTestId("checkout-tax-value"))) ||
+    (await readText(page.getByTestId("checkout-summary-tax-value")));
   const shippingText =
     (await readText(page.getByTestId("checkout-summary-shipping-value"))) ||
     (await readText(page.getByTestId("checkout-shipping-value")));
@@ -60,9 +63,11 @@ export async function readCheckoutTotals(page: Page) {
 
   return {
     subtotalText,
+    taxText,
     shippingText,
     totalText,
     subtotalCents: parseMoneyToCents(subtotalText),
+    taxCents: parseMoneyToCents(taxText),
     shippingCents: parseMoneyToCents(shippingText),
     totalCents: parseMoneyToCents(totalText),
   };

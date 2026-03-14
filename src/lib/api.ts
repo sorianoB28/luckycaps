@@ -171,7 +171,8 @@ export type CheckoutPayload = {
     zip: string;
     country: string;
   };
-  deliveryOption: string;
+  deliveryOption?: string | null;
+  shippingOption?: string | null;
   promoCode?: string | null;
   notes?: string | null;
   items: {
@@ -197,6 +198,11 @@ export type AdminOrder = {
   customer_name?: string | null;
   customer_phone?: string | null;
   subtotal_cents: number;
+  discount_cents?: number;
+  shipping_cents?: number;
+  tax_cents?: number;
+  total_cents?: number;
+  currency?: string | null;
   items_count: number;
   tracking_number?: string | null;
   admin_notes?: string | null;
@@ -213,6 +219,7 @@ export type AdminOrdersResponse = {
 };
 
 export type AdminOrderDetail = AdminOrder & {
+  stripe_checkout_session_id?: string | null;
   contact?: Record<string, unknown> | null;
   shipping_address?: Record<string, unknown> | null;
   delivery_option?: string | null;
@@ -332,8 +339,7 @@ function getServerBaseUrl() {
     process.env.NETLIFY_DEV === "true" || process.env.NETLIFY_DEV === "1";
 
   if (isNetlifyDev) {
-    const port = process.env.PORT || "8888";
-    return `http://localhost:${port}`;
+    return "http://localhost:8888";
   }
 
   // Netlify production / preview

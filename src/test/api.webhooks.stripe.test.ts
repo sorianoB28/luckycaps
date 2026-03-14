@@ -7,6 +7,8 @@ import { readJson } from "@/test/helpers/http";
 const constructEventMock = vi.hoisted(() => vi.fn());
 const attachStripeSessionToCheckoutMock = vi.hoisted(() => vi.fn());
 const finalizeCheckoutByStripeSessionMock = vi.hoisted(() => vi.fn());
+const hasStripeWebhookEventBeenProcessedMock = vi.hoisted(() => vi.fn());
+const markStripeWebhookEventProcessedMock = vi.hoisted(() => vi.fn());
 const recordCheckoutTotalMismatchMock = vi.hoisted(() => vi.fn());
 
 vi.mock("stripe", () => {
@@ -21,6 +23,8 @@ vi.mock("stripe", () => {
 vi.mock("@/lib/checkoutSessions", () => ({
   attachStripeSessionToCheckout: attachStripeSessionToCheckoutMock,
   finalizeCheckoutByStripeSession: finalizeCheckoutByStripeSessionMock,
+  hasStripeWebhookEventBeenProcessed: hasStripeWebhookEventBeenProcessedMock,
+  markStripeWebhookEventProcessed: markStripeWebhookEventProcessedMock,
   recordCheckoutTotalMismatch: recordCheckoutTotalMismatchMock,
 }));
 
@@ -48,6 +52,9 @@ describe("API contract: Stripe webhooks", () => {
     process.env.NODE_ENV = "test";
     process.env.STRIPE_SECRET_KEY = "sk_test_123";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_123";
+    hasStripeWebhookEventBeenProcessedMock.mockResolvedValue(false);
+    markStripeWebhookEventProcessedMock.mockResolvedValue(undefined);
+    recordCheckoutTotalMismatchMock.mockResolvedValue({ ok: true, mismatch: false });
   });
 
   it("rejects invalid signature and applies no side effects", async () => {
@@ -63,6 +70,28 @@ describe("API contract: Stripe webhooks", () => {
     expect(payload.error).toMatch(/invalid signature/i);
     expect(attachStripeSessionToCheckoutMock).not.toHaveBeenCalled();
     expect(finalizeCheckoutByStripeSessionMock).not.toHaveBeenCalled();
+    expect(hasStripeWebhookEventBeenProcessedMock).not.toHaveBeenCalled();
+    expect(markStripeWebhookEventProcessedMock).not.toHaveBeenCalled();
+    expect(recordCheckoutTotalMismatchMock).not.toHaveBeenCalled();
+  });
+
+  it("skips unrelated event types and returns 200", async () => {
+    constructEventMock.mockReturnValue({
+      id: "evt_account_updated_1",
+      type: "account.updated",
+      data: { object: { id: "acct_1" } },
+    });
+
+    const { POST } = await loadRoute();
+    const response = await POST(makeWebhookRequest('{"id":"evt_account_updated_1"}'));
+    const payload = await readJson<{ received: boolean; skipped?: boolean }>(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.received).toBe(true);
+    expect(payload.skipped).toBe(true);
+    expect(finalizeCheckoutByStripeSessionMock).not.toHaveBeenCalled();
+    expect(hasStripeWebhookEventBeenProcessedMock).not.toHaveBeenCalled();
+    expect(markStripeWebhookEventProcessedMock).not.toHaveBeenCalled();
     expect(recordCheckoutTotalMismatchMock).not.toHaveBeenCalled();
   });
 
@@ -97,19 +126,21 @@ describe("API contract: Stripe webhooks", () => {
 
     expect(response.status).toBe(200);
     expect(payload.received).toBe(true);
+    expect(hasStripeWebhookEventBeenProcessedMock).toHaveBeenCalledTimes(1);
     expect(attachStripeSessionToCheckoutMock).toHaveBeenCalledTimes(1);
     expect(finalizeCheckoutByStripeSessionMock).toHaveBeenCalledTimes(1);
+    expect(markStripeWebhookEventProcessedMock).toHaveBeenCalledTimes(1);
     expect(recordCheckoutTotalMismatchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("handles duplicate replay without applying side effects twice", async () => {
-    const stripeSessionId = "cs_test_replay_1";
+  it("handles duplicate replay without finalizing twice", async () => {
+    const eventId = "evt_replay_1";
     constructEventMock.mockReturnValue({
-      id: "evt_replay_1",
+      id: eventId,
       type: "checkout.session.completed",
       data: {
         object: {
-          id: stripeSessionId,
+          id: "cs_test_replay_1",
           metadata: { checkout_id: "checkout-replay" },
           payment_intent: "pi_replay_1",
           amount_total: 4600,
@@ -118,24 +149,15 @@ describe("API contract: Stripe webhooks", () => {
       },
     });
 
-    const finalizedSessions = new Set<string>();
-    let sideEffectApplications = 0;
-    finalizeCheckoutByStripeSessionMock.mockImplementation(
-      async ({ stripeCheckoutSessionId }: { stripeCheckoutSessionId: string }) => {
-        if (!finalizedSessions.has(stripeCheckoutSessionId)) {
-          finalizedSessions.add(stripeCheckoutSessionId);
-          sideEffectApplications += 1;
-        }
-        return {
-          orderId: "order-replay",
-          emailAttempted: false,
-          emailResult: null,
-        };
-      }
-    );
-    recordCheckoutTotalMismatchMock.mockResolvedValue({
-      ok: true,
-      mismatch: false,
+    let seen = false;
+    hasStripeWebhookEventBeenProcessedMock.mockImplementation(async () => seen);
+    markStripeWebhookEventProcessedMock.mockImplementation(async () => {
+      seen = true;
+    });
+    finalizeCheckoutByStripeSessionMock.mockResolvedValue({
+      orderId: "order-replay",
+      emailAttempted: false,
+      emailResult: null,
     });
 
     const { POST } = await loadRoute();
@@ -144,7 +166,8 @@ describe("API contract: Stripe webhooks", () => {
 
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
-    expect(finalizeCheckoutByStripeSessionMock).toHaveBeenCalledTimes(2);
-    expect(sideEffectApplications).toBe(1);
+    expect(hasStripeWebhookEventBeenProcessedMock).toHaveBeenCalledTimes(2);
+    expect(finalizeCheckoutByStripeSessionMock).toHaveBeenCalledTimes(1);
+    expect(markStripeWebhookEventProcessedMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -4,6 +4,8 @@ import sql from "@/lib/db";
 import { normalizeSize, sortSizes } from "@/lib/sizeOptions";
 import { validatePromoCode } from "@/lib/promo";
 import {
+  TAX_RATE,
+  calcTaxCents,
   calculateSubtotalCents,
   calculateTotalCents,
   getEffectivePriceCents,
@@ -19,12 +21,17 @@ export type QuoteItemInput = {
 
 export type CheckoutQuote = {
   currency: "usd";
-  delivery_option: string;
+  delivery_option: string | null;
   subtotal_cents: number;
   discount_cents: number;
-  shipping_cents: number;
+  tax_rate: number;
+  shipping_cents: number | null;
+  shipping_status: "pending" | "selected";
+  shipping_display: string;
   tax_cents: number;
-  total_cents: number;
+  total_cents: number | null;
+  total_status: "pending" | "ready";
+  total_display: string;
   promo:
     | null
     | {
@@ -51,7 +58,8 @@ const isUuid = (value: string) =>
 
 export async function computeCheckoutQuote(params: {
   items: QuoteItemInput[];
-  deliveryOption: string;
+  shippingOption?: string | null;
+  deliveryOption?: string | null;
   promoCode?: string | null;
   currency?: string;
 }) {
@@ -165,9 +173,13 @@ export async function computeCheckoutQuote(params: {
 
   const subtotalCents = calculateSubtotalCents(orderItems);
 
-  const shippingCents = shippingCentsForDelivery(params.deliveryOption);
-  const taxCents = 0; // tax disabled for now to match Stripe exactly
-  const promoSubtotalCents = subtotalCents + shippingCents;
+  const rawShippingOption = params.shippingOption ?? params.deliveryOption ?? null;
+  const shippingOption =
+    typeof rawShippingOption === "string" && rawShippingOption.trim().length > 0
+      ? rawShippingOption.trim()
+      : null;
+  const shippingCents = shippingOption ? shippingCentsForDelivery(shippingOption) : null;
+  const promoSubtotalCents = subtotalCents;
 
   let promo: CheckoutQuote["promo"] = null;
   let discountCents = 0;
@@ -197,24 +209,36 @@ export async function computeCheckoutQuote(params: {
       normalized_code: promoResult.normalized_code,
       stripe_coupon_id: promoResult.stripe_coupon_id,
     };
-    discountCents = promoResult.discount_cents;
+    discountCents = Math.max(0, Math.floor(Number(promoResult.discount_cents) || 0));
   }
 
-  const totalCents = calculateTotalCents({
-    subtotal_cents: subtotalCents,
-    discount_cents: discountCents,
-    shipping_cents: shippingCents,
-    tax_cents: taxCents,
-  });
+  const taxableCents = Math.max(0, subtotalCents - discountCents);
+  const taxCents = calcTaxCents(taxableCents);
+  const totalCents =
+    shippingCents == null
+      ? null
+      : calculateTotalCents({
+          subtotal_cents: subtotalCents,
+          discount_cents: discountCents,
+          shipping_cents: shippingCents,
+          tax_cents: taxCents,
+        });
+
+  const formatUsdCents = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
   const quote: CheckoutQuote = {
     currency: "usd",
-    delivery_option: params.deliveryOption,
+    delivery_option: shippingOption,
     subtotal_cents: subtotalCents,
     discount_cents: discountCents,
+    tax_rate: TAX_RATE,
     shipping_cents: shippingCents,
+    shipping_status: shippingCents == null ? "pending" : "selected",
+    shipping_display: shippingCents == null ? "TBD" : formatUsdCents(shippingCents),
     tax_cents: taxCents,
     total_cents: totalCents,
+    total_status: totalCents == null ? "pending" : "ready",
+    total_display: totalCents == null ? "TBD" : formatUsdCents(totalCents),
     promo,
     items: orderItems,
   };

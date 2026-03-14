@@ -1,6 +1,7 @@
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
 import { addFirstActiveProductToCart } from "./helpers/cart";
+import { selectFlatShipping } from "./helpers/checkout";
 import { gotoAndWait } from "./helpers/navigation";
 import { applyPromoExpectError, readCheckoutTotals, seedPromo } from "./helpers/promo";
 import { e2ePromoCode } from "./helpers/run";
@@ -12,17 +13,23 @@ async function openCheckoutWithSingleItem(page: Page, testInfo: TestInfo, label:
   await gotoAndWait(page, "/checkout", { testInfo, debugLabel: label });
 
   const subtotal = page.getByTestId("checkout-summary-subtotal-value").first();
+  const tax = page.getByTestId("checkout-tax-value").first();
   const shipping = page.getByTestId("checkout-summary-shipping-value").first();
   const total = page.getByTestId("checkout-summary-total-value").first();
 
   await expect(subtotal).toHaveText(/\$\d+\.\d{2}/, { timeout: 20_000 });
-  await expect(shipping).toHaveText(/\$6\.00/, { timeout: 20_000 });
-  await expect(total).toHaveText(/\$\d+\.\d{2}/, { timeout: 20_000 });
+  await expect(tax).toHaveText(/\$\d+\.\d{2}/, { timeout: 20_000 });
+  await expect(shipping).toHaveText(/TBD/i, { timeout: 20_000 });
+  await expect(total).toHaveText(/TBD/i, { timeout: 20_000 });
+
+  await selectFlatShipping(page);
 
   const before = await readCheckoutTotals(page);
   expect(before.subtotalCents).toBeGreaterThan(0);
   expect(before.shippingCents).toBe(600);
-  expect(before.totalCents).toBe((before.subtotalCents ?? 0) + (before.shippingCents ?? 0));
+  expect(before.totalCents).toBe(
+    (before.subtotalCents ?? 0) + (before.shippingCents ?? 0) + (before.taxCents ?? 0)
+  );
   return before;
 }
 

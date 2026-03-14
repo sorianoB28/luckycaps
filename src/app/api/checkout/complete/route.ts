@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
 
 import sql from "@/lib/db";
-
-const stripeSecret = process.env.STRIPE_SECRET_KEY;
-const stripe =
-  stripeSecret && stripeSecret.trim()
-    ? new Stripe(stripeSecret, { apiVersion: "2024-04-10" })
-    : null;
+import { getStripeServer } from "@/lib/stripeConfig";
 const isE2EMode = process.env.E2E_MODE?.toLowerCase() === "true";
 const isNonProduction = process.env.NODE_ENV !== "production";
 
@@ -43,11 +37,8 @@ export async function GET(request: Request) {
     }
   }
 
-  if (!stripe) {
-    return NextResponse.json({ error: "Payments unavailable" }, { status: 500 });
-  }
-
   try {
+    const stripe = getStripeServer();
     const session = await stripe.checkout.sessions.retrieve(stripeSessionId);
     const paymentStatus = session.payment_status;
     if (paymentStatus !== "paid") {

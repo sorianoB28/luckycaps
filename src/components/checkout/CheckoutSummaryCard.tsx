@@ -11,9 +11,14 @@ import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 export type CheckoutSummaryQuote = {
   subtotal_cents: number;
   discount_cents: number;
-  shipping_cents: number;
+  tax_rate: number;
+  shipping_cents: number | null;
+  shipping_status: "pending" | "selected";
+  shipping_display: string;
   tax_cents: number;
-  total_cents: number;
+  total_cents: number | null;
+  total_status: "pending" | "ready";
+  total_display: string;
   items: Array<{
     product_id: string;
     product_slug: string;
@@ -63,6 +68,21 @@ export function CheckoutSummaryCard({
   onRetryQuote,
 }: CheckoutSummaryCardProps) {
   const t = useT();
+  const shippingValue = quote
+    ? quote.shipping_status === "pending" || quote.shipping_cents == null
+      ? t("checkout.shippingTbdSelect")
+      : quote.shipping_cents === 0
+        ? t("checkout.free")
+        : `$${(quote.shipping_cents / 100).toFixed(2)}`
+    : t("common.loading");
+  const totalValue = quote
+    ? quote.total_status === "pending" || quote.total_cents == null
+      ? t("checkout.totalTbd")
+      : `$${(quote.total_cents / 100).toFixed(2)}`
+    : t("common.loading");
+  const taxLabel = quote
+    ? t("checkout.taxLabel", { rate: Math.round((quote.tax_rate ?? 0.07) * 100) })
+    : t("checkout.taxLabel", { rate: 7 });
 
   return (
     <Card className="border-white/10 bg-white/5 text-white">
@@ -160,27 +180,23 @@ export function CheckoutSummaryCard({
           ) : null}
           <div className="flex items-center justify-between">
             <span>{t("cart.shipping")}</span>
-            <span data-testid="checkout-summary-shipping-value">
-              <span data-testid="checkout-shipping-value">
-                {quote
-                  ? quote.shipping_cents === 0
-                    ? t("checkout.free")
-                    : `$${(quote.shipping_cents / 100).toFixed(2)}`
-                  : t("common.loading")}
+              <span data-testid="checkout-summary-shipping-value">
+                <span data-testid="checkout-shipping-value">{shippingValue}</span>
               </span>
-            </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>{taxLabel}</span>
+              <span data-testid="checkout-tax-value">
+                {quote ? `$${(quote.tax_cents / 100).toFixed(2)}` : t("common.loading")}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center justify-between">
-            <span>{t("cart.tax")}</span>
-            <span>{quote ? `$${(quote.tax_cents / 100).toFixed(2)}` : t("common.loading")}</span>
-          </div>
-        </div>
         <Separator className="border-white/10" />
         <div className="flex items-center justify-between text-lg font-semibold">
           <span>{t("common.total")}</span>
           <span data-testid="checkout-summary-total-value">
             <span data-testid="checkout-total-value">
-              {quote ? `$${(quote.total_cents / 100).toFixed(2)}` : t("common.loading")}
+              {totalValue}
             </span>
           </span>
         </div>

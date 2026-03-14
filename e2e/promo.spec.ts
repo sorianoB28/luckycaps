@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { addFirstActiveProductToCart } from "./helpers/cart";
+import { selectFlatShipping } from "./helpers/checkout";
 import { gotoAndWait } from "./helpers/navigation";
 import { applyPromoOnCheckout, seedPromo } from "./helpers/promo";
 import { e2ePromoCode } from "./helpers/run";
@@ -38,28 +39,38 @@ test("apply promo code updates checkout totals", async ({ page }, testInfo) => {
   await expect(lineItem).toBeVisible({ timeout: 20_000 });
 
   const subtotalValue = page.getByTestId("checkout-summary-subtotal-value").first();
+  const taxValue = page.getByTestId("checkout-tax-value").first();
   const shippingValue = page.getByTestId("checkout-summary-shipping-value").first();
   const totalValue = page.getByTestId("checkout-summary-total-value").first();
 
   await expect(subtotalValue).toHaveText(/\$\d+\.\d{2}/, { timeout: 20_000 });
-  await expect(shippingValue).toHaveText(/\$6\.00/, { timeout: 20_000 });
-  await expect(totalValue).toHaveText(/\$\d+\.\d{2}/, { timeout: 20_000 });
+  await expect(taxValue).toHaveText(/\$\d+\.\d{2}/, { timeout: 20_000 });
+  await expect(shippingValue).toHaveText(/TBD/i, { timeout: 20_000 });
+  await expect(totalValue).toHaveText(/TBD/i, { timeout: 20_000 });
 
   const subtotalBefore = parseMoney((await subtotalValue.textContent()) ?? "");
+  const taxBefore = parseMoney((await taxValue.textContent()) ?? "");
+
+  expect(subtotalBefore).toBeGreaterThan(0);
+  expect(taxBefore).toBe(Math.round(subtotalBefore * 0.07));
+
+  await selectFlatShipping(page);
+
   const shippingBefore = parseMoney((await shippingValue.textContent()) ?? "");
   const totalBefore = parseMoney((await totalValue.textContent()) ?? "");
 
-  expect(subtotalBefore).toBeGreaterThan(0);
   expect(shippingBefore).toBe(600);
-  expect(totalBefore).toBe(subtotalBefore + shippingBefore);
+  expect(totalBefore).toBe(subtotalBefore + shippingBefore + taxBefore);
 
   await applyPromoOnCheckout(page, promoCode);
 
   const subtotalAfter = parseMoney((await subtotalValue.textContent()) ?? "");
+  const taxAfter = parseMoney((await taxValue.textContent()) ?? "");
   const shippingAfter = parseMoney((await shippingValue.textContent()) ?? "");
   const totalAfter = parseMoney((await totalValue.textContent()) ?? "");
 
   expect(subtotalAfter).toBe(subtotalBefore);
+  expect(taxAfter).toBeLessThanOrEqual(taxBefore);
   expect(shippingAfter).toBe(600);
   expect(totalAfter).toBeLessThan(totalBefore);
 
@@ -69,6 +80,6 @@ test("apply promo code updates checkout totals", async ({ page }, testInfo) => {
     const discountValue = page.getByTestId("checkout-summary-discount-value").first();
     const discountAfter = Math.abs(parseMoney((await discountValue.textContent()) ?? ""));
     expect(discountAfter).toBeGreaterThan(0);
-    expect(totalAfter).toBe(subtotalAfter + shippingAfter - discountAfter);
+    expect(totalAfter).toBe(subtotalAfter + shippingAfter + taxAfter - discountAfter);
   }
 });

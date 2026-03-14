@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { addFirstActiveProductToCart } from "./helpers/cart";
+import { selectFlatShipping } from "./helpers/checkout";
 import { gotoAndWait } from "./helpers/navigation";
 
 function parseMoney(value: string): number {
@@ -27,18 +28,29 @@ test("add to cart -> checkout summary totals are correct", async ({ page }, test
   await expect(lineItem).toBeVisible({ timeout: 20_000 });
 
   const subtotalValue = page.getByTestId("checkout-subtotal-value").first();
+  const taxValue = page.getByTestId("checkout-tax-value").first();
   const shippingValue = page.getByTestId("checkout-shipping-value").first();
   const totalValue = page.getByTestId("checkout-total-value").first();
+  const payButton = page.getByTestId("checkout-pay-button").first();
 
   await expect(subtotalValue).toHaveText(/\$\d+\.\d{2}/, { timeout: 20_000 });
-  await expect(shippingValue).toHaveText(/\$6\.00/, { timeout: 20_000 });
-  await expect(totalValue).toHaveText(/\$\d+\.\d{2}/, { timeout: 20_000 });
+  await expect(taxValue).toHaveText(/\$\d+\.\d{2}/, { timeout: 20_000 });
+  await expect(shippingValue).toHaveText(/TBD/i, { timeout: 20_000 });
+  await expect(totalValue).toHaveText(/TBD/i, { timeout: 20_000 });
+  await expect(payButton).toBeDisabled();
 
   const subtotalCents = parseMoney((await subtotalValue.textContent()) ?? "");
+  const taxCents = parseMoney((await taxValue.textContent()) ?? "");
+
+  expect(subtotalCents).toBeGreaterThan(0);
+  expect(taxCents).toBe(Math.round(subtotalCents * 0.07));
+
+  await selectFlatShipping(page);
+
   const shippingCents = parseMoney((await shippingValue.textContent()) ?? "");
   const totalCents = parseMoney((await totalValue.textContent()) ?? "");
 
-  expect(subtotalCents).toBeGreaterThan(0);
   expect(shippingCents).toBe(600);
-  expect(totalCents).toBe(subtotalCents + shippingCents);
+  expect(totalCents).toBe(subtotalCents + taxCents + shippingCents);
+  await expect(payButton).toBeEnabled();
 });

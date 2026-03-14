@@ -1,22 +1,16 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
 import { getServerSession } from "next-auth/next";
+import type Stripe from "stripe";
 
 import sql from "@/lib/db";
 import { authOptions } from "@/lib/auth";
-import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 import {
   attachStripeSessionToCheckout,
   ensureCheckoutSessionsTable,
 } from "@/lib/checkoutSessions";
 import { computeCheckoutQuote } from "@/lib/checkoutQuote";
 import { setSentryUserFromSession } from "@/lib/sentryUser";
-
-const stripeSecret = process.env.STRIPE_SECRET_KEY;
-const stripe =
-  stripeSecret && stripeSecret.trim()
-    ? new Stripe(stripeSecret, { apiVersion: "2024-04-10" })
-    : null;
+import { getStripeServer, resolveStripeCheckoutUrls } from "@/lib/stripeConfig";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +35,8 @@ type CheckoutRequestBody = {
     zip: string;
     country: string;
   };
-  deliveryOption: string;
+  deliveryOption?: string | null;
+  shippingOption?: string | null;
   promoCode?: string | null;
   notes?: string | null;
   items: CheckoutItemInput[];
@@ -70,10 +65,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!stripe) {
-    return NextResponse.json({ error: "Payments unavailable" }, { status: 500 });
-  }
-
   const errors: string[] = [];
   if (!body.contact?.email || !emailRegex.test(body.contact.email.trim())) {
     errors.push("Valid contact email is required.");
@@ -93,6 +84,14 @@ export async function POST(request: Request) {
   }
   if (!Array.isArray(body.items) || body.items.length === 0) {
     errors.push("At least one item is required.");
+  }
+  const shippingOptionRaw = body.shippingOption ?? body.deliveryOption ?? null;
+  const shippingOption =
+    typeof shippingOptionRaw === "string" && shippingOptionRaw.trim().length > 0
+      ? shippingOptionRaw.trim()
+      : null;
+  if (!shippingOption) {
+    errors.push("Please select a shipping option.");
   }
   if (errors.length) {
     return NextResponse.json({ error: errors[0] }, { status: 400 });
@@ -114,9 +113,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    const stripe = getStripeServer();
     const quoteResult = await computeCheckoutQuote({
       items: itemInputs,
-      deliveryOption: body.deliveryOption || "flat",
+      shippingOption,
       promoCode: body.promoCode,
       currency: "usd",
     });
@@ -126,6 +126,23 @@ export async function POST(request: Request) {
     }
 
     const quote = quoteResult.quote;
+    if (
+      quote.shipping_status !== "selected" ||
+      quote.total_status !== "ready" ||
+      quote.shipping_cents == null ||
+      quote.total_cents == null
+    ) {
+      return NextResponse.json(
+        { error: "Shipping must be selected before checkout." },
+        { status: 400 }
+      );
+    }
+    if (quote.total_cents <= 0) {
+      return NextResponse.json(
+        { error: "Order total must be greater than $0.00." },
+        { status: 400 }
+      );
+    }
     const orderItems = quote.items;
 
     const appliedPromo = quote.promo
@@ -215,34 +232,40 @@ export async function POST(request: Request) {
       )
     `;
 
-    const origin = new URL(request.url).origin;
-    const defaultSuccessUrl = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
-    const rawSuccessUrl = process.env.STRIPE_SUCCESS_URL;
-    const successUrl =
-      rawSuccessUrl && rawSuccessUrl.includes("{CHECKOUT_SESSION_ID}")
-        ? rawSuccessUrl
-        : defaultSuccessUrl;
+    const { successUrl, cancelUrl } = resolveStripeCheckoutUrls(request.url);
 
-    const defaultCancelUrl = `${origin}/checkout?canceled=1`;
-    const rawCancelUrl = process.env.STRIPE_CANCEL_URL;
-    const cancelUrl = rawCancelUrl && rawCancelUrl.includes("{ORDER_ID}") ? defaultCancelUrl : rawCancelUrl || defaultCancelUrl;
-
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = orderItems.map((item) => ({
-      quantity: item.quantity,
-      price_data: {
-        currency: "usd",
-        unit_amount: item.price_cents,
-        product_data: {
-          name: item.name,
-          images: item.image_url ? [buildCloudinaryCardUrl(item.image_url)] : undefined,
-          metadata: {
-            product_slug: item.product_slug,
-            size: item.size ?? "",
-            variant: item.variant ?? "",
+    const taxableSubtotalCents = Math.max(0, quote.subtotal_cents - quote.discount_cents);
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    if (taxableSubtotalCents > 0) {
+      lineItems.push({
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: taxableSubtotalCents,
+          product_data: {
+            name:
+              quote.discount_cents > 0
+                ? "Items Subtotal (after discount)"
+                : "Items Subtotal",
+            metadata: { item_type: "items_subtotal" },
           },
         },
-      },
-    }));
+      });
+    }
+
+    if (quote.tax_cents > 0) {
+      lineItems.push({
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          unit_amount: quote.tax_cents,
+          product_data: {
+            name: "Tax (7%)",
+            metadata: { item_type: "tax" },
+          },
+        },
+      });
+    }
 
     if (quote.shipping_cents > 0) {
       lineItems.push({
@@ -252,7 +275,10 @@ export async function POST(request: Request) {
           unit_amount: quote.shipping_cents,
           product_data: {
             name: "Flat Rate Shipping",
-            metadata: { delivery_option: quote.delivery_option, item_type: "shipping" },
+            metadata: {
+              delivery_option: quote.delivery_option ?? "flat",
+              item_type: "shipping",
+            },
           },
         },
       });
@@ -266,6 +292,7 @@ export async function POST(request: Request) {
       checkoutId,
       subtotal_cents: quote.subtotal_cents,
       discount_cents: quote.discount_cents,
+      tax_cents: quote.tax_cents,
       shipping_cents: quote.shipping_cents,
       total_cents: quote.total_cents,
       line_items_total: lineItemsTotal,
@@ -278,8 +305,8 @@ export async function POST(request: Request) {
         user_id: sessionUserId ?? "",
         expected_total_cents: String(quote.total_cents),
         shipping_cents: String(quote.shipping_cents),
+        tax_cents: String(quote.tax_cents),
       },
-      discounts: appliedPromo ? [{ coupon: appliedPromo.stripe_coupon_id }] : undefined,
       line_items: lineItems,
       success_url: successUrl,
       cancel_url: cancelUrl,

@@ -1,4 +1,5 @@
 export const FLAT_SHIPPING_CENTS = 600;
+export const TAX_RATE = 0.07;
 
 export type PricedProduct = {
   price_cents: number;
@@ -25,6 +26,11 @@ function normalizeQuantity(value: unknown): number {
 
 export function shippingCentsForDelivery(_deliveryOption: string): number {
   return FLAT_SHIPPING_CENTS;
+}
+
+export function calcTaxCents(taxableCents: number): number {
+  const taxable = normalizeCents(taxableCents);
+  return Math.max(0, Math.round(taxable * TAX_RATE));
 }
 
 export function getEffectivePriceCents(product: PricedProduct): number {
@@ -55,9 +61,8 @@ export function calculateTotalCents(params: {
 }): number {
   const subtotal = normalizeCents(params.subtotal_cents);
   const discount = normalizeCents(params.discount_cents ?? 0);
-  const shipping = normalizeCents(params.shipping_cents ?? FLAT_SHIPPING_CENTS);
+  const shipping = normalizeCents(params.shipping_cents ?? 0);
   const tax = normalizeCents(params.tax_cents ?? 0);
 
   return Math.max(0, subtotal - discount + shipping + tax);
 }
-

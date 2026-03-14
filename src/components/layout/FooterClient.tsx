@@ -29,6 +29,7 @@ const categoryTranslationKeySet = new Set<string>(CATEGORY_TRANSLATION_KEYS);
 
 export default function FooterClient({ categories }: FooterClientProps) {
   const { t, language } = useLanguage();
+  const [isHydrated, setIsHydrated] = useState(false);
   const [showTop, setShowTop] = useState(false);
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
@@ -54,6 +55,10 @@ export default function FooterClient({ categories }: FooterClientProps) {
     }),
     { href: "/shop", label: t("footer.shopLinks.shopAll") },
   ];
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setShowTop(window.scrollY > 320);
@@ -183,53 +188,61 @@ export default function FooterClient({ categories }: FooterClientProps) {
               <span className={accentDot} />
               <span>{t("footer.stayInLoop")}</span>
             </div>
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-3 text-sm text-white/70"
-              data-testid="marketing-signup-form"
-            >
-              <p className="text-white/60">{t("footer.noSpam")}</p>
-              <div className="flex gap-2">
-                <input
-                  data-testid="marketing-email-input"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t("footer.emailPlaceholder")}
-                  className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-lucky-green"
-                />
-                <button
-                  data-testid="marketing-submit"
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-lg bg-lucky-green px-4 text-sm font-semibold text-lucky-darker transition hover:bg-lucky-green/90 focus:outline-none focus:ring-2 focus:ring-lucky-green"
-                >
-                  {isSubmitting ? t("common.submitting") : t("footer.join")}
-                </button>
-              </div>
-              <div className="space-y-1">
-                <label className="mb-2 flex items-center gap-2 text-xs text-white/60">
+            {isHydrated ? (
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-3 text-sm text-white/70"
+                data-testid="marketing-signup-form"
+              >
+                <p className="text-white/60">{t("footer.noSpam")}</p>
+                <div className="flex gap-2">
                   <input
-                    data-testid="marketing-consent"
-                    type="checkbox"
-                    className="accent-lucky-green"
-                    checked={consent}
-                    onChange={(e) => setConsent(e.target.checked)}
-                  />{" "}
-                  {t("footer.consent")}
-                </label>
-                {error || success ? (
-                  <p
-                    data-testid="marketing-status"
-                    data-state={error ? "error" : successState ?? "success"}
-                    className={error ? "text-xs text-red-400" : "text-xs text-lucky-green"}
-                    aria-live="polite"
+                    data-testid="marketing-email-input"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t("footer.emailPlaceholder")}
+                    className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-lucky-green"
+                  />
+                  <button
+                    data-testid="marketing-submit"
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="rounded-lg bg-lucky-green px-4 text-sm font-semibold text-lucky-darker transition hover:bg-lucky-green/90 focus:outline-none focus:ring-2 focus:ring-lucky-green"
                   >
-                    {error || success}
-                  </p>
-                ) : null}
+                    {isSubmitting ? t("common.submitting") : t("footer.join")}
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  <label className="mb-2 flex items-center gap-2 text-xs text-white/60">
+                    <input
+                      data-testid="marketing-consent"
+                      type="checkbox"
+                      className="accent-lucky-green"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                    />{" "}
+                    {t("footer.consent")}
+                  </label>
+                  {error || success ? (
+                    <p
+                      data-testid="marketing-status"
+                      data-state={error ? "error" : successState ?? "success"}
+                      className={error ? "text-xs text-red-400" : "text-xs text-lucky-green"}
+                      aria-live="polite"
+                    >
+                      {error || success}
+                    </p>
+                  ) : null}
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-3 text-sm text-white/70" aria-hidden>
+                <p className="text-white/60">{t("footer.noSpam")}</p>
+                <div className="h-10 rounded-lg border border-white/10 bg-black/20" />
+                <div className="h-4 w-3/4 rounded bg-white/10" />
               </div>
-            </form>
+            )}
             <div className="mt-5 grid gap-4 text-sm text-white/80 md:grid-cols-2">
               <div>
                 <div className={headerClass}>

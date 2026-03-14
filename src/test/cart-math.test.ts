@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  TAX_RATE,
   FLAT_SHIPPING_CENTS,
+  calcTaxCents,
   calculateSubtotalCents,
   calculateTotalCents,
   getEffectivePriceCents,
@@ -28,6 +30,18 @@ describe("cart math utilities", () => {
     expect(shippingCentsForDelivery("flat")).toBe(600);
   });
 
+  it("uses a fixed 7% tax rate constant", () => {
+    expect(TAX_RATE).toBe(0.07);
+  });
+
+  it("calculates tax cents with Math.round and clamps at 0", () => {
+    expect(calcTaxCents(0)).toBe(0);
+    expect(calcTaxCents(100)).toBe(7);
+    expect(calcTaxCents(101)).toBe(7);
+    expect(calcTaxCents(149)).toBe(10);
+    expect(calcTaxCents(-500)).toBe(0);
+  });
+
   it("total is subtotal - discount + shipping + tax", () => {
     const total = calculateTotalCents({
       subtotal_cents: 5000,
@@ -48,6 +62,22 @@ describe("cart math utilities", () => {
     });
 
     expect(total).toBe(0);
+  });
+
+  it("supports tax-after-discount composition", () => {
+    const subtotal = 10_000;
+    const discount = 1_500;
+    const taxable = subtotal - discount;
+    const tax = calcTaxCents(taxable);
+    const total = calculateTotalCents({
+      subtotal_cents: subtotal,
+      discount_cents: discount,
+      shipping_cents: 600,
+      tax_cents: tax,
+    });
+
+    expect(tax).toBe(595);
+    expect(total).toBe(9_695);
   });
 
   it("uses sale price when product is on sale", () => {
@@ -84,4 +114,3 @@ describe("money parsing utility", () => {
     expect(() => parseMoneyToCents("not-money")).toThrow(/Unable to parse money value/);
   });
 });
-

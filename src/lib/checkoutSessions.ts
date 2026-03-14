@@ -4,6 +4,7 @@ import sql from "@/lib/db";
 import { sendOrderConfirmationEmail, type SendEmailResult } from "@/lib/email/resend";
 
 let ensured = false;
+let ensuredStripeWebhookEvents = false;
 
 const isUuid = (value: string) =>
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
@@ -30,6 +31,7 @@ export async function ensureCheckoutSessionsTable() {
       discount_cents int NOT NULL DEFAULT 0,
       subtotal_cents int NOT NULL,
       shipping_cents int NOT NULL DEFAULT 0,
+      shipping_currency text NOT NULL DEFAULT 'USD',
       tax_cents int NOT NULL DEFAULT 0,
       total_cents int NOT NULL,
       currency text NOT NULL DEFAULT 'usd',
@@ -98,6 +100,10 @@ export async function ensureCheckoutSessionsTable() {
   `;
   await sql`
     ALTER TABLE public.checkout_sessions
+    ADD COLUMN IF NOT EXISTS shipping_currency text
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
     ADD COLUMN IF NOT EXISTS tax_cents int
   `;
   await sql`
@@ -134,12 +140,137 @@ export async function ensureCheckoutSessionsTable() {
     ON public.checkout_sessions (created_at)
   `;
   await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS checkout_sessions_stripe_checkout_session_id_uidx
+    ON public.checkout_sessions (stripe_checkout_session_id)
+    WHERE stripe_checkout_session_id IS NOT NULL
+  `;
+  await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS orders_stripe_checkout_session_id_uidx
     ON public.orders (stripe_checkout_session_id)
     WHERE stripe_checkout_session_id IS NOT NULL
   `;
+  await sql`
+    UPDATE public.checkout_sessions
+    SET
+      discount_cents = COALESCE(discount_cents, 0),
+      subtotal_cents = COALESCE(subtotal_cents, 0),
+      shipping_cents = COALESCE(shipping_cents, 0),
+      tax_cents = COALESCE(tax_cents, 0),
+      total_cents = COALESCE(
+        total_cents,
+        COALESCE(subtotal_cents, 0) - COALESCE(discount_cents, 0) + COALESCE(shipping_cents, 0) + COALESCE(tax_cents, 0)
+      ),
+      shipping_currency = COALESCE(NULLIF(shipping_currency, ''), UPPER(COALESCE(currency, 'usd')))
+    WHERE
+      discount_cents IS NULL
+      OR subtotal_cents IS NULL
+      OR shipping_cents IS NULL
+      OR tax_cents IS NULL
+      OR total_cents IS NULL
+      OR shipping_currency IS NULL
+      OR shipping_currency = ''
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN discount_cents SET DEFAULT 0
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN subtotal_cents SET DEFAULT 0
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN shipping_cents SET DEFAULT 0
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN tax_cents SET DEFAULT 0
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN total_cents SET DEFAULT 0
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN shipping_currency SET DEFAULT 'USD'
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN discount_cents SET NOT NULL
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN subtotal_cents SET NOT NULL
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN shipping_cents SET NOT NULL
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN total_cents SET NOT NULL
+  `;
+  await sql`
+    ALTER TABLE public.checkout_sessions
+    ALTER COLUMN shipping_currency SET NOT NULL
+  `;
 
   ensured = true;
+}
+
+export async function ensureStripeWebhookEventsTable() {
+  if (ensuredStripeWebhookEvents) return;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS public.stripe_webhook_events (
+      event_id text PRIMARY KEY,
+      event_type text NOT NULL,
+      stripe_checkout_session_id text,
+      processed_at timestamptz NOT NULL DEFAULT now()
+    )
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS stripe_webhook_events_session_idx
+    ON public.stripe_webhook_events (stripe_checkout_session_id)
+    WHERE stripe_checkout_session_id IS NOT NULL
+  `;
+
+  ensuredStripeWebhookEvents = true;
+}
+
+export async function hasStripeWebhookEventBeenProcessed(eventId: string) {
+  if (!eventId) return false;
+  await ensureStripeWebhookEventsTable();
+  const rows = (await sql`
+    SELECT 1
+    FROM public.stripe_webhook_events
+    WHERE event_id = ${eventId}
+    LIMIT 1
+  `) as Array<Record<string, unknown>>;
+  return rows.length > 0;
+}
+
+export async function markStripeWebhookEventProcessed(params: {
+  eventId: string;
+  eventType: string;
+  stripeCheckoutSessionId: string | null;
+}) {
+  const { eventId, eventType, stripeCheckoutSessionId } = params;
+  if (!eventId) return;
+  await ensureStripeWebhookEventsTable();
+  await sql`
+    INSERT INTO public.stripe_webhook_events (
+      event_id,
+      event_type,
+      stripe_checkout_session_id
+    )
+    VALUES (
+      ${eventId},
+      ${eventType},
+      ${stripeCheckoutSessionId}
+    )
+    ON CONFLICT (event_id) DO NOTHING
+  `;
 }
 
 export async function attachStripeSessionToCheckout(params: {
@@ -170,7 +301,7 @@ export async function finalizeCheckoutByStripeSession(params: {
   const { stripeCheckoutSessionId, stripePaymentIntentId } = params;
   if (!stripeCheckoutSessionId) throw new Error("Missing stripe session id");
 
-  let rows: Array<{ order_id: string | null; created_order_id: string | null }> = [];
+  let rows: Array<{ order_id: string | null; new_order_id: string | null }> = [];
   let emailAttempted = false;
   let emailResult: SendEmailResult | null = null;
   try {
@@ -188,8 +319,14 @@ export async function finalizeCheckoutByStripeSession(params: {
         promo_code_id,
         promo_code,
         COALESCE(discount_cents, 0)::int AS discount_cents,
-        subtotal_cents,
-        currency,
+        COALESCE(subtotal_cents, 0)::int AS subtotal_cents,
+        COALESCE(shipping_cents, 0)::int AS shipping_cents,
+        COALESCE(tax_cents, 0)::int AS tax_cents,
+        COALESCE(
+          total_cents,
+          COALESCE(subtotal_cents, 0) - COALESCE(discount_cents, 0) + COALESCE(shipping_cents, 0) + COALESCE(tax_cents, 0)
+        )::int AS total_cents,
+        COALESCE(NULLIF(currency, ''), 'usd') AS currency,
         items,
         stripe_checkout_session_id
       FROM public.checkout_sessions
@@ -342,8 +479,8 @@ export async function finalizeCheckoutByStripeSession(params: {
       )
       SELECT
         (SELECT order_id FROM mark_checkout) AS order_id,
-        (SELECT id FROM target_order LIMIT 1) AS created_order_id
-    `) as Array<{ order_id: string | null; created_order_id: string | null }>;
+        (SELECT id FROM new_order LIMIT 1) AS new_order_id
+    `) as Array<{ order_id: string | null; new_order_id: string | null }>;
   } catch (err) {
     const existingRows = (await sql`
       SELECT id
@@ -366,7 +503,8 @@ export async function finalizeCheckoutByStripeSession(params: {
     throw err;
   }
 
-  const orderId = rows?.[0]?.order_id ?? rows?.[0]?.created_order_id ?? null;
+  const orderId = rows?.[0]?.order_id ?? rows?.[0]?.new_order_id ?? null;
+  const isNewOrder = Boolean(rows?.[0]?.new_order_id);
   if (orderId) {
     try {
       await sql`
@@ -377,14 +515,16 @@ export async function finalizeCheckoutByStripeSession(params: {
     } catch (err) {
       console.error("Unable to create shipment draft", err);
     }
-    try {
-      emailAttempted = true;
-      emailResult = await sendOrderConfirmationEmail({ orderId });
-    } catch (err) {
-      emailAttempted = true;
-      const message = err instanceof Error ? err.message : "Unknown error";
-      emailResult = { ok: false, error: message };
-      console.error("Order confirmation email failed", err);
+    if (isNewOrder) {
+      try {
+        emailAttempted = true;
+        emailResult = await sendOrderConfirmationEmail({ orderId });
+      } catch (err) {
+        emailAttempted = true;
+        const message = err instanceof Error ? err.message : "Unknown error";
+        emailResult = { ok: false, error: message };
+        console.error("Order confirmation email failed", err);
+      }
     }
   }
   return { orderId, emailAttempted, emailResult };

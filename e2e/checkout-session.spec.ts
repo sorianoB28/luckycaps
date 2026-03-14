@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { addFirstActiveProductToCart } from "./helpers/cart";
+import { selectFlatShipping } from "./helpers/checkout";
 import { gotoAndWait } from "./helpers/navigation";
 import { e2eEmail } from "./helpers/run";
 
@@ -38,7 +39,9 @@ test("checkout creates stripe session", async ({ page }, testInfo) => {
 
   await fillCheckoutEmail(page, e2eEmail(`checkout-${stamp}`));
 
-  const placeOrderButton = page.getByTestId("checkout-place-order").first();
+  await selectFlatShipping(page);
+
+  const placeOrderButton = page.getByTestId("checkout-pay-button").first();
   await expect(placeOrderButton).toBeEnabled({ timeout: 30_000 });
 
   const checkoutResponsePromise = page.waitForResponse(

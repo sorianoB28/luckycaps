@@ -4,7 +4,6 @@ import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
 import { uploadLabelToCloudinary } from "@/lib/shipping/labelStorage";
 import { buyLabel, fetchTransactionLabelUrl } from "@/lib/shipping/shippo";
-import { sendShippingConfirmationEmail } from "@/lib/email/resend";
 
 const isUuid = (value: string) =>
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
@@ -61,10 +60,6 @@ export async function POST(
     if (!rateId) {
       return NextResponse.json({ error: "Missing rate id" }, { status: 400 });
     }
-    const isE2EShippingFlow =
-      process.env.E2E_MODE?.toLowerCase() === "true" ||
-      (process.env.NODE_ENV !== "production" && rateId.startsWith("e2e-rate-"));
-
     const shipmentRows = (await sql(
       `
         SELECT *
@@ -288,80 +283,11 @@ export async function POST(
       if (labelErrorCode) payload.label_error_code = labelErrorCode;
     }
 
-    try {
-      await sendShippingConfirmationEmail({ orderId: params.id });
-    } catch (err) {
-      console.error("Shipping confirmation email failed", err);
-    }
-
-    if (isE2EShippingFlow) {
-      try {
-        const orderRows = (await sql(
-          `
-            SELECT email
-            FROM public.orders
-            WHERE id = $1::uuid
-            LIMIT 1
-          `,
-          [params.id]
-        )) as Array<{ email: string | null }>;
-        const toEmail = orderRows[0]?.email?.trim() || "e2e@example.com";
-
-        await sql(
-          `
-            INSERT INTO public.email_events (
-              order_id,
-              event_type,
-              to_email,
-              locale,
-              provider,
-              status,
-              sent_at
-            )
-            VALUES (
-              $1::uuid,
-              'shipping_confirmation',
-              $2,
-              'en',
-              'e2e-stub',
-              'sent',
-              now()
-            )
-            ON CONFLICT (order_id, event_type)
-            DO UPDATE
-            SET
-              status = 'sent',
-              provider = 'e2e-stub',
-              sent_at = COALESCE(email_events.sent_at, now()),
-              error = NULL
-          `,
-          [params.id, toEmail]
-        );
-      } catch (err) {
-        console.error("Unable to upsert e2e shipping email event", err);
-      }
-
-      try {
-        await sql(
-          `
-            UPDATE public.orders
-            SET
-              shipping_confirmation_sent_at = COALESCE(shipping_confirmation_sent_at, now()),
-              last_email_error = NULL,
-              updated_at = now()
-            WHERE id = $1::uuid
-          `,
-          [params.id]
-        );
-      } catch (err) {
-        console.error("Unable to mark e2e shipping confirmation sent", err);
-      }
-    }
-
     return NextResponse.json(payload);
   } catch (err) {
     const message = (err as Error).message || "Unable to purchase label";
-    const code = message.includes("Missing Shippo API token")
+    const code =
+      message.includes("SHIPPO_API_TOKEN") || message.includes("SHIPPO_TEST_TOKEN")
       ? "shippo_token_missing"
       : "shippo_purchase_failed";
     console.error("Admin shipping purchase failed", {

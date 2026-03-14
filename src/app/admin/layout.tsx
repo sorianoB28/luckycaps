@@ -115,6 +115,17 @@ export default function AdminLayout({
               >
                 {t("admin.promoCodes")}
               </Link>
+              <span className="text-white/30">/</span>
+              <Link
+                href="/admin/system/readiness"
+                className={
+                  pathname?.startsWith("/admin/system")
+                    ? "text-lucky-green"
+                    : "transition hover:text-white"
+                }
+              >
+                Readiness
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-2">

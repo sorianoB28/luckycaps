@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckoutTrustCard } from "@/components/checkout/CheckoutTrustCard";
 import { CheckoutSummaryCard } from "@/components/checkout/CheckoutSummaryCard";
-import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/store/cart";
 import { cn } from "@/lib/utils";
 import { createCheckout } from "@/lib/api";
@@ -39,12 +38,17 @@ const deliveryOptions: DeliveryOption[] = [
 
 type Quote = {
   currency: "usd";
-  delivery_option: string;
+  delivery_option: string | null;
   subtotal_cents: number;
   discount_cents: number;
-  shipping_cents: number;
+  tax_rate: number;
+  shipping_cents: number | null;
+  shipping_status: "pending" | "selected";
+  shipping_display: string;
   tax_cents: number;
-  total_cents: number;
+  total_cents: number | null;
+  total_status: "pending" | "ready";
+  total_display: string;
   promo:
     | null
     | {
@@ -90,7 +94,7 @@ function CheckoutPageContent() {
     zip: "",
     country: "United States",
   });
-  const [delivery, setDelivery] = useState<DeliveryOption>(deliveryOptions[0]);
+  const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(null);
   const [promo, setPromo] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<
     | null
@@ -174,7 +178,7 @@ function CheckoutPageContent() {
 
   const requestQuote = async (overrides?: {
     promoCode?: string | null;
-    deliveryOption?: string;
+    shippingOption?: string | null;
     preserveExisting?: boolean;
   }) => {
     const nextId = ++quoteReqIdRef.current;
@@ -192,7 +196,10 @@ function CheckoutPageContent() {
         body: JSON.stringify({
           items: itemsPayload,
           currency: "usd",
-          deliveryOption: overrides?.deliveryOption ?? delivery.id,
+          shippingOption:
+            overrides?.shippingOption === undefined
+              ? selectedDeliveryId
+              : overrides.shippingOption,
           promoCode: overrides?.promoCode ?? appliedPromo?.normalized_code ?? null,
           shippingAddress: shipping,
         }),
@@ -234,7 +241,7 @@ function CheckoutPageContent() {
     if (entries.length === 0) return;
     requestQuote().catch(() => null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemsPayload, delivery.id, entries.length]);
+  }, [itemsPayload, selectedDeliveryId, entries.length]);
 
   useEffect(() => {
     if (entries.length === 0) return;
@@ -261,11 +268,31 @@ function CheckoutPageContent() {
     shipping.city &&
     shipping.state &&
     shipping.zip;
+  const shippingSelected = Boolean(selectedDeliveryId);
+  const quoteReadyForCheckout =
+    Boolean(quote) &&
+    quote?.shipping_status === "selected" &&
+    quote?.total_status === "ready" &&
+    quote?.shipping_cents != null &&
+    quote?.total_cents != null;
 
   const handlePlaceOrder = async () => {
     if (submitting) return;
+    if (!shippingSelected) {
+      setErrors(t("checkout.shippingRequiredError"));
+      return;
+    }
+    const shippingOption = selectedDeliveryId;
+    if (!shippingOption) {
+      setErrors(t("checkout.shippingRequiredError"));
+      return;
+    }
     if (!quote || quoteLoading || quoteError) {
       setErrors(quoteError || t("checkout.unableToPlaceOrder"));
+      return;
+    }
+    if (!quoteReadyForCheckout) {
+      setErrors(t("checkout.shippingPendingError"));
       return;
     }
     if (!requiredFilled || entries.length === 0) {
@@ -288,7 +315,8 @@ function CheckoutPageContent() {
         zip: shipping.zip,
         country: shipping.country,
       },
-      deliveryOption: delivery.id,
+      deliveryOption: shippingOption,
+      shippingOption,
       promoCode: appliedPromo?.normalized_code || undefined,
       notes: notes.trim() ? notes.trim() : undefined,
       items: itemsPayload,
@@ -530,12 +558,15 @@ function CheckoutPageContent() {
             </CardHeader>
             <CardContent className="space-y-3">
               {deliveryOptions.map((option) => {
-                const active = delivery.id === option.id;
+                const active = selectedDeliveryId === option.id;
                 return (
                   <button
                     key={option.id}
                     type="button"
-                    onClick={() => setDelivery(option)}
+                    onClick={() => {
+                      setSelectedDeliveryId(option.id);
+                    }}
+                    data-testid={`shipping-option-${option.id}`}
                     className={cn(
                       "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition",
                       active
@@ -575,16 +606,23 @@ function CheckoutPageContent() {
 
           <div className="flex flex-col gap-3">
             {errors ? <p className="text-sm text-red-400">{errors}</p> : null}
+            {!shippingSelected ? (
+              <p className="text-xs text-yellow-300" data-testid="checkout-shipping-required">
+                {t("checkout.shippingRequiredInline")}
+              </p>
+            ) : null}
             <Button
               onClick={handlePlaceOrder}
-              data-testid="checkout-place-order"
+              data-testid="checkout-pay-button"
               disabled={
                 !requiredFilled ||
+                !shippingSelected ||
                 entries.length === 0 ||
                 submitting ||
                 quoteLoading ||
-                !quote ||
-                Boolean(quoteError)
+                !quoteReadyForCheckout ||
+                Boolean(quoteError) ||
+                !quote
               }
             >
               {submitting

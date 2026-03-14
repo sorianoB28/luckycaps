@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
 
 import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
-
-const stripeSecret = process.env.STRIPE_SECRET_KEY;
-const stripe =
-  stripeSecret && stripeSecret.trim()
-    ? new Stripe(stripeSecret, { apiVersion: "2024-04-10" })
-    : null;
+import { getStripeServer } from "@/lib/stripeConfig";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,10 +91,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const { response } = await requireAdmin();
     if (response) return response;
 
-    if (!stripe) {
-      return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
-    }
-
     const id = params.id;
     if (!uuidPattern.test(id)) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
@@ -173,7 +163,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     let nextStripeCouponId = current.stripe_coupon_id;
     if (!nextStripeCouponId || discountChanged) {
-      const coupon = await stripe.coupons.create({
+      const coupon = await getStripeServer().coupons.create({
         duration: "once",
         ...(nextDiscountType === "percent"
           ? { percent_off: nextPercentOff! }
@@ -224,4 +214,3 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     return NextResponse.json({ error: "Unable to update promo code" }, { status: 500 });
   }
 }
-

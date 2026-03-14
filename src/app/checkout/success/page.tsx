@@ -35,6 +35,7 @@ const CheckoutSuccessContent = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryTick, setRetryTick] = useState(0);
 
   useEffect(() => {
     if (!sessionId) {
@@ -51,19 +52,20 @@ const CheckoutSuccessContent = () => {
     const poll = async (attempt: number) => {
       try {
         const res = await fetch(
-          `/api/checkout/complete?session_id=${encodeURIComponent(sessionId)}`,
+          `/api/orders/by-session?session_id=${encodeURIComponent(sessionId)}`,
           { credentials: "include" }
         );
-        if (res.status === 202) {
+        if (!res.ok) {
+          throw new Error(t("checkout.unableToFinalize"));
+        }
+        const data = (await res.json()) as { found?: boolean; orderId?: string };
+        if (!data.found || !data.orderId) {
           if (attempt >= maxAttempts) {
             throw new Error(t("checkout.unableToFinalize"));
           }
           setTimeout(() => poll(attempt + 1), 750);
           return;
         }
-        if (!res.ok) throw new Error(t("checkout.unableToFinalize"));
-        const data = (await res.json()) as { orderId?: string };
-        if (!data.orderId) throw new Error(t("checkout.unableToFinalize"));
         if (cancelled) return;
         clearCart();
         router.replace(`/order/${data.orderId}?success=1`);
@@ -79,7 +81,7 @@ const CheckoutSuccessContent = () => {
     return () => {
       cancelled = true;
     };
-  }, [clearCart, router, sessionId, t]);
+  }, [clearCart, retryTick, router, sessionId, t]);
 
   return (
     <CheckoutShell>
@@ -93,6 +95,13 @@ const CheckoutSuccessContent = () => {
           <p className="text-sm text-red-300" data-testid="checkout-success-error-text">
             {error}
           </p>
+          <Button
+            type="button"
+            onClick={() => setRetryTick((prev) => prev + 1)}
+            data-testid="checkout-success-retry-button"
+          >
+            {t("checkout.retryFinalization")}
+          </Button>
           <Button asChild variant="secondary" className="bg-white/10">
             <Link href="/checkout" data-testid="checkout-success-return-link">
               {t("checkout.returnToCheckout")}

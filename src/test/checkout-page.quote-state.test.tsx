@@ -31,12 +31,17 @@ const baseQuote = {
   ok: true as const,
   quote: {
     currency: "usd",
-    delivery_option: "flat",
+    delivery_option: null,
     subtotal_cents: 4000,
     discount_cents: 0,
-    shipping_cents: 600,
-    tax_cents: 0,
-    total_cents: 4600,
+    tax_rate: 0.07,
+    shipping_cents: null,
+    shipping_status: "pending" as const,
+    shipping_display: "TBD",
+    tax_cents: 280,
+    total_cents: null,
+    total_status: "pending" as const,
+    total_display: "TBD",
     promo: null,
     items: [
       {
@@ -53,12 +58,28 @@ const baseQuote = {
   },
 };
 
-const promoQuote = {
+const shippingSelectedQuote = {
   ok: true as const,
   quote: {
     ...baseQuote.quote,
+    delivery_option: "flat",
+    shipping_cents: 600,
+    shipping_status: "selected" as const,
+    shipping_display: "$6.00",
+    total_cents: 4880,
+    total_status: "ready" as const,
+    total_display: "$48.80",
+  },
+};
+
+const promoQuote = {
+  ok: true as const,
+  quote: {
+    ...shippingSelectedQuote.quote,
     discount_cents: 100,
-    total_cents: 4500,
+    tax_cents: 273,
+    total_cents: 4773,
+    total_display: "$47.73",
     promo: {
       promo_code_id: "promo-1",
       normalized_code: "E2E10",
@@ -95,8 +116,12 @@ beforeEach(() => {
 });
 
 describe("Checkout quote state machine", () => {
-  it("shows loading first, then quote success totals", async () => {
-    vi.spyOn(globalThis, "fetch").mockImplementation(async () => jsonResponse(baseQuote));
+  it("shows pending shipping/total until user selects shipping", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
+      const body = JSON.parse((init?.body as string) || "{}") as { shippingOption?: string | null };
+      if (body.shippingOption === "flat") return jsonResponse(shippingSelectedQuote);
+      return jsonResponse(baseQuote);
+    });
 
     const { t } = renderWithI18n(<CheckoutPage />, { locale: "EN" });
 
@@ -106,22 +131,36 @@ describe("Checkout quote state machine", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("checkout-subtotal-value")).toHaveTextContent("$40.00");
+      expect(screen.getByTestId("checkout-tax-value")).toHaveTextContent("$2.80");
+      expect(screen.getByTestId("checkout-shipping-value")).toHaveTextContent("TBD");
+      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("TBD");
+      expect(screen.getByTestId("checkout-pay-button")).toBeDisabled();
+      expect(screen.getByTestId("checkout-shipping-required")).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByTestId("shipping-option-flat"));
+    await waitFor(() => {
       expect(screen.getByTestId("checkout-shipping-value")).toHaveTextContent("$6.00");
-      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$46.00");
+      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$48.80");
     });
   });
 
   it("applies promo successfully and renders discount row with updated totals", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
-      const body = JSON.parse((init?.body as string) || "{}") as { promoCode?: string | null };
-      if (body.promoCode) return jsonResponse(promoQuote);
+      const body = JSON.parse((init?.body as string) || "{}") as {
+        promoCode?: string | null;
+        shippingOption?: string | null;
+      };
+      if (body.promoCode && body.shippingOption === "flat") return jsonResponse(promoQuote);
+      if (body.shippingOption === "flat") return jsonResponse(shippingSelectedQuote);
       return jsonResponse(baseQuote);
     });
 
     renderWithI18n(<CheckoutPage />, { locale: "EN" });
 
+    await userEvent.click(await screen.findByTestId("shipping-option-flat"));
     await waitFor(() => {
-      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$46.00");
+      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$48.80");
     });
 
     await userEvent.type(screen.getByTestId("checkout-promo-input"), "E2E10");
@@ -129,26 +168,32 @@ describe("Checkout quote state machine", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("checkout-discount-value")).toHaveTextContent("-$1.00");
-      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$45.00");
+      expect(screen.getByTestId("checkout-tax-value")).toHaveTextContent("$2.73");
+      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$47.73");
     });
   });
 
   it("shows promo error and keeps totals unchanged when promo fails", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
-      const body = JSON.parse((init?.body as string) || "{}") as { promoCode?: string | null };
-      if (body.promoCode) {
+      const body = JSON.parse((init?.body as string) || "{}") as {
+        promoCode?: string | null;
+        shippingOption?: string | null;
+      };
+      if (body.promoCode && body.shippingOption === "flat") {
         return jsonResponse(
           { ok: false, error: "Invalid promo code", promoError: { reason: "not_found" } },
           200
         );
       }
+      if (body.shippingOption === "flat") return jsonResponse(shippingSelectedQuote);
       return jsonResponse(baseQuote);
     });
 
     renderWithI18n(<CheckoutPage />, { locale: "EN" });
 
+    await userEvent.click(await screen.findByTestId("shipping-option-flat"));
     await waitFor(() => {
-      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$46.00");
+      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$48.80");
     });
 
     await userEvent.type(screen.getByTestId("checkout-promo-input"), "BADCODE");
@@ -160,7 +205,8 @@ describe("Checkout quote state machine", () => {
     expect(screen.queryByTestId("checkout-discount-value")).not.toBeInTheDocument();
     expect(screen.getByTestId("checkout-subtotal-value")).toHaveTextContent("$40.00");
     expect(screen.getByTestId("checkout-shipping-value")).toHaveTextContent("$6.00");
-    expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$46.00");
+    expect(screen.getByTestId("checkout-tax-value")).toHaveTextContent("$2.80");
+    expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$48.80");
   });
 
   it("supports retry flow after quote error and recovers totals", async () => {
@@ -183,8 +229,7 @@ describe("Checkout quote state machine", () => {
 
     await waitFor(() => {
       expect(screen.queryByTestId("checkout-quote-error")).not.toBeInTheDocument();
-      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("$46.00");
+      expect(screen.getByTestId("checkout-total-value")).toHaveTextContent("TBD");
     });
   });
 });
-

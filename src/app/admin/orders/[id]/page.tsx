@@ -94,6 +94,44 @@ const formatPostage = (
   }
 };
 
+const formatOrderMoney = (cents?: number | null, currency?: string | null) => {
+  const numeric = Number(cents ?? 0);
+  if (!Number.isFinite(numeric)) return null;
+  const code = currency ? currency.toUpperCase() : "USD";
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: code,
+    }).format(numeric / 100);
+  } catch {
+    return `$${(numeric / 100).toFixed(2)} ${code}`;
+  }
+};
+
+type CheckTone = "green" | "yellow" | "red";
+
+type FulfillmentCheck = {
+  label: string;
+  tone: CheckTone;
+  value: string;
+  detail?: string;
+};
+
+const hasNonEmptyString = (value: unknown) => readString(value).trim().length > 0;
+
+const hasFiniteNumber = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value);
+
+const checkToneClass = (tone: CheckTone) =>
+  tone === "green"
+    ? "border-lucky-green/30 bg-lucky-green/15 text-lucky-green"
+    : tone === "yellow"
+    ? "border-yellow-500/30 bg-yellow-500/15 text-yellow-100"
+    : "border-red-500/30 bg-red-500/15 text-red-200";
+
+const checkToneLabel = (tone: CheckTone) =>
+  tone === "green" ? "Ready" : tone === "yellow" ? "Pending" : "Missing";
+
 type ParcelDraft = {
   length: string;
   width: string;
@@ -574,6 +612,221 @@ export default function AdminOrderDetailPage() {
     return [...shippingRates].sort((a, b) => (a.amount ?? 0) - (b.amount ?? 0));
   }, [shippingRates]);
 
+  const readinessChecks = useMemo<FulfillmentCheck[]>(() => {
+    if (!order) return [];
+
+    const orderPaid =
+      order.status === "paid" || order.status === "shipped" || order.status === "delivered";
+    const shippingAddress =
+      order.shipping_address && typeof order.shipping_address === "object"
+        ? order.shipping_address
+        : null;
+    const shippingAddressPresent = Boolean(
+      shippingAddress &&
+        hasNonEmptyString(shippingAddress.address1) &&
+        hasNonEmptyString(shippingAddress.city) &&
+        hasNonEmptyString(shippingAddress.zip) &&
+        hasNonEmptyString(shippingAddress.country)
+    );
+    const shipmentPurchased = shipment?.status === "purchased";
+
+    const checks: FulfillmentCheck[] = [
+      {
+        label: "Order paid",
+        tone: orderPaid ? "green" : "red",
+        value: orderPaid ? "Paid" : `Status: ${order.status}`,
+      },
+      {
+        label: "Stripe checkout session",
+        tone: hasNonEmptyString(order.stripe_checkout_session_id) ? "green" : "red",
+        value: hasNonEmptyString(order.stripe_checkout_session_id) ? "Present" : "Missing",
+      },
+      {
+        label: "Subtotal",
+        tone: hasFiniteNumber(order.subtotal_cents) ? "green" : "red",
+        value:
+          hasFiniteNumber(order.subtotal_cents) && formatOrderMoney(order.subtotal_cents, order.currency)
+            ? formatOrderMoney(order.subtotal_cents, order.currency) || "Present"
+            : "Missing",
+      },
+      {
+        label: "Discount",
+        tone: hasFiniteNumber(order.discount_cents) ? "green" : "red",
+        value:
+          hasFiniteNumber(order.discount_cents) && formatOrderMoney(order.discount_cents, order.currency)
+            ? formatOrderMoney(order.discount_cents, order.currency) || "Present"
+            : "Missing",
+      },
+      {
+        label: "Shipping",
+        tone: hasFiniteNumber(order.shipping_cents) ? "green" : "red",
+        value:
+          hasFiniteNumber(order.shipping_cents) && formatOrderMoney(order.shipping_cents, order.currency)
+            ? formatOrderMoney(order.shipping_cents, order.currency) || "Present"
+            : "Missing",
+      },
+      {
+        label: "Tax",
+        tone: hasFiniteNumber(order.tax_cents) ? "green" : "red",
+        value:
+          hasFiniteNumber(order.tax_cents) && formatOrderMoney(order.tax_cents, order.currency)
+            ? formatOrderMoney(order.tax_cents, order.currency) || "Present"
+            : "Missing",
+      },
+      {
+        label: "Total",
+        tone: hasFiniteNumber(order.total_cents) ? "green" : "red",
+        value:
+          hasFiniteNumber(order.total_cents) && formatOrderMoney(order.total_cents, order.currency)
+            ? formatOrderMoney(order.total_cents, order.currency) || "Present"
+            : "Missing",
+      },
+      {
+        label: "Shipping address",
+        tone: shippingAddressPresent ? "green" : "red",
+        value: shippingAddressPresent ? "Present" : "Missing",
+      },
+      {
+        label: "Customer email",
+        tone: hasNonEmptyString(order.account_email || order.email) ? "green" : "red",
+        value: hasNonEmptyString(order.account_email || order.email) ? "Present" : "Missing",
+      },
+      {
+        label: "Shipment row",
+        tone: shipment?.id ? "green" : canManageShipping ? "yellow" : "red",
+        value: shipment?.id ? "Present" : canManageShipping ? "Can create now" : "Blocked until paid",
+      },
+      {
+        label: "Order confirmation email",
+        tone: order.order_confirmation_sent_at
+          ? "green"
+          : order.last_email_error
+          ? "red"
+          : orderPaid
+          ? "yellow"
+          : "yellow",
+        value: order.order_confirmation_sent_at
+          ? "Sent"
+          : order.last_email_error
+          ? "Error"
+          : orderPaid
+          ? "Pending"
+          : "Waiting for paid order",
+        detail: order.order_confirmation_sent_at
+          ? new Date(order.order_confirmation_sent_at).toLocaleString()
+          : order.last_email_error || undefined,
+      },
+      {
+        label: "Shipping confirmation email",
+        tone: order.shipping_confirmation_sent_at
+          ? "green"
+          : order.last_email_error && (order.status === "shipped" || order.status === "delivered")
+          ? "red"
+          : order.status === "shipped" || order.status === "delivered"
+          ? "yellow"
+          : "yellow",
+        value: order.shipping_confirmation_sent_at
+          ? "Sent"
+          : order.status === "shipped" || order.status === "delivered"
+          ? order.last_email_error
+            ? "Error"
+            : "Pending"
+          : "Not applicable yet",
+        detail: order.shipping_confirmation_sent_at
+          ? new Date(order.shipping_confirmation_sent_at).toLocaleString()
+          : order.last_email_error &&
+            (order.status === "shipped" || order.status === "delivered")
+          ? order.last_email_error
+          : undefined,
+      },
+      {
+        label: "Label provider rate",
+        tone: hasNonEmptyString(shipment?.provider_rate_id)
+          ? "green"
+          : shipmentPurchased
+          ? "red"
+          : "yellow",
+        value: hasNonEmptyString(shipment?.provider_rate_id)
+          ? "Stored"
+          : shipmentPurchased
+          ? "Missing"
+          : "Pending label purchase",
+      },
+      {
+        label: "Label URL",
+        tone: hasNonEmptyString(shipment?.label_url) ? "green" : shipmentPurchased ? "red" : "yellow",
+        value: hasNonEmptyString(shipment?.label_url)
+          ? "Stored"
+          : shipmentPurchased
+          ? "Missing"
+          : "Pending label purchase",
+      },
+      {
+        label: "Tracking number",
+        tone: hasNonEmptyString(shipment?.tracking_number)
+          ? "green"
+          : shipmentPurchased
+          ? "red"
+          : "yellow",
+        value: hasNonEmptyString(shipment?.tracking_number)
+          ? "Stored"
+          : shipmentPurchased
+          ? "Missing"
+          : "Pending label purchase",
+      },
+      {
+        label: "Tracking URL",
+        tone: hasNonEmptyString(shipment?.tracking_url)
+          ? "green"
+          : shipmentPurchased
+          ? "red"
+          : "yellow",
+        value: hasNonEmptyString(shipment?.tracking_url)
+          ? "Stored"
+          : shipmentPurchased
+          ? "Missing"
+          : "Pending label purchase",
+      },
+      {
+        label: "Postage amount",
+        tone: hasFiniteNumber(shipment?.postage_amount)
+          ? "green"
+          : shipmentPurchased
+          ? "red"
+          : "yellow",
+        value:
+          hasFiniteNumber(shipment?.postage_amount) &&
+          formatPostage(shipment?.postage_amount, shipment?.postage_currency)
+            ? formatPostage(shipment?.postage_amount, shipment?.postage_currency) || "Stored"
+            : shipmentPurchased
+            ? "Missing"
+            : "Pending label purchase",
+      },
+      {
+        label: "Postage currency",
+        tone: hasNonEmptyString(shipment?.postage_currency)
+          ? "green"
+          : shipmentPurchased
+          ? "red"
+          : "yellow",
+        value: hasNonEmptyString(shipment?.postage_currency)
+          ? String(shipment?.postage_currency).toUpperCase()
+          : shipmentPurchased
+          ? "Missing"
+          : "Pending label purchase",
+      },
+    ];
+
+    return checks;
+  }, [canManageShipping, order, shipment]);
+
+  const readinessSummary = useMemo(() => {
+    const green = readinessChecks.filter((check) => check.tone === "green").length;
+    const yellow = readinessChecks.filter((check) => check.tone === "yellow").length;
+    const red = readinessChecks.filter((check) => check.tone === "red").length;
+    return { green, yellow, red, total: readinessChecks.length };
+  }, [readinessChecks]);
+
   if (loading) {
     return (
       <div className="flex items-center gap-3 text-white/70">
@@ -1031,13 +1284,90 @@ export default function AdminOrderDetailPage() {
             <div className="mt-3 flex items-center justify-between text-sm text-white/70">
               <span>{t("common.subtotal")}</span>
               <span className="font-semibold text-white">
-                ${(order.subtotal_cents / 100).toFixed(2)}
+                {formatOrderMoney(order.subtotal_cents, order.currency)}
               </span>
+            </div>
+            {(order.discount_cents ?? 0) > 0 ? (
+              <div className="mt-2 flex items-center justify-between text-sm text-white/70">
+                <span>{t("common.discount")}</span>
+                <span className="font-semibold text-lucky-green">
+                  -{formatOrderMoney(order.discount_cents, order.currency)}
+                </span>
+              </div>
+            ) : null}
+            <div className="mt-2 flex items-center justify-between text-sm text-white/70">
+              <span>{t("cart.shipping")}</span>
+              <span className="font-semibold text-white">
+                {formatOrderMoney(order.shipping_cents, order.currency)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center justify-between text-sm text-white/70">
+              <span>{t("cart.tax")}</span>
+              <span className="font-semibold text-white">
+                {formatOrderMoney(order.tax_cents, order.currency)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center justify-between text-sm font-semibold text-white">
+              <span>{t("common.total")}</span>
+              <span>{formatOrderMoney(order.total_cents, order.currency)}</span>
             </div>
           </div>
         </div>
 
         <div className="space-y-5">
+          <div
+            className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white"
+            data-testid="admin-fulfillment-readiness"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold">Readiness / Fulfillment Check</h3>
+                <p className="mt-1 text-sm text-white/60">
+                  Quick verification for payment, totals, contact, shipment, and label persistence.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
+                <span className="rounded-full border border-lucky-green/30 bg-lucky-green/15 px-3 py-1 text-lucky-green">
+                  Ready {readinessSummary.green}
+                </span>
+                <span className="rounded-full border border-yellow-500/30 bg-yellow-500/15 px-3 py-1 text-yellow-100">
+                  Pending {readinessSummary.yellow}
+                </span>
+                <span className="rounded-full border border-red-500/30 bg-red-500/15 px-3 py-1 text-red-200">
+                  Missing {readinessSummary.red}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {readinessChecks.map((check) => (
+                <div
+                  key={check.label}
+                  className="rounded-xl border border-white/10 bg-black/30 px-3 py-3"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-white">{check.label}</p>
+                      {check.detail ? (
+                        <p className="mt-1 text-xs leading-5 text-white/55">{check.detail}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${checkToneClass(
+                          check.tone
+                        )}`}
+                      >
+                        {checkToneLabel(check.tone)}
+                      </span>
+                      <span className="text-sm text-white/75">{check.value}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">{t("admin.manageTitle")}</h3>

@@ -8,7 +8,8 @@ export const revalidate = 0;
 
 type Body = {
   items?: QuoteItemInput[];
-  deliveryOption?: string;
+  deliveryOption?: string | null;
+  shippingOption?: string | null;
   promoCode?: string | null;
   currency?: string;
   shippingAddress?: Record<string, unknown> | null;
@@ -36,13 +37,17 @@ export async function POST(request: Request) {
   }
 
   const items = Array.isArray(body.items) ? body.items : [];
-  const deliveryOption = body.deliveryOption?.toString() ?? "flat";
+  const shippingOptionRaw = body.shippingOption ?? body.deliveryOption ?? null;
+  const shippingOption =
+    typeof shippingOptionRaw === "string" && shippingOptionRaw.trim().length > 0
+      ? shippingOptionRaw.trim()
+      : null;
   const promoCode = body.promoCode?.toString() ?? null;
   const currency = body.currency?.toString() ?? "usd";
 
   const result = await computeCheckoutQuote({
     items,
-    deliveryOption,
+    shippingOption,
     promoCode,
     currency,
   });
