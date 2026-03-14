@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { blockDevRouteInProduction } from "@/lib/devRoutes";
 import sql from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -21,10 +22,6 @@ type SubscriberRow = {
   source: string | null;
   user_id: string | null;
 };
-
-function notFound() {
-  return new NextResponse("Not found", { status: 404 });
-}
 
 function normalizeEmail(raw: string | null | undefined) {
   return raw?.trim().toLowerCase() ?? "";
@@ -59,9 +56,8 @@ async function lookupByEmail(email: string) {
 }
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return notFound();
-  }
+  const blockedResponse = blockDevRouteInProduction();
+  if (blockedResponse) return blockedResponse;
 
   const { searchParams } = new URL(request.url);
   const email = normalizeEmail(searchParams.get("email"));
@@ -88,9 +84,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return notFound();
-  }
+  const blockedResponse = blockDevRouteInProduction();
+  if (blockedResponse) return blockedResponse;
 
   let body: UpsertBody;
   try {
@@ -142,9 +137,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return notFound();
-  }
+  const blockedResponse = blockDevRouteInProduction();
+  if (blockedResponse) return blockedResponse;
 
   const { searchParams } = new URL(request.url);
   const email = normalizeEmail(searchParams.get("email"));

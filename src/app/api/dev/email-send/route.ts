@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { blockDevRouteInProduction } from "@/lib/devRoutes";
 import {
   normalizeLocale,
   sendOrderConfirmationEmail,
@@ -7,7 +8,6 @@ import {
   type SendEmailResult,
 } from "@/lib/email/resend";
 
-const isDev = process.env.NODE_ENV !== "production";
 const isUuid = (value: string) =>
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
     value
@@ -19,9 +19,8 @@ const invalidRequest = (message: string, status = 400) =>
 type EmailType = "order_confirmation" | "shipping_confirmation";
 
 export async function GET(request: Request) {
-  if (!isDev) {
-    return new NextResponse("Not found", { status: 404 });
-  }
+  const blockedResponse = blockDevRouteInProduction();
+  if (blockedResponse) return blockedResponse;
 
   const { searchParams } = new URL(request.url);
   const typeParam = searchParams.get("type");

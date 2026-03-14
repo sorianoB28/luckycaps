@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { blockDevRouteInProduction } from "@/lib/devRoutes";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
-  if (process.env.NODE_ENV === "production") {
-    return new NextResponse("Not found", { status: 404 });
-  }
+  const blockedResponse = blockDevRouteInProduction();
+  if (blockedResponse) return blockedResponse;
 
   return NextResponse.json(
     {

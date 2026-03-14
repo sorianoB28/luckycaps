@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { blockDevRouteInProduction } from "@/lib/devRoutes";
 import sql from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  const blockedResponse = blockDevRouteInProduction();
+  if (blockedResponse) return blockedResponse;
 
   try {
     const rows = (await sql`

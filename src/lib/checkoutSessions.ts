@@ -343,6 +343,7 @@ export async function finalizeCheckoutByStripeSession(params: {
         UPDATE public.orders
         SET
           status = 'paid',
+          payment_status = 'paid',
           paid_at = COALESCE(paid_at, now()),
           stripe_payment_intent_id = COALESCE(stripe_payment_intent_id, ${stripePaymentIntentId}),
           updated_at = now()
@@ -356,6 +357,7 @@ export async function finalizeCheckoutByStripeSession(params: {
         customer_phone,
         email,
         status,
+        payment_status,
         paid_at,
         contact,
         shipping_address,
@@ -377,6 +379,7 @@ export async function finalizeCheckoutByStripeSession(params: {
         cs.customer_name,
         cs.customer_phone,
         cs.email,
+        'paid',
         'paid',
         now(),
         cs.contact,

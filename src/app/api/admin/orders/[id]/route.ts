@@ -15,6 +15,14 @@ const statusTimestampColumn: Partial<Record<OrderStatus, string>> = {
   refunded: "refunded_at",
 };
 
+const paymentStatusForOrderStatus: Partial<Record<OrderStatus, "unpaid" | "paid" | "refunded">> = {
+  created: "unpaid",
+  paid: "paid",
+  shipped: "paid",
+  delivered: "paid",
+  refunded: "refunded",
+};
+
 const parseJson = <T,>(value: unknown, fallback: T) => {
   if (value == null) return fallback;
   if (typeof value === "string") {
@@ -199,6 +207,11 @@ export async function PATCH(
       }
       values.push(body.status);
       setParts.push(`status = $${values.length}`);
+      const paymentStatus = paymentStatusForOrderStatus[body.status];
+      if (paymentStatus) {
+        values.push(paymentStatus);
+        setParts.push(`payment_status = $${values.length}`);
+      }
       const tsColumn = statusTimestampColumn[body.status];
       if (tsColumn === "paid_at") {
         setParts.push("paid_at = COALESCE(paid_at, now())");

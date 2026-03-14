@@ -1,9 +1,7 @@
 import "server-only";
 
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
-
 import sql from "@/lib/db";
+import { areDevRoutesBlockedInCurrentRuntime } from "@/lib/devRoutes";
 import { resolveDeploymentContext } from "@/lib/deploymentContext";
 import { inspectStripeEnvironment } from "@/lib/stripeConfig";
 import { inspectShippoEnvironment } from "@/lib/shipping/shippoConfig";
@@ -43,8 +41,6 @@ type DatabaseInspection = {
   missingColumns: string[];
   error?: string;
 };
-
-const DEV_ROUTE_GUARD_SNIPPET = 'process.env.NODE_ENV === "production"';
 
 const DB_REQUIREMENTS: Record<string, string[]> = {
   checkout_sessions: [
@@ -115,63 +111,23 @@ function summarizeList(values: string[], limit = 5) {
   return `${head}, +${values.length - limit} more`;
 }
 
-async function collectDevRouteFiles(dir: string): Promise<string[]> {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const files = await Promise.all(
-    entries.map(async (entry) => {
-      const fullPath = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        return collectDevRouteFiles(fullPath);
-      }
-      return entry.isFile() && entry.name === "route.ts" ? [fullPath] : [];
-    })
-  );
-  return files.flat();
-}
+function inspectDevRouteGuards() {
+  const blocked = areDevRoutesBlockedInCurrentRuntime();
 
-async function inspectDevRouteGuards() {
-  const devDir = path.join(process.cwd(), "src", "app", "api", "dev");
-
-  try {
-    const files = await collectDevRouteFiles(devDir);
-    if (files.length === 0) {
-      return {
-        level: "yellow" as const,
-        value: "No dev routes found",
-        detail: "No /api/dev route files were present under src/app/api/dev.",
-      };
-    }
-
-    const missingGuards: string[] = [];
-
-    for (const file of files) {
-      const contents = await readFile(file, "utf8");
-      if (!contents.includes(DEV_ROUTE_GUARD_SNIPPET)) {
-        missingGuards.push(path.relative(process.cwd(), file));
-      }
-    }
-
-    if (missingGuards.length > 0) {
-      return {
-        level: "red" as const,
-        value: "Guard missing",
-        detail: `Missing production guard in ${summarizeList(missingGuards)}.`,
-      };
-    }
-
+  if (blocked) {
     return {
       level: "green" as const,
-      value: "Guarded",
-      detail: `${files.length} /api/dev route files include a production lockout check.`,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return {
-      level: "red" as const,
-      value: "Inspection failed",
-      detail: `Unable to inspect /api/dev routes: ${message}`,
+      value: "Blocked",
+      detail:
+        "Runtime /api/dev guard is active because NODE_ENV=production, so dev routes return 404 in deployed builds.",
     };
   }
+
+  return {
+    level: "yellow" as const,
+    value: "Enabled outside production",
+    detail: "Local development keeps /api/dev routes available for test and seed workflows.",
+  };
 }
 
 async function inspectDatabaseSchema(): Promise<DatabaseInspection> {
@@ -233,7 +189,7 @@ export async function collectReadinessDiagnostics(): Promise<ReadinessDiagnostic
   const origin = resolveAppOriginDiagnostics();
   const stripe = inspectStripeEnvironment();
   const shippo = inspectShippoEnvironment();
-  const devRouteGuards = await inspectDevRouteGuards();
+  const devRouteGuards = inspectDevRouteGuards();
   const db = await inspectDatabaseSchema();
 
   const isProduction = context === "production";

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { blockDevRouteInProduction } from "@/lib/devRoutes";
 import sql from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -47,9 +48,8 @@ const parseDateValue = (raw: string | null | undefined) => {
 };
 
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return new NextResponse("Not found", { status: 404 });
-  }
+  const blockedResponse = blockDevRouteInProduction();
+  if (blockedResponse) return blockedResponse;
 
   let body: SeedPromoBody;
   try {

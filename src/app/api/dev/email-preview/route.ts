@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { blockDevRouteInProduction } from "@/lib/devRoutes";
 import { buildEmailPreview } from "@/lib/email/resend";
 
 // Examples:
@@ -7,9 +8,8 @@ import { buildEmailPreview } from "@/lib/email/resend";
 // /api/dev/email-preview?type=shipping_confirmation&orderId=...
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === "production") {
-    return new NextResponse("Not found", { status: 404 });
-  }
+  const blockedResponse = blockDevRouteInProduction();
+  if (blockedResponse) return blockedResponse;
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
