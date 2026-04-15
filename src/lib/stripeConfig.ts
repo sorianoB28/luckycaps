@@ -136,19 +136,9 @@ function validateDeprecatedCheckoutUrl(
     parsed = new URL(configuredValue);
   } catch {
     const message = `${name} must be an absolute URL when set.`;
-    if (mode === "live") {
-      throw new Error(message);
+    if (mode !== "live") {
+      warnDeprecatedStripeUrl(`[stripe] ${message}`);
     }
-    warnDeprecatedStripeUrl(`[stripe] ${message}`);
-    return;
-  }
-
-  if (name === "STRIPE_SUCCESS_URL" && !configuredValue.includes("{CHECKOUT_SESSION_ID}")) {
-    const message = `${name} must include {CHECKOUT_SESSION_ID} when set.`;
-    if (mode === "live") {
-      throw new Error(message);
-    }
-    warnDeprecatedStripeUrl(`[stripe] ${message}`);
     return;
   }
 
@@ -156,14 +146,21 @@ function validateDeprecatedCheckoutUrl(
     assertLiveOrigin(parsed);
   }
 
+  if (name === "STRIPE_SUCCESS_URL" && !configuredValue.includes("{CHECKOUT_SESSION_ID}")) {
+    const message = `${name} must include {CHECKOUT_SESSION_ID} when set.`;
+    if (mode !== "live") {
+      warnDeprecatedStripeUrl(`[stripe] ${message}`);
+    }
+    return;
+  }
+
   if (configuredValue !== generatedValue) {
     const message =
       `${name} is deprecated and does not match the app checkout URL. ` +
       `Remove it or update it to ${generatedValue}.`;
-    if (mode === "live") {
-      throw new Error(message);
+    if (mode !== "live") {
+      warnDeprecatedStripeUrl(`[stripe] ${message}`);
     }
-    warnDeprecatedStripeUrl(`[stripe] ${message}`);
   }
 }
 
