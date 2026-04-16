@@ -29,12 +29,27 @@ const parseJson = <T,>(value: unknown, fallback: T) => {
   return value as T;
 };
 
+type ShipmentRecord = Record<string, unknown> & {
+  id?: unknown;
+  status?: unknown;
+  rates?: unknown;
+  parcel?: unknown;
+  selected_rate?: unknown;
+  parcel_template_id?: unknown;
+  label_url?: unknown;
+  tracking_number?: unknown;
+  tracking_url?: unknown;
+  postage_amount?: unknown;
+  postage_currency?: unknown;
+  label_asset_url?: unknown;
+};
+
 const readString = (value: unknown) =>
   typeof value === "string" ? value : value == null ? "" : String(value);
 
 const hasValue = (value: unknown) => readString(value).trim().length > 0;
 
-const normalizeShipment = (shipment: Record<string, unknown> | null) => {
+const normalizeShipment = (shipment: ShipmentRecord | null): ShipmentRecord | null => {
   if (!shipment) return null;
 
   return {
@@ -84,7 +99,7 @@ export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  let shipment: Record<string, unknown> | null = null;
+  let shipment: ShipmentRecord | null = null;
 
   try {
     const { response } = await requireAdmin();
@@ -113,7 +128,7 @@ export async function POST(
         LIMIT 1
       `,
       [params.id]
-    )) as Array<Record<string, unknown>>;
+    )) as ShipmentRecord[];
 
     shipment = shipmentRows[0] ?? null;
     if (!shipment) {
@@ -125,7 +140,7 @@ export async function POST(
           RETURNING *
         `,
         [params.id]
-      )) as Array<Record<string, unknown>>;
+      )) as ShipmentRecord[];
       shipment = createdRows[0] ?? null;
     }
     if (!shipment) {
@@ -329,7 +344,7 @@ export async function POST(
         typeof shipment.parcel_template_id === "string" ? shipment.parcel_template_id : null,
         shipment.parcel ?? null,
       ]
-    )) as Array<Record<string, unknown>>;
+    )) as ShipmentRecord[];
 
     const updated = normalizeShipment(updatedRows[0] ?? shipment) ?? shipment;
 
