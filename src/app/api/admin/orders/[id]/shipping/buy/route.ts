@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
 import sql from "@/lib/adminDb";
 import { uploadLabelToCloudinary } from "@/lib/shipping/labelStorage";
-import { buyLabel, fetchTransactionLabelUrl } from "@/lib/shipping/shippo";
+import {
+  buyLabel,
+  fetchTransactionLabelUrl,
+  ShippoTransactionError,
+  type ShippoDiagnosticMessage,
+} from "@/lib/shipping/shippo";
 
 const isUuid = (value: string) =>
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
@@ -24,6 +29,44 @@ const parseJson = <T,>(value: unknown, fallback: T) => {
   return value as T;
 };
 
+const readString = (value: unknown) =>
+  typeof value === "string" ? value : value == null ? "" : String(value);
+
+const hasValue = (value: unknown) => readString(value).trim().length > 0;
+
+const normalizeShipment = (shipment: Record<string, unknown> | null) => {
+  if (!shipment) return null;
+
+  return {
+    ...shipment,
+    rates: parseJson(shipment.rates, []),
+    parcel: parseJson(shipment.parcel, null),
+    selected_rate: parseJson(shipment.selected_rate, null),
+  };
+};
+
+const PURCHASE_FIELD_NAMES = [
+  "label_url",
+  "tracking_number",
+  "tracking_url",
+  "postage_amount",
+  "postage_currency",
+  "provider_rate_id",
+  "shippo_transaction_id",
+  "label_purchased_at",
+] as const;
+
+function buildProviderSummary(messages: ShippoDiagnosticMessage[]) {
+  if (!messages.length) return null;
+
+  return messages
+    .map((message) => {
+      const prefix = [message.code, message.source].filter(Boolean).join(" / ");
+      return prefix ? `${prefix}: ${message.text}` : message.text;
+    })
+    .join(" | ");
+}
+
 async function getStoreSetting<T>(key: string) {
   const rows = (await sql(
     `
@@ -41,6 +84,8 @@ export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  let shipment: Record<string, unknown> | null = null;
+
   try {
     const { response } = await requireAdmin();
     if (response) return response;
@@ -70,7 +115,7 @@ export async function POST(
       [params.id]
     )) as Array<Record<string, unknown>>;
 
-    let shipment = shipmentRows[0] ?? null;
+    shipment = shipmentRows[0] ?? null;
     if (!shipment) {
       const createdRows = (await sql(
         `
@@ -95,6 +140,7 @@ export async function POST(
 
     type RateLike = {
       id?: string;
+      amount?: string | number | null;
       currency?: string | null;
       currency_code?: string | null;
       currency_local?: string | null;
@@ -117,16 +163,24 @@ export async function POST(
 
     const purchase = await buyLabel({ rate_id: rateId, label_format: labelFormat });
     const selectedRateJson = JSON.stringify(match);
+    const rateAmount = Number(match.amount);
     const rateCurrency =
       (typeof match.currency === "string" && match.currency) ||
       (typeof match.currency_code === "string" && match.currency_code) ||
       (typeof match.currency_local === "string" && match.currency_local) ||
       null;
+    const postageAmount =
+      purchase.postage_amount != null && Number.isFinite(Number(purchase.postage_amount))
+        ? Number(purchase.postage_amount)
+        : Number.isFinite(rateAmount)
+        ? rateAmount
+        : null;
     const postageCurrency = purchase.postage_currency || rateCurrency;
     let labelAssetUrl: string | null = null;
     let labelAssetPublicId: string | null = null;
     let labelError: string | null = null;
     let labelErrorCode: string | null = null;
+    let persistedLabelUrl = readString(purchase.label_url).trim() || null;
     const shipmentId = typeof shipment.id === "string" ? shipment.id : "";
     const labelPublicId = `labels/${params.id}/${
       shipmentId || purchase.transaction_id || rateId
@@ -144,9 +198,9 @@ export async function POST(
       }
     };
 
-    if (purchase.label_url) {
+    if (persistedLabelUrl) {
       try {
-        await archiveLabel(purchase.label_url, "shippo_label_url");
+        await archiveLabel(persistedLabelUrl, "shippo_label_url");
       } catch (err) {
         labelError = (err as Error).message || "Unable to store shipping label";
         labelErrorCode = "cloudinary_upload_failed";
@@ -166,9 +220,16 @@ export async function POST(
       });
     }
 
-    if (!labelAssetUrl && purchase.transaction_id) {
+    if ((!labelAssetUrl || !persistedLabelUrl) && purchase.transaction_id) {
+      let fetchedFallbackUrl = false;
       try {
         const fallbackUrl = await fetchTransactionLabelUrl(purchase.transaction_id);
+        fetchedFallbackUrl = true;
+        if (!persistedLabelUrl) {
+          persistedLabelUrl = fallbackUrl;
+        }
+        labelError = null;
+        labelErrorCode = null;
         await archiveLabel(fallbackUrl, "shippo_transaction");
         labelError = null;
         labelErrorCode = null;
@@ -179,9 +240,11 @@ export async function POST(
           order_id: params.id,
           error: message,
         });
-        if (!labelError) {
+        if (fetchedFallbackUrl || !labelError) {
           labelError = message;
-          labelErrorCode = "shippo_label_fetch_failed";
+          labelErrorCode = fetchedFallbackUrl
+            ? "cloudinary_upload_failed"
+            : "shippo_label_fetch_failed";
         }
       }
     }
@@ -252,10 +315,10 @@ export async function POST(
       [
         params.id,
         rateId,
-        purchase.label_url,
+        persistedLabelUrl,
         purchase.tracking_number,
         purchase.tracking_url,
-        purchase.postage_amount,
+        postageAmount,
         postageCurrency,
         labelFormat,
         selectedRateJson,
@@ -268,10 +331,7 @@ export async function POST(
       ]
     )) as Array<Record<string, unknown>>;
 
-    const updated = updatedRows[0] ?? shipment;
-    updated.rates = parseJson(updated.rates, []);
-    updated.parcel = parseJson(updated.parcel, null);
-    updated.selected_rate = parseJson(updated.selected_rate, null);
+    const updated = normalizeShipment(updatedRows[0] ?? shipment) ?? shipment;
 
     const payload: {
       shipment: typeof updated;
@@ -283,9 +343,55 @@ export async function POST(
       if (labelErrorCode) payload.label_error_code = labelErrorCode;
     }
 
+    console.info("Admin shipping purchase persisted", {
+      order_id: params.id,
+      provider_rate_id: rateId,
+      shippo_transaction_id: readString(purchase.transaction_id).trim() || null,
+      label_url_persisted: hasValue(updated?.label_url),
+      tracking_number_persisted: hasValue(updated?.tracking_number),
+      tracking_url_persisted: hasValue(updated?.tracking_url),
+      postage_amount_persisted:
+        updated?.postage_amount != null && Number.isFinite(Number(updated.postage_amount)),
+      postage_currency_persisted: hasValue(updated?.postage_currency),
+      label_asset_url_persisted: hasValue(updated?.label_asset_url),
+      label_archive_error_code: labelErrorCode,
+    });
+
     return NextResponse.json(payload);
   } catch (err) {
     const message = (err as Error).message || "Unable to purchase label";
+    const currentShipment = normalizeShipment(shipment);
+
+    if (err instanceof ShippoTransactionError) {
+      const providerSummary = buildProviderSummary(err.shippoMessages) || message;
+      console.error("Admin shipping provider purchase failed", {
+        code: "shippo_purchase_failed",
+        order_id: params.id,
+        shippo_status: err.shippoStatus,
+        shippo_object_state: err.shippoObjectState,
+        shippo_transaction_id: err.shippoTransactionId,
+        provider_messages: err.shippoMessages,
+      });
+
+      return NextResponse.json(
+        {
+          error: message,
+          code: "shippo_purchase_failed",
+          provider_error_summary: providerSummary,
+          provider_messages: err.shippoMessages,
+          provider_status: err.shippoStatus,
+          provider_object_state: err.shippoObjectState,
+          shippo_transaction_id: err.shippoTransactionId,
+          label_created: false,
+          shipment_persisted: false,
+          persisted_fields: [],
+          missing_fields: [...PURCHASE_FIELD_NAMES],
+          shipment: currentShipment,
+        },
+        { status: 422 }
+      );
+    }
+
     const code =
       message.includes("SHIPPO_API_TOKEN") || message.includes("SHIPPO_TEST_TOKEN")
       ? "shippo_token_missing"
@@ -296,8 +402,16 @@ export async function POST(
       error: message,
     });
     return NextResponse.json(
-      { error: message, code },
-      { status: 200 }
+      {
+        error: message,
+        code,
+        label_created: false,
+        shipment_persisted: false,
+        persisted_fields: [],
+        missing_fields: [...PURCHASE_FIELD_NAMES],
+        shipment: currentShipment,
+      },
+      { status: code === "shippo_token_missing" ? 500 : 502 }
     );
   }
 }

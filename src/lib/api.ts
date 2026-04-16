@@ -301,6 +301,27 @@ export type AdminShipment = {
   updated_at?: string | null;
 };
 
+export type AdminShippoMessage = {
+  code?: string | null;
+  source?: string | null;
+  text?: string | null;
+};
+
+export type AdminShippingPurchaseFailure = {
+  error: string;
+  code?: string;
+  provider_error_summary?: string;
+  provider_messages?: AdminShippoMessage[];
+  provider_status?: string | null;
+  provider_object_state?: string | null;
+  shippo_transaction_id?: string | null;
+  label_created?: boolean;
+  shipment_persisted?: boolean;
+  persisted_fields?: string[];
+  missing_fields?: string[];
+  shipment?: AdminShipment | null;
+};
+
 export type AdminShippingDefaults = {
   label_format?: string | null;
   default_parcel_template_id?: string | null;
@@ -460,7 +481,7 @@ export async function voteHelpful(reviewId: string, voterKey: string) {
   return res.json() as Promise<{ ok: boolean; counted: boolean; helpful_count: number }>;
 }
 
-type ApiError = Error & { status?: number; code?: string };
+type ApiError = Error & { status?: number; code?: string; data?: unknown };
 
 async function adminFetchJson<T>(path: string, init?: RequestInit) {
   const url = resolveUrl(path);
@@ -474,11 +495,16 @@ async function adminFetchJson<T>(path: string, init?: RequestInit) {
   if (!res.ok) {
     let message = `Request to ${url} failed with status ${res.status}`;
     let code: string | undefined;
+    let data: { error?: string; code?: string; errors?: Record<string, string> } | null = null;
     try {
-      const data = (await res.json()) as { error?: string; errors?: Record<string, string> };
+      data = (await res.json()) as {
+        error?: string;
+        code?: string;
+        errors?: Record<string, string>;
+      };
       if (data?.error) {
         message = data.error;
-        code = data.error;
+        code = typeof data.code === "string" && data.code ? data.code : data.error;
       }
       if (data?.errors) {
         const first = Object.values(data.errors)[0];
@@ -490,6 +516,7 @@ async function adminFetchJson<T>(path: string, init?: RequestInit) {
     const err = new Error(message) as ApiError;
     err.status = res.status;
     if (code) err.code = code;
+    err.data = data;
     throw err;
   }
 
@@ -505,16 +532,23 @@ async function adminFetchJsonWithErrors<T>(path: string, init?: RequestInit) {
 
   const res = await fetch(url, { ...init, headers, credentials: "include" });
 
-  let data: { error?: string; errors?: Record<string, string> } | null = null;
+  let data:
+    | { error?: string; code?: string; errors?: Record<string, string> }
+    | null = null;
   try {
-    data = (await res.json()) as { error?: string; errors?: Record<string, string> };
+    data = (await res.json()) as {
+      error?: string;
+      code?: string;
+      errors?: Record<string, string>;
+    };
   } catch {
     data = null;
   }
 
   if (!res.ok) {
     let message = `Request to ${url} failed with status ${res.status}`;
-    const code: string | undefined = data?.error;
+    const code: string | undefined =
+      typeof data?.code === "string" && data.code ? data.code : data?.error;
     if (data?.error) message = data.error;
     if (data?.errors) {
       const first = Object.values(data.errors)[0];
@@ -523,13 +557,15 @@ async function adminFetchJsonWithErrors<T>(path: string, init?: RequestInit) {
     const err = new Error(message) as ApiError;
     err.status = res.status;
     if (code) err.code = code;
+    err.data = data;
     throw err;
   }
 
   if (data?.error) {
     const err = new Error(data.error) as ApiError;
     err.status = res.status;
-    err.code = data.error;
+    err.code = typeof data.code === "string" && data.code ? data.code : data.error;
+    err.data = data;
     throw err;
   }
 

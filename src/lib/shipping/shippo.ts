@@ -45,12 +45,23 @@ export type ShippoPurchase = {
 };
 
 type ShippoMessage = {
+  code?: string | null;
+  source?: string | null;
   text?: string | null;
 };
 
 type ShippoErrorResponse = {
   detail?: string | null;
   messages?: ShippoMessage[] | null;
+  status?: string | null;
+  object_state?: string | null;
+  object_id?: string | null;
+};
+
+export type ShippoDiagnosticMessage = {
+  code: string | null;
+  source: string | null;
+  text: string;
 };
 
 type ShippoServiceLevel = {
@@ -74,8 +85,6 @@ type ShippoShipmentResponse = ShippoErrorResponse & {
 };
 
 type ShippoTransactionResponse = ShippoErrorResponse & {
-  status?: string | null;
-  object_id?: string | null;
   label_url?: string | null;
   tracking_number?: string | null;
   tracking_url_provider?: string | null;
@@ -86,6 +95,58 @@ type ShippoTransactionResponse = ShippoErrorResponse & {
 };
 
 const isE2EMode = process.env.E2E_MODE?.toLowerCase() === "true";
+
+function normalizeShippoMessages(messages: ShippoMessage[] | null | undefined) {
+  if (!Array.isArray(messages)) return [] as ShippoDiagnosticMessage[];
+
+  return messages
+    .map((message) => {
+      const text = String(message?.text || "").trim();
+      if (!text) return null;
+
+      return {
+        code: message?.code ? String(message.code) : null,
+        source: message?.source ? String(message.source) : null,
+        text,
+      } satisfies ShippoDiagnosticMessage;
+    })
+    .filter((message): message is ShippoDiagnosticMessage => Boolean(message));
+}
+
+function buildShippoErrorMessage(
+  response: ShippoErrorResponse | null | undefined,
+  fallback: string
+) {
+  const messages = normalizeShippoMessages(response?.messages);
+  if (messages.length > 0) {
+    return messages
+      .map((message) => {
+        const prefix = [message.code, message.source].filter(Boolean).join(" / ");
+        return prefix ? `${prefix}: ${message.text}` : message.text;
+      })
+      .join(" | ");
+  }
+
+  const detail = String(response?.detail || "").trim();
+  return detail || fallback;
+}
+
+export class ShippoTransactionError extends Error {
+  readonly code = "shippo_transaction_failed";
+  readonly shippoStatus: string | null;
+  readonly shippoObjectState: string | null;
+  readonly shippoTransactionId: string | null;
+  readonly shippoMessages: ShippoDiagnosticMessage[];
+
+  constructor(response: ShippoErrorResponse | null | undefined, fallback: string) {
+    super(buildShippoErrorMessage(response, fallback));
+    this.name = "ShippoTransactionError";
+    this.shippoStatus = response?.status ? String(response.status) : null;
+    this.shippoObjectState = response?.object_state ? String(response.object_state) : null;
+    this.shippoTransactionId = response?.object_id ? String(response.object_id) : null;
+    this.shippoMessages = normalizeShippoMessages(response?.messages);
+  }
+}
 
 async function shippoFetch<T extends ShippoErrorResponse>(
   path: string,
@@ -104,7 +165,7 @@ async function shippoFetch<T extends ShippoErrorResponse>(
 
   const json = (await res.json()) as T;
   if (!res.ok) {
-    const message = json?.detail || json?.messages?.[0]?.text || `Shippo error (${res.status})`;
+    const message = buildShippoErrorMessage(json, `Shippo error (${res.status})`);
     throw new Error(message);
   }
   return json;
@@ -123,7 +184,7 @@ async function shippoFetchGet<T extends ShippoErrorResponse>(path: string) {
 
   const json = (await res.json()) as T;
   if (!res.ok) {
-    const message = json?.detail || json?.messages?.[0]?.text || `Shippo error (${res.status})`;
+    const message = buildShippoErrorMessage(json, `Shippo error (${res.status})`);
     throw new Error(message);
   }
   return json;
@@ -192,8 +253,7 @@ export async function buyLabel(params: { rate_id: string; label_format: string }
   });
 
   if (response?.status !== "SUCCESS") {
-    const message = response?.messages?.[0]?.text || "Shippo transaction failed";
-    throw new Error(message);
+    throw new ShippoTransactionError(response, "Shippo transaction failed");
   }
 
   const amount = Number(response?.rate?.amount);
@@ -217,7 +277,7 @@ export async function fetchTransactionLabelUrl(transactionId: string) {
 
   const response = await shippoFetchGet<ShippoTransactionResponse>(`transactions/${transactionId}`);
   if (response?.status && response.status !== "SUCCESS") {
-    throw new Error("Shippo transaction is not successful");
+    throw new ShippoTransactionError(response, "Shippo transaction is not successful");
   }
 
   const labelUrl = String(response?.label_url || "");

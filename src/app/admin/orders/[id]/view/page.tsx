@@ -15,6 +15,7 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { resolveAdminError } from "@/lib/adminErrors";
+import { OrderTotalsCard } from "@/app/admin/orders/OrderTotalsCard";
 
 const STATUS_LABEL_KEYS: Record<AdminOrderDetail["status"], string> = {
   created: "common.created",
@@ -254,15 +255,7 @@ export default function AdminOrderViewPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
-            <h3 className="font-semibold">{t("admin.totalsTitle")}</h3>
-            <div className="mt-3 flex items-center justify-between text-sm text-white/70">
-              <span>{t("common.subtotal")}</span>
-              <span className="font-semibold text-white">
-                ${(order.subtotal_cents / 100).toFixed(2)}
-              </span>
-            </div>
-          </div>
+          <OrderTotalsCard order={order} />
         </div>
 
         <div className="space-y-5">

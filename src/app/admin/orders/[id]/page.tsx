@@ -24,9 +24,11 @@ import {
   type AdminShipmentParcel,
   type AdminShipmentRate,
   type AdminShippingDefaults,
+  type AdminShippingPurchaseFailure,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { resolveAdminError } from "@/lib/adminErrors";
+import { OrderTotalsCard } from "@/app/admin/orders/OrderTotalsCard";
 
 const STATUSES: AdminOrderDetail["status"][] = [
   "created",
@@ -122,6 +124,17 @@ const hasNonEmptyString = (value: unknown) => readString(value).trim().length > 
 const hasFiniteNumber = (value: unknown) =>
   typeof value === "number" && Number.isFinite(value);
 
+const extractShippingPurchaseFailure = (err: unknown): AdminShippingPurchaseFailure | null => {
+  const data = (err as { data?: unknown } | null | undefined)?.data;
+  if (!data || typeof data !== "object") return null;
+
+  const failure = data as AdminShippingPurchaseFailure;
+  if (!failure.error) return null;
+  if (failure.code === "shippo_purchase_failed") return failure;
+  if (failure.label_created === false && failure.shipment_persisted === false) return failure;
+  return null;
+};
+
 const checkToneClass = (tone: CheckTone) =>
   tone === "green"
     ? "border-lucky-green/30 bg-lucky-green/15 text-lucky-green"
@@ -179,6 +192,8 @@ export default function AdminOrderDetailPage() {
   const [shippingBusy, setShippingBusy] = useState(false);
   const [shippingError, setShippingError] = useState<string | null>(null);
   const [shippingNotice, setShippingNotice] = useState<string | null>(null);
+  const [shippingPurchaseFailure, setShippingPurchaseFailure] =
+    useState<AdminShippingPurchaseFailure | null>(null);
   const [templateNotice, setTemplateNotice] = useState<string | null>(null);
   const [labelArchiving, setLabelArchiving] = useState(false);
   const [labelArchiveError, setLabelArchiveError] = useState<string | null>(null);
@@ -267,6 +282,7 @@ export default function AdminOrderDetailPage() {
     setShippingLoading(true);
     setShippingError(null);
     setShippingNotice(null);
+    setShippingPurchaseFailure(null);
     setTemplateNotice(null);
     try {
       const res = await getAdminOrderShipping(orderId);
@@ -436,6 +452,7 @@ export default function AdminOrderDetailPage() {
     setShippingBusy(true);
     setShippingError(null);
     setShippingNotice(null);
+    setShippingPurchaseFailure(null);
     try {
       const res = await createAdminOrderShippingDraft(orderId, {
         parcel: parsedParcel,
@@ -457,6 +474,7 @@ export default function AdminOrderDetailPage() {
     setShippingError(null);
     setShippingNotice(null);
     setLabelArchiveError(null);
+    setShippingPurchaseFailure(null);
     try {
       const res = await buyAdminOrderShippingLabel(orderId, {
         rate_id: rateId,
@@ -470,7 +488,16 @@ export default function AdminOrderDetailPage() {
         setLabelArchiveError(res.label_error);
       }
     } catch (err) {
-      setShippingError(resolveAdminError(t, err, "admin.unableToLoadOrder"));
+      const failure = extractShippingPurchaseFailure(err);
+      if (failure?.shipment) {
+        setShipment(failure.shipment);
+      }
+      setShippingPurchaseFailure(failure);
+      setShippingError(
+        failure?.provider_error_summary ||
+          failure?.error ||
+          resolveAdminError(t, err, "admin.unableToLoadOrder")
+      );
     } finally {
       setShippingBusy(false);
     }
@@ -1148,6 +1175,51 @@ export default function AdminOrderDetailPage() {
                 {shippingError ? (
                   <p className="text-sm text-red-400">{shippingError}</p>
                 ) : null}
+                {shippingPurchaseFailure ? (
+                  <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-100 space-y-2">
+                    <p className="font-semibold">Label purchase failed</p>
+                    {(shippingPurchaseFailure.provider_status ||
+                      shippingPurchaseFailure.provider_object_state) ? (
+                      <p className="text-xs text-red-100/80">
+                        Shippo response:{" "}
+                        {shippingPurchaseFailure.provider_status || "unknown"}
+                        {shippingPurchaseFailure.provider_object_state
+                          ? ` / ${shippingPurchaseFailure.provider_object_state}`
+                          : ""}
+                      </p>
+                    ) : null}
+                    {shippingPurchaseFailure.shippo_transaction_id ? (
+                      <p className="text-xs text-red-100/80">
+                        Shippo transaction: {shippingPurchaseFailure.shippo_transaction_id}
+                      </p>
+                    ) : null}
+                    <p className="text-xs text-red-100/80">Label created: No</p>
+                    <p className="text-xs text-red-100/80">
+                      Shipment fields persisted:{" "}
+                      {shippingPurchaseFailure.shipment_persisted ? "Partial" : "None"}
+                    </p>
+                    {shippingPurchaseFailure.missing_fields?.length ? (
+                      <p className="text-xs text-red-100/80">
+                        Not persisted: {shippingPurchaseFailure.missing_fields.join(", ")}
+                      </p>
+                    ) : null}
+                    {shippingPurchaseFailure.provider_messages?.length ? (
+                      <div className="space-y-1 border-t border-red-200/20 pt-2 text-xs text-red-100/80">
+                        {shippingPurchaseFailure.provider_messages.map((message, index) => {
+                          const prefix = [message.code, message.source]
+                            .filter(Boolean)
+                            .join(" / ");
+                          const text = message.text?.trim() || "Provider error";
+                          return (
+                            <p key={`${prefix || "message"}-${index}`}>
+                              {prefix ? `${prefix}: ${text}` : text}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 {labelArchiveError ? (
                   <p className="text-sm text-red-400">{labelArchiveError}</p>
                 ) : null}
@@ -1279,39 +1351,7 @@ export default function AdminOrderDetailPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white">
-            <h3 className="font-semibold">{t("admin.totalsTitle")}</h3>
-            <div className="mt-3 flex items-center justify-between text-sm text-white/70">
-              <span>{t("common.subtotal")}</span>
-              <span className="font-semibold text-white">
-                {formatOrderMoney(order.subtotal_cents, order.currency)}
-              </span>
-            </div>
-            {(order.discount_cents ?? 0) > 0 ? (
-              <div className="mt-2 flex items-center justify-between text-sm text-white/70">
-                <span>{t("common.discount")}</span>
-                <span className="font-semibold text-lucky-green">
-                  -{formatOrderMoney(order.discount_cents, order.currency)}
-                </span>
-              </div>
-            ) : null}
-            <div className="mt-2 flex items-center justify-between text-sm text-white/70">
-              <span>{t("cart.shipping")}</span>
-              <span className="font-semibold text-white">
-                {formatOrderMoney(order.shipping_cents, order.currency)}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-sm text-white/70">
-              <span>{t("cart.tax")}</span>
-              <span className="font-semibold text-white">
-                {formatOrderMoney(order.tax_cents, order.currency)}
-              </span>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-sm font-semibold text-white">
-              <span>{t("common.total")}</span>
-              <span>{formatOrderMoney(order.total_cents, order.currency)}</span>
-            </div>
-          </div>
+          <OrderTotalsCard order={order} />
         </div>
 
         <div className="space-y-5">
