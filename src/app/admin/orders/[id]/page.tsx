@@ -23,7 +23,6 @@ import {
   type AdminShipment,
   type AdminShipmentParcel,
   type AdminShipmentRate,
-  type AdminShippingDefaults,
   type AdminShippingPurchaseFailure,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -55,26 +54,6 @@ type LabelFormat = (typeof LABEL_FORMATS)[number];
 
 const readString = (value: unknown) =>
   typeof value === "string" ? value : value == null ? "" : String(value);
-
-const normalizeTemplateTags = (value: unknown) => {
-  if (Array.isArray(value)) {
-    return value.map((tag) => String(tag).toLowerCase()).filter(Boolean);
-  }
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      if (Array.isArray(parsed)) {
-        return parsed.map((tag) => String(tag).toLowerCase()).filter(Boolean);
-      }
-    } catch {
-      return value
-        .split(",")
-        .map((tag) => tag.trim().toLowerCase())
-        .filter(Boolean);
-    }
-  }
-  return [];
-};
 
 const toInches = (value: number, unit: string) =>
   unit === "cm" ? value / 2.54 : value;
@@ -185,7 +164,7 @@ export default function AdminOrderDetailPage() {
     height: "",
     weight: "",
     distance_unit: "in",
-    mass_unit: "lb",
+    mass_unit: "oz",
   });
   const [labelFormat, setLabelFormat] = useState<LabelFormat>("PDF_4x6");
   const [shippingLoading, setShippingLoading] = useState(false);
@@ -197,8 +176,8 @@ export default function AdminOrderDetailPage() {
   const [templateNotice, setTemplateNotice] = useState<string | null>(null);
   const [labelArchiving, setLabelArchiving] = useState(false);
   const [labelArchiveError, setLabelArchiveError] = useState<string | null>(null);
-  const [manualTemplateSelection, setManualTemplateSelection] = useState(false);
-  const [shippingDefaults, setShippingDefaults] = useState<AdminShippingDefaults | null>(null);
+  const [readinessExpanded, setReadinessExpanded] = useState(false);
+  const [readinessRefreshing, setReadinessRefreshing] = useState(false);
 
   const load = async () => {
     if (!orderId) {
@@ -233,7 +212,7 @@ export default function AdminOrderDetailPage() {
       height: next.height ? String(next.height) : "",
       weight: next.weight ? String(next.weight) : "",
       distance_unit: next.distance_unit || "in",
-      mass_unit: next.mass_unit || "lb",
+      mass_unit: next.mass_unit || "oz",
     });
   };
 
@@ -242,12 +221,9 @@ export default function AdminOrderDetailPage() {
       length: template.length != null ? String(template.length) : prev.length,
       width: template.width != null ? String(template.width) : prev.width,
       height: template.height != null ? String(template.height) : prev.height,
-      weight:
-        template.weight != null && Number(template.weight) > 0
-          ? String(template.weight)
-          : prev.weight,
+      weight: prev.weight,
       distance_unit: template.distance_unit || prev.distance_unit || "in",
-      mass_unit: template.mass_unit || prev.mass_unit || "lb",
+      mass_unit: template.mass_unit || prev.mass_unit || "oz",
     }));
 
     if (template.label_format_default) {
@@ -294,7 +270,6 @@ export default function AdminOrderDetailPage() {
       setTemplateNotice(res.template_notice ?? null);
       const nextTemplates = res.parcel_templates ?? [];
       setParcelTemplates(nextTemplates);
-      setShippingDefaults(res.defaults ?? null);
 
       const defaults = res.defaults ?? {};
       const shipmentFormat = res.shipment?.label_format;
@@ -316,9 +291,10 @@ export default function AdminOrderDetailPage() {
         );
         if (match) {
           setParcelTemplateId(match.id);
-          setManualTemplateSelection(true);
           applyTemplate(match);
         }
+      } else {
+        setParcelTemplateId(null);
       }
     } catch (err) {
       setShippingError(resolveAdminError(t, err, "admin.unableToLoadOrder"));
@@ -335,71 +311,15 @@ export default function AdminOrderDetailPage() {
     loadShipping();
   }, [orderId]);
 
-  const itemCount = useMemo(
-    () => items.reduce((sum, item) => sum + (item.quantity || 0), 0),
-    [items]
-  );
-
-  const orderKeywords = useMemo(() => {
-    const parts = items.flatMap((item) => [
-      item.product_slug,
-      item.name,
-      item.variant,
-      item.size,
-    ]);
-    return parts.filter(Boolean).join(" ").toLowerCase();
-  }, [items]);
-
-  const suggestedTemplate = useMemo(() => {
-    if (!parcelTemplates.length) return null;
-    const defaultId = shippingDefaults?.default_parcel_template_id ?? null;
-    const candidates =
-      parcelTemplates.filter((template) => {
-        const min = template.min_items ?? null;
-        const max = template.max_items ?? null;
-        if (min != null && itemCount < min) return false;
-        if (max != null && itemCount > max) return false;
-        return true;
-      }) || [];
-
-    const pool = candidates.length ? candidates : parcelTemplates;
-    const scored = pool
-      .map((template) => {
-        const tags = normalizeTemplateTags(template.tags);
-        const tagMatches = tags.filter((tag) => orderKeywords.includes(tag)).length;
-        const lengthIn = toInches(Number(template.length) || 0, template.distance_unit || "in");
-        const widthIn = toInches(Number(template.width) || 0, template.distance_unit || "in");
-        const heightIn = toInches(Number(template.height) || 0, template.distance_unit || "in");
-        const volume = lengthIn * widthIn * heightIn;
-        return { template, tagMatches, volume };
-      })
-      .sort((a, b) => {
-        if (a.tagMatches !== b.tagMatches) return b.tagMatches - a.tagMatches;
-        return a.volume - b.volume;
-      });
-
-    const match = scored[0]?.template ?? null;
-    if (match) return match;
-    if (defaultId) {
-      return parcelTemplates.find((template) => template.id === defaultId) ?? null;
+  const handleRefreshReadiness = async () => {
+    setReadinessRefreshing(true);
+    setError(null);
+    try {
+      await Promise.all([load(), loadShipping()]);
+    } finally {
+      setReadinessRefreshing(false);
     }
-    return null;
-  }, [parcelTemplates, itemCount, orderKeywords, shippingDefaults?.default_parcel_template_id]);
-
-  useEffect(() => {
-    if (!parcelTemplates.length) return;
-    if (manualTemplateSelection) return;
-    if (shipment?.parcel_template_id) return;
-    if (!suggestedTemplate) return;
-
-    setParcelTemplateId(suggestedTemplate.id);
-    applyTemplate(suggestedTemplate);
-  }, [
-    parcelTemplates,
-    manualTemplateSelection,
-    shipment?.parcel_template_id,
-    suggestedTemplate,
-  ]);
+  };
 
   useEffect(() => {
     if (shipment?.label_asset_url) {
@@ -434,8 +354,20 @@ export default function AdminOrderDetailPage() {
     });
 
   const handleTemplateChange = (value: string) => {
-    setParcelTemplateId(value || null);
-    setManualTemplateSelection(true);
+    const nextTemplateId = value || null;
+    setParcelTemplateId(nextTemplateId);
+    if (!nextTemplateId) {
+      setParcel({
+        length: "",
+        width: "",
+        height: "",
+        weight: "",
+        distance_unit: "in",
+        mass_unit: "oz",
+      });
+      return;
+    }
+
     const match = parcelTemplates.find((template) => template.id === value);
     if (match) {
       applyTemplate(match);
@@ -524,33 +456,6 @@ export default function AdminOrderDetailPage() {
     } finally {
       setLabelArchiving(false);
     }
-  };
-
-  const handleRandomizeParcel = () => {
-    const randomBetween = (min: number, max: number) =>
-      Math.round((Math.random() * (max - min) + min) * 100) / 100;
-
-    const distanceUnit = parcel.distance_unit || "in";
-    const massUnit = parcel.mass_unit || "oz";
-
-    const lengthRange = distanceUnit === "cm" ? [10, 40] : [6, 14];
-    const widthRange = distanceUnit === "cm" ? [10, 35] : [6, 12];
-    const heightRange = distanceUnit === "cm" ? [4, 20] : [2, 8];
-
-    let weightRange: [number, number] = [4, 16];
-    if (massUnit === "lb") weightRange = [0.5, 3];
-    if (massUnit === "g") weightRange = [200, 1200];
-    if (massUnit === "kg") weightRange = [0.2, 2];
-
-    setParcel((prev) => ({
-      ...prev,
-      length: String(randomBetween(lengthRange[0], lengthRange[1])),
-      width: String(randomBetween(widthRange[0], widthRange[1])),
-      height: String(randomBetween(heightRange[0], heightRange[1])),
-      weight: String(randomBetween(weightRange[0], weightRange[1])),
-      distance_unit: distanceUnit,
-      mass_unit: massUnit,
-    }));
   };
 
   const handleQuickAction = (action: StatusAction) => {
@@ -1029,14 +934,6 @@ export default function AdminOrderDetailPage() {
                       })),
                     ]}
                   />
-                  {suggestedTemplate && !manualTemplateSelection ? (
-                    <p className="text-xs text-white/60">
-                      {t("admin.shippingSuggestedTemplate", {
-                        name: suggestedTemplate.name,
-                        count: itemCount,
-                      })}
-                    </p>
-                  ) : null}
                   {templateNotice ? (
                     <p className="text-xs text-yellow-200">{templateNotice}</p>
                   ) : null}
@@ -1156,14 +1053,6 @@ export default function AdminOrderDetailPage() {
                     className="bg-white/10"
                   >
                     {shippingBusy ? t("common.loading") : t("admin.shippingGetRates")}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={handleRandomizeParcel}
-                    disabled={!canManageShipping}
-                    className="bg-white/10"
-                  >
-                    {t("admin.shippingRandomize")}
                   </Button>
                 </div>
 
@@ -1366,46 +1255,71 @@ export default function AdminOrderDetailPage() {
                   Quick verification for payment, totals, contact, shipment, and label persistence.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
-                <span className="rounded-full border border-lucky-green/30 bg-lucky-green/15 px-3 py-1 text-lucky-green">
-                  Ready {readinessSummary.green}
-                </span>
-                <span className="rounded-full border border-yellow-500/30 bg-yellow-500/15 px-3 py-1 text-yellow-100">
-                  Pending {readinessSummary.yellow}
-                </span>
-                <span className="rounded-full border border-red-500/30 bg-red-500/15 px-3 py-1 text-red-200">
-                  Missing {readinessSummary.red}
-                </span>
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em]">
+                  <span className="rounded-full border border-lucky-green/30 bg-lucky-green/15 px-3 py-1 text-lucky-green">
+                    Ready {readinessSummary.green}
+                  </span>
+                  <span className="rounded-full border border-yellow-500/30 bg-yellow-500/15 px-3 py-1 text-yellow-100">
+                    Pending {readinessSummary.yellow}
+                  </span>
+                  <span className="rounded-full border border-red-500/30 bg-red-500/15 px-3 py-1 text-red-200">
+                    Missing {readinessSummary.red}
+                  </span>
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={handleRefreshReadiness}
+                    disabled={readinessRefreshing}
+                    className="bg-white/10"
+                  >
+                    {readinessRefreshing ? "Refreshing..." : "Refresh"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setReadinessExpanded((prev) => !prev)}
+                    className="bg-white/10"
+                  >
+                    {readinessExpanded ? "Collapse" : "Expand"}
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="mt-4 space-y-2">
-              {readinessChecks.map((check) => (
-                <div
-                  key={check.label}
-                  className="rounded-xl border border-white/10 bg-black/30 px-3 py-3"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-white">{check.label}</p>
-                      {check.detail ? (
-                        <p className="mt-1 text-xs leading-5 text-white/55">{check.detail}</p>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${checkToneClass(
-                          check.tone
-                        )}`}
-                      >
-                        {checkToneLabel(check.tone)}
-                      </span>
-                      <span className="text-sm text-white/75">{check.value}</span>
+            {readinessExpanded ? (
+              <div className="mt-4 space-y-2">
+                {readinessChecks.map((check) => (
+                  <div
+                    key={check.label}
+                    className="rounded-xl border border-white/10 bg-black/30 px-3 py-3"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-white">{check.label}</p>
+                        {check.detail ? (
+                          <p className="mt-1 text-xs leading-5 text-white/55">{check.detail}</p>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${checkToneClass(
+                            check.tone
+                          )}`}
+                        >
+                          {checkToneLabel(check.tone)}
+                        </span>
+                        <span className="text-sm text-white/75">{check.value}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-xs text-white/55">
+                Minimized. Expand to review detailed readiness checks.
+              </p>
+            )}
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white space-y-4">

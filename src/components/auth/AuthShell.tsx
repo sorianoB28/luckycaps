@@ -29,9 +29,11 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
             <div className="flex items-center gap-3">
               <div className="relative h-12 w-12 overflow-hidden rounded-full border border-white/20 bg-black">
                 <Image
-                  src="/brand/luckycaps-logo.png"
+                  src="/brand/newlogocropped.png?v=20260525-2"
                   alt={t("header.logoAlt")}
                   fill
+                  quality={100}
+                  sizes="48px"
                   className="object-cover"
                 />
               </div>

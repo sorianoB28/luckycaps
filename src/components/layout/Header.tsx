@@ -108,16 +108,17 @@ export default function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
         <Link href="/" className="flex items-center gap-2">
           <motion.div
-            className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/20 bg-black"
+            className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-white/20 bg-black"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.4 }}
           >
             <Image
-              src="/brand/luckycaps-logo.png"
+              src="/brand/newlogocropped.png?v=20260525-2"
               alt={t("header.logoAlt")}
-              width={48}
-              height={48}
+              width={80}
+              height={80}
+              quality={100}
               className="h-full w-full object-cover"
               priority
             />

@@ -20,10 +20,10 @@ async function seedParcelTemplates() {
         label_format_default
       )
       SELECT
-        'Cap - Single',
+        'Single Cap Big Box',
+        10,
+        10,
         8,
-        8,
-        4,
         8,
         'in',
         'oz',
@@ -32,55 +32,7 @@ async function seedParcelTemplates() {
         '["cap","hat","caps"]'::jsonb,
         'PDF_4x6'
       WHERE NOT EXISTS (
-        SELECT 1 FROM public.parcel_templates WHERE name = 'Cap - Single'
-      )
-      UNION ALL
-      SELECT
-        'Cap - 2 hats',
-        10,
-        8,
-        6,
-        16,
-        'in',
-        'oz',
-        2,
-        2,
-        '["cap","hat","caps"]'::jsonb,
-        'PDF_4x6'
-      WHERE NOT EXISTS (
-        SELECT 1 FROM public.parcel_templates WHERE name = 'Cap - 2 hats'
-      )
-      UNION ALL
-      SELECT
-        'Cap - 3-4 hats',
-        12,
-        10,
-        8,
-        32,
-        'in',
-        'oz',
-        3,
-        4,
-        '["cap","hat","caps"]'::jsonb,
-        'PDF_4x6'
-      WHERE NOT EXISTS (
-        SELECT 1 FROM public.parcel_templates WHERE name = 'Cap - 3-4 hats'
-      )
-      UNION ALL
-      SELECT
-        'Soft goods mailer',
-        10,
-        13,
-        2,
-        12,
-        'in',
-        'oz',
-        1,
-        4,
-        '["soft","softgoods","apparel","shirt","hoodie"]'::jsonb,
-        'PDF_4x6'
-      WHERE NOT EXISTS (
-        SELECT 1 FROM public.parcel_templates WHERE name = 'Soft goods mailer'
+        SELECT 1 FROM public.parcel_templates WHERE name = 'Single Cap Big Box'
       )
     `
   );
@@ -107,6 +59,7 @@ export async function GET() {
           tags,
           label_format_default
         FROM public.parcel_templates
+        WHERE name = 'Single Cap Big Box'
         ORDER BY name ASC
       `
     )) as Array<Record<string, unknown>>;
@@ -129,6 +82,7 @@ export async function GET() {
             tags,
             label_format_default
           FROM public.parcel_templates
+          WHERE name = 'Single Cap Big Box'
           ORDER BY name ASC
         `
       )) as Array<Record<string, unknown>>;
