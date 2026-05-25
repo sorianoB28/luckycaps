@@ -136,7 +136,7 @@ export default function FooterClient({ categories }: FooterClientProps) {
             <div className="flex items-center gap-3">
               <div className="relative h-12 w-12 overflow-hidden rounded-full border border-white/20 bg-black">
                 <Image
-                  src="/brand/newlogocropped.png?v=20260525-2"
+                  src="/brand/newlogocropped.png"
                   alt={t("header.logoAlt")}
                   fill
                   quality={100}

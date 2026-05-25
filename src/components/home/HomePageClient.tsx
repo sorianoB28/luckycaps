@@ -13,7 +13,7 @@ import { buildCloudinaryCardUrl } from "@/lib/cloudinaryUrl";
 import { CategoryInfo } from "@/lib/categories";
 import { Product } from "@/types";
 
-const heroBackground = "/brand/home-hero-bg.png?v=20260525-1";
+const heroBackground = "/brand/home-hero-bg.png";
 const founderImage =
   "https://res.cloudinary.com/dgg7cxdoj/image/upload/v1768941092/jesus_to3eks.jpg";
 

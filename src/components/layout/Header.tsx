@@ -114,7 +114,7 @@ export default function Header() {
             transition={{ duration: 0.4 }}
           >
             <Image
-              src="/brand/newlogocropped.png?v=20260525-2"
+              src="/brand/newlogocropped.png"
               alt={t("header.logoAlt")}
               width={80}
               height={80}
