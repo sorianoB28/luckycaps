@@ -8,3 +8,9 @@
 
  ✓ Starting...
  ✓ Ready in 1714ms
+ ○ Compiling / ...
+ GET / 200 in 5782ms
+ GET / 200 in 39ms
+ GET /icon.png?ff6176e8d8dc99e3 200 in 361ms
+ GET /apple-icon.png?ff6176e8d8dc99e3 200 in 263ms
+ GET /robots.txt 404 in 572ms

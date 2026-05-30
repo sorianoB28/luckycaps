@@ -117,6 +117,17 @@ export default function AdminLayout({
               </Link>
               <span className="text-white/30">/</span>
               <Link
+                href="/admin/custom-labels"
+                className={
+                  pathname?.startsWith("/admin/custom-labels")
+                    ? "text-lucky-green"
+                    : "transition hover:text-white"
+                }
+              >
+                {t("admin.customLabels")}
+              </Link>
+              <span className="text-white/30">/</span>
+              <Link
                 href="/admin/system/readiness"
                 className={
                   pathname?.startsWith("/admin/system")

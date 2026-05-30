@@ -335,6 +335,44 @@ export type AdminShippingResponse = {
   template_notice?: string | null;
 };
 
+export type AdminManualRecipient = {
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address1: string;
+  address2?: string | null;
+  city: string;
+  state?: string | null;
+  zip: string;
+  country: string;
+};
+
+export type AdminManualShipment = {
+  id: string;
+  provider?: string | null;
+  status?: string | null;
+  recipient?: AdminManualRecipient | null;
+  parcel?: AdminShipmentParcel | null;
+  rates?: AdminShipmentRate[];
+  selected_rate?: AdminShipmentRate | Record<string, unknown> | null;
+  provider_shipment_id?: string | null;
+  provider_rate_id?: string | null;
+  label_url?: string | null;
+  label_asset_url?: string | null;
+  label_format?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  shippo_transaction_id?: string | null;
+  postage_amount?: number | null;
+  postage_currency?: string | null;
+  label_purchased_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type AdminPromoCode = {
   id: string;
   code: string;
@@ -702,6 +740,39 @@ export async function archiveAdminOrderLabel(orderId: string) {
     archived?: boolean;
   }>(`/api/admin/orders/${orderId}/shipping/label`, {
     method: "POST",
+  });
+}
+
+export async function getAdminManualShipments() {
+  return adminFetchJsonWithErrors<{ shipments: AdminManualShipment[] }>("/api/admin/manual-shipments", {
+    cache: "no-store",
+  });
+}
+
+export async function createAdminManualShippingDraft(payload: {
+  recipient: AdminManualRecipient;
+  parcel: AdminShipmentParcel;
+  label_format?: string;
+}) {
+  return adminFetchJsonWithErrors<{ shipment: AdminManualShipment | null; rates: AdminShipmentRate[] }>(
+    "/api/admin/manual-shipments/draft",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function buyAdminManualShippingLabel(
+  id: string,
+  payload: { rate_id: string; label_format?: string }
+) {
+  return adminFetchJsonWithErrors<{
+    shipment: AdminManualShipment | null;
+    label_error?: string;
+  }>(`/api/admin/manual-shipments/${id}/buy`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 
