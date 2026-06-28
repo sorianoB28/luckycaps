@@ -770,6 +770,7 @@ export async function buyAdminManualShippingLabel(
   return adminFetchJsonWithErrors<{
     shipment: AdminManualShipment | null;
     label_error?: string;
+    label_error_code?: string;
   }>(`/api/admin/manual-shipments/${id}/buy`, {
     method: "POST",
     body: JSON.stringify(payload),

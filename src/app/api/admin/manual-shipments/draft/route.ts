@@ -40,7 +40,7 @@ function normalizeShippoAddress(input: Record<string, unknown>) {
   const city = String(input.city ?? "").trim();
   const state = String(input.state ?? "").trim() || null;
   const zip = String(input.zip ?? input.postal_code ?? "").trim();
-  const country = String(input.country ?? "").trim();
+  const country = String(input.country ?? "").trim().toUpperCase();
 
   return {
     name: name || undefined,

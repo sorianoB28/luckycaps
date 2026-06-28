@@ -13,6 +13,8 @@ import {
 const isUuid = (value: string) =>
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value);
 
+const allowedLabelFormats = new Set(["PDF_4x6", "ZPLII"]);
+
 const parseJson = <T,>(value: unknown, fallback: T) => {
   if (value == null) return fallback;
   if (typeof value === "string") {
@@ -39,6 +41,19 @@ type ManualShipmentRecord = Record<string, unknown> & {
 
 const readString = (value: unknown) =>
   typeof value === "string" ? value : value == null ? "" : String(value);
+
+async function getStoreSetting<T>(key: string) {
+  const rows = (await sql(
+    `
+      SELECT value
+      FROM public.store_settings
+      WHERE key = $1
+      LIMIT 1
+    `,
+    [key]
+  )) as Array<{ value: T }>;
+  return rows[0]?.value ?? null;
+}
 
 const normalizeShipment = (shipment: ManualShipmentRecord | null): ManualShipmentRecord | null => {
   if (!shipment) return null;
@@ -115,7 +130,15 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ error: "Rate not found" }, { status: 400 });
     }
 
-    const labelFormat = body.label_format === "ZPLII" ? "ZPLII" : "PDF_4x6";
+    let labelFormat = String(body.label_format || "").trim();
+    if (!labelFormat) {
+      const defaults = await getStoreSetting<Record<string, unknown>>("shipping_defaults");
+      labelFormat = String(defaults?.label_format || "");
+    }
+    if (!allowedLabelFormats.has(labelFormat)) {
+      labelFormat = "PDF_4x6";
+    }
+
     const purchase = await buyLabel({ rate_id: rateId, label_format: labelFormat });
     const selectedRateJson = JSON.stringify(match);
 
@@ -136,6 +159,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     let labelAssetUrl: string | null = null;
     let labelAssetPublicId: string | null = null;
     let labelError: string | null = null;
+    let labelErrorCode: string | null = null;
     let persistedLabelUrl = readString(purchase.label_url).trim() || null;
     const labelPublicId = `manual-labels/${params.id}/${purchase.transaction_id || rateId}`;
 
@@ -157,6 +181,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         await archiveLabel(persistedLabelUrl, "shippo_label_url");
       } catch (err) {
         labelError = (err as Error).message || "Unable to store shipping label";
+        labelErrorCode = "cloudinary_upload_failed";
       }
     }
 
@@ -166,9 +191,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
         if (!persistedLabelUrl) persistedLabelUrl = fallbackUrl;
         await archiveLabel(fallbackUrl, "shippo_transaction");
         labelError = null;
+        labelErrorCode = null;
       } catch (err) {
         if (!labelError) {
           labelError = (err as Error).message || "Unable to fetch Shippo label";
+          labelErrorCode = "shippo_label_fetch_failed";
         }
       }
     }
@@ -213,10 +240,16 @@ export async function POST(request: Request, { params }: { params: { id: string 
     )) as ManualShipmentRecord[];
 
     const updated = normalizeShipment(updatedRows[0] ?? shipment);
-    return NextResponse.json({
-      shipment: updated,
-      label_error: labelError || undefined,
-    });
+    const payload: {
+      shipment: typeof updated;
+      label_error?: string;
+      label_error_code?: string;
+    } = { shipment: updated };
+    if (labelError) {
+      payload.label_error = labelError;
+      if (labelErrorCode) payload.label_error_code = labelErrorCode;
+    }
+    return NextResponse.json(payload);
   } catch (err) {
     const message = (err as Error).message || "Unable to purchase label";
     const currentShipment = normalizeShipment(shipment);
@@ -232,6 +265,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
           provider_status: err.shippoStatus,
           provider_object_state: err.shippoObjectState,
           shippo_transaction_id: err.shippoTransactionId,
+          label_created: false,
+          shipment_persisted: false,
           shipment: currentShipment,
         },
         { status: 422 }
@@ -246,6 +281,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
       {
         error: message,
         code,
+        label_created: false,
+        shipment_persisted: false,
         shipment: currentShipment,
       },
       { status: code === "shippo_token_missing" ? 500 : 502 }
